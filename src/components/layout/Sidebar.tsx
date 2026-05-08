@@ -1,0 +1,244 @@
+import { useState } from "react";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import {
+  ChevronDown,
+  Search,
+  Crown,
+  BookOpen,
+  LogOut,
+  User,
+  Circle,
+} from "lucide-react";
+import { menu, type MenuChild } from "../../config/menu";
+import { office } from "../../config/office";
+
+function ChildLink({ child }: { child: MenuChild }) {
+  const Icon = child.icon;
+  return (
+    <NavLink
+      to={child.to}
+      className={({ isActive }) =>
+        `flex items-center gap-2 px-3 py-2 rounded-lg text-[13px] transition ${
+          isActive
+            ? "bg-brand-50 text-brand-700 font-bold"
+            : "text-slate-500 hover:bg-slate-50"
+        }`
+      }
+    >
+      <Icon className="w-3.5 h-3.5" />
+      <span className="flex-1 text-right">{child.label}</span>
+    </NavLink>
+  );
+}
+
+export default function Sidebar() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { signOut, user } = useAuth();
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate("/login", { replace: true });
+  };
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(menu.map((g) => [g.title ?? "", true]))
+  );
+  const [openItems, setOpenItems] = useState<Record<string, boolean>>(() => {
+    const init: Record<string, boolean> = {};
+    menu.forEach((g) =>
+      g.items.forEach((it) => {
+        const childMatch = it.children?.some((c) =>
+          location.pathname.startsWith(c.to)
+        );
+        const sectionMatch = it.sections?.some((s) =>
+          s.children.some((c) => location.pathname.startsWith(c.to))
+        );
+        if (childMatch || sectionMatch) init[it.label] = true;
+      })
+    );
+    return init;
+  });
+
+  const toggle = (key: string) =>
+    setOpenGroups((p) => ({ ...p, [key]: !p[key] }));
+  const toggleItem = (key: string) =>
+    setOpenItems((p) => ({ ...p, [key]: !p[key] }));
+
+  return (
+    <aside className="w-64 shrink-0 bg-white border-l border-slate-200 flex flex-col h-screen sticky top-0">
+      {/* Logo */}
+      <div className="h-16 flex items-center justify-end px-5 border-b border-slate-100">
+        <div className="text-lg font-extrabold text-brand-600 tracking-wide">
+          {office.shortName}
+        </div>
+      </div>
+
+      {/* User */}
+      <div className="p-3">
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-brand-50 border border-brand-100">
+          <div className="w-10 h-10 rounded-full bg-brand-500 text-white flex items-center justify-center font-bold">
+            {office.user.initials}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-bold text-slate-800 truncate">
+              {office.user.name}
+            </div>
+            <div className="text-xs text-slate-500 flex items-center gap-1">
+              <Circle className="w-2 h-2 fill-emerald-500 text-emerald-500" />
+              {office.user.role}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Quick search */}
+      <div className="px-3 pb-2">
+        <div className="relative">
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input
+            placeholder="بحث سريع..."
+            className="w-full pr-9 pl-14 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-200"
+          />
+          <div className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+            <kbd className="text-[10px] px-1.5 py-0.5 bg-white border border-slate-200 rounded">
+              Ctrl
+            </kbd>
+            <kbd className="text-[10px] px-1.5 py-0.5 bg-white border border-slate-200 rounded">
+              K
+            </kbd>
+          </div>
+        </div>
+      </div>
+
+      {/* Premium buttons */}
+      <div className="px-3 pb-3 space-y-2">
+        <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-white text-sm font-bold bg-gradient-to-l from-blue-500 to-brand-500 shadow hover:opacity-95">
+          <Crown className="w-4 h-4" />
+          الاشتراك
+        </button>
+        <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-white text-sm font-bold bg-gradient-to-l from-purple-500 to-orange-400 shadow hover:opacity-95">
+          <BookOpen className="w-4 h-4" />
+          الدليل الإرشادي
+        </button>
+      </div>
+
+      {/* Menu */}
+      <nav className="flex-1 overflow-y-auto scrollbar-thin px-3 pb-3 space-y-1">
+        {menu.map((group, gi) => (
+          <div key={gi} className="mb-2">
+            {group.title && (
+              <button
+                onClick={() => toggle(group.title!)}
+                className="w-full flex items-center justify-between px-2 py-2 text-xs font-bold text-slate-400"
+              >
+                <span className="flex items-center gap-2">
+                  <span className="w-1 h-3 bg-brand-500 rounded-full" />
+                  {group.title}
+                </span>
+                <ChevronDown
+                  className={`w-4 h-4 transition-transform ${
+                    openGroups[group.title!] ? "" : "-rotate-90"
+                  }`}
+                />
+              </button>
+            )}
+            {openGroups[group.title ?? ""] &&
+              group.items.map((item) => {
+                const Icon = item.icon;
+                if (item.children || item.sections) {
+                  const isOpen = openItems[item.label];
+                  const childActive =
+                    item.children?.some((c) =>
+                      location.pathname.startsWith(c.to)
+                    ) ||
+                    item.sections?.some((s) =>
+                      s.children.some((c) => location.pathname.startsWith(c.to))
+                    );
+                  return (
+                    <div key={item.label}>
+                      <button
+                        onClick={() => toggleItem(item.label)}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition ${
+                          childActive
+                            ? "bg-brand-500 text-white shadow"
+                            : "text-slate-600 hover:bg-slate-50"
+                        }`}
+                      >
+                        <Icon className="w-4 h-4" />
+                        <span className="flex-1 text-right">{item.label}</span>
+                        <ChevronDown
+                          className={`w-4 h-4 transition-transform ${
+                            isOpen ? "" : "-rotate-90"
+                          }`}
+                        />
+                      </button>
+                      {isOpen && (
+                        <div className="mt-1 mr-3 pr-3 border-r-2 border-slate-100 space-y-1">
+                          {item.children?.map((c) => (
+                            <ChildLink key={c.label} child={c} />
+                          ))}
+                          {item.sections?.map((section, si) => (
+                            <div key={si} className="pt-1">
+                              {section.title && (
+                                <div className="px-3 py-1.5 text-[11px] font-bold text-slate-400">
+                                  {section.title}
+                                </div>
+                              )}
+                              {section.children.map((c) => (
+                                <ChildLink key={c.label} child={c} />
+                              ))}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+                return (
+                  <NavLink
+                    key={item.label}
+                    to={item.to ?? "#"}
+                    end={item.to === "/"}
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition ${
+                        isActive
+                          ? "bg-brand-500 text-white shadow"
+                          : "text-slate-600 hover:bg-slate-50"
+                      }`
+                    }
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span className="flex-1 text-right">{item.label}</span>
+                  </NavLink>
+                );
+              })}
+          </div>
+        ))}
+      </nav>
+
+      {/* Footer */}
+      <div className="border-t border-slate-100 p-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleLogout}
+            title="تسجيل الخروج"
+            className="w-8 h-8 rounded-lg hover:bg-rose-50 hover:text-rose-500 flex items-center justify-center text-slate-500 transition"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+          <button
+            title={user?.email ?? "البروفايل"}
+            className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-500"
+          >
+            <User className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="text-xs text-slate-500 flex items-center gap-1.5">
+          <Circle className="w-2 h-2 fill-blue-500 text-blue-500" />
+          النظام متصل
+        </div>
+      </div>
+    </aside>
+  );
+}
