@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowRight,
@@ -12,6 +12,7 @@ import {
   Edit3,
   Trash2,
   Download,
+  Eye,
   FileType,
   Calendar,
   StickyNote,
@@ -23,6 +24,7 @@ import {
 } from "lucide-react";
 import { useClients, deleteClient, type ClientRecord } from "../lib/clientStore";
 import { nationalities } from "../config/nationalities";
+import AttachmentPreview from "../components/ui/AttachmentPreview";
 
 const clientTypeLabels: Record<string, string> = {
   individual: "فرد",
@@ -51,6 +53,7 @@ export default function ClientProfile() {
   const { id } = useParams<{ id: string }>();
   const clients = useClients();
   const navigate = useNavigate();
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null);
 
   const client = useMemo(
     () => clients.find((c) => c.id === id),
@@ -280,13 +283,26 @@ export default function ClientProfile() {
             ) : (
               <ul className="space-y-2">
                 {client.attachments.map((f, i) => (
-                  <AttachmentRow key={i} file={f} />
+                  <AttachmentRow
+                    key={i}
+                    file={f}
+                    onPreview={() => setPreviewIndex(i)}
+                  />
                 ))}
               </ul>
             )}
           </div>
         </div>
       </div>
+
+      {previewIndex !== null && (
+        <AttachmentPreview
+          attachments={client.attachments}
+          index={previewIndex}
+          onClose={() => setPreviewIndex(null)}
+          onChangeIndex={setPreviewIndex}
+        />
+      )}
     </div>
   );
 }
@@ -390,20 +406,41 @@ function InfoItem({
   );
 }
 
-function AttachmentRow({ file }: { file: ClientRecord["attachments"][number] }) {
+function AttachmentRow({
+  file,
+  onPreview,
+}: {
+  file: ClientRecord["attachments"][number];
+  onPreview: () => void;
+}) {
   const isImage = file.type.startsWith("image/");
 
   return (
-    <li className="group flex items-center justify-between gap-2 p-2 rounded-lg border border-slate-200 hover:bg-slate-50 transition">
-      <a
-        href={file.dataUrl}
-        download={file.name}
-        title="تنزيل"
-        className="p-1.5 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-md shrink-0"
+    <li className="group flex items-center gap-2 p-2 rounded-lg border border-slate-200 hover:bg-slate-50 transition">
+      <div className="flex items-center gap-1 shrink-0">
+        <a
+          href={file.dataUrl}
+          download={file.name}
+          title="تنزيل"
+          onClick={(e) => e.stopPropagation()}
+          className="p-1.5 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-md"
+        >
+          <Download className="w-4 h-4" />
+        </a>
+        <button
+          type="button"
+          onClick={onPreview}
+          title="معاينة"
+          className="p-1.5 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-md"
+        >
+          <Eye className="w-4 h-4" />
+        </button>
+      </div>
+      <button
+        type="button"
+        onClick={onPreview}
+        className="flex items-center gap-2 min-w-0 flex-1 text-right"
       >
-        <Download className="w-4 h-4" />
-      </a>
-      <div className="flex items-center gap-2 min-w-0 flex-1">
         {isImage ? (
           <img
             src={file.dataUrl}
@@ -426,14 +463,14 @@ function AttachmentRow({ file }: { file: ClientRecord["attachments"][number] }) 
           </div>
         )}
         <div className="text-right min-w-0 flex-1">
-          <div className="text-xs font-medium text-slate-700 truncate" title={file.name}>
+          <div className="text-xs font-medium text-slate-700 truncate group-hover:text-brand-700" title={file.name}>
             {file.name}
           </div>
           <div className="text-[10px] text-slate-400 mt-0.5">
             {formatSize(file.size)}
           </div>
         </div>
-      </div>
+      </button>
     </li>
   );
 }
