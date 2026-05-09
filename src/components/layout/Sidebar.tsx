@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
 import {
@@ -10,7 +10,6 @@ import {
   Circle,
 } from "lucide-react";
 import { menu, type MenuChild } from "../../config/menu";
-import { office } from "../../config/office";
 
 function ChildLink({ child }: { child: MenuChild }) {
   const Icon = child.icon;
@@ -41,6 +40,20 @@ export default function Sidebar() {
     await signOut();
     navigate("/login", { replace: true });
   };
+
+  // Live online/offline detection
+  const [online, setOnline] = useState(() => navigator.onLine);
+  useEffect(() => {
+    const goOnline = () => setOnline(true);
+    const goOffline = () => setOnline(false);
+    window.addEventListener("online", goOnline);
+    window.addEventListener("offline", goOffline);
+    return () => {
+      window.removeEventListener("online", goOnline);
+      window.removeEventListener("offline", goOffline);
+    };
+  }, []);
+
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(menu.map((g) => [g.title ?? "", true]))
   );
@@ -88,15 +101,15 @@ export default function Sidebar() {
       <div className="p-3">
         <div className="flex items-center gap-3 p-3 rounded-xl bg-brand-50 border border-brand-100">
           <div className="w-10 h-10 rounded-full bg-brand-500 text-white flex items-center justify-center font-bold">
-            {office.user.initials}
+            {(user?.email?.[0] ?? "؟").toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-sm font-bold text-slate-800 truncate">
-              {office.user.name}
+            <div className="text-sm font-bold text-slate-800 truncate" title={user?.email}>
+              {(user?.user_metadata?.name as string | undefined) ?? user?.email?.split("@")[0] ?? "ضيف"}
             </div>
             <div className="text-xs text-slate-500 flex items-center gap-1">
               <Circle className="w-2 h-2 fill-emerald-500 text-emerald-500" />
-              {office.user.role}
+              مدير المكتب
             </div>
           </div>
         </div>
@@ -225,16 +238,28 @@ export default function Sidebar() {
           >
             <LogOut className="w-4 h-4" />
           </button>
-          <button
-            title={user?.email ?? "البروفايل"}
-            className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-500"
+          <Link
+            to="/admin"
+            title={user?.email ? `إعدادات الحساب (${user.email})` : "إعدادات الحساب"}
+            className="w-8 h-8 rounded-lg hover:bg-brand-50 hover:text-brand-600 flex items-center justify-center text-slate-500 transition"
           >
             <User className="w-4 h-4" />
-          </button>
+          </Link>
         </div>
-        <div className="text-xs text-slate-500 flex items-center gap-1.5">
-          <Circle className="w-2 h-2 fill-blue-500 text-blue-500" />
-          النظام متصل
+        <div
+          className={`text-xs flex items-center gap-1.5 ${
+            online ? "text-slate-500" : "text-rose-500"
+          }`}
+          title={online ? "الاتصال بالإنترنت متاح" : "لا يوجد اتصال بالإنترنت"}
+        >
+          <Circle
+            className={`w-2 h-2 ${
+              online
+                ? "fill-emerald-500 text-emerald-500"
+                : "fill-rose-500 text-rose-500 animate-pulse"
+            }`}
+          />
+          {online ? "النظام متصل" : "غير متصل"}
         </div>
       </div>
     </aside>
