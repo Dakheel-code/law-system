@@ -21,15 +21,8 @@ import NewContract from "./pages/contracts/NewContract";
 import Users from "./pages/users/Users";
 import NewUser from "./pages/users/NewUser";
 import Permissions from "./pages/users/Permissions";
-
-function Placeholder({ title }: { title: string }) {
-  return (
-    <div className="card p-10 text-center text-slate-400">
-      <h2 className="text-xl font-bold text-slate-700 mb-2">{title}</h2>
-      <p className="text-sm">قيد التطوير — سيتم بناء هذه الصفحة في مرحلة لاحقة</p>
-    </div>
-  );
-}
+import Admin from "./pages/Admin";
+import Theme from "./pages/Theme";
 
 export default function App() {
   return (
@@ -68,8 +61,8 @@ export default function App() {
           <Route path="/users" element={<Users />} />
           <Route path="/users/new" element={<NewUser />} />
           <Route path="/users/permissions" element={<Permissions />} />
-          <Route path="/admin" element={<Placeholder title="الإدارة" />} />
-          <Route path="/theme" element={<Placeholder title="تخصيص الواجهة" />} />
+          <Route path="/admin" element={<Admin />} />
+          <Route path="/theme" element={<Theme />} />
         </Route>
       </Routes>
     </AuthProvider>
