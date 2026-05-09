@@ -124,27 +124,35 @@ export default function ClientProfile() {
         </Link>
       </div>
 
-      {/* Header — RTL friendly: avatar on the right */}
-      <div className="card relative overflow-hidden">
+      {/* Header — RTL friendly */}
+      <div className="card overflow-hidden">
+        {/* Gradient banner */}
         <div className="h-28 bg-gradient-to-l from-brand-700 via-brand-600 to-brand-500 relative">
-          <div className="absolute inset-0 opacity-20" style={{
-            backgroundImage: 'radial-gradient(circle at 70% 50%, white 1px, transparent 1px)',
-            backgroundSize: '24px 24px'
-          }} />
+          <div
+            className="absolute inset-0 opacity-20"
+            style={{
+              backgroundImage:
+                "radial-gradient(circle at 70% 50%, white 1px, transparent 1px)",
+              backgroundSize: "24px 24px",
+            }}
+          />
         </div>
-        <div className="px-6 pb-6 -mt-14">
-          <div className="flex items-end justify-between flex-wrap gap-4">
-            {/* Right: avatar + name */}
-            <div className="flex items-end gap-4">
-              <div className="w-28 h-28 rounded-2xl bg-white border-4 border-white shadow-lg flex items-center justify-center shrink-0">
-                <div className="w-full h-full rounded-xl bg-gradient-to-br from-brand-100 to-brand-200 flex items-center justify-center">
-                  <span className="text-3xl font-extrabold text-brand-600">
-                    {initials || <UserIcon className="w-10 h-10" />}
-                  </span>
-                </div>
+
+        {/* Content row */}
+        <div className="px-6 pb-5 pt-3">
+          <div className="flex items-start justify-between flex-wrap gap-4">
+            {/* Right side: avatar + identity */}
+            <div className="flex items-start gap-4 min-w-0 flex-1">
+              {/* Avatar pulled up over the banner */}
+              <div className="w-24 h-24 rounded-2xl ring-4 ring-white shadow-lg bg-gradient-to-br from-brand-100 to-brand-200 flex items-center justify-center shrink-0 -mt-16">
+                <span className="text-2xl font-extrabold text-brand-700">
+                  {initials || <UserIcon className="w-10 h-10" />}
+                </span>
               </div>
-              <div className="text-right pb-2">
-                <div className="flex items-center gap-2 mb-2 flex-wrap">
+
+              {/* Identity */}
+              <div className="text-right min-w-0 pt-1">
+                <div className="flex items-center gap-2 mb-2 flex-wrap justify-end">
                   <span
                     className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold ${
                       client.status === "active"
@@ -156,13 +164,13 @@ export default function ClientProfile() {
                     {client.status === "active" ? "نشط" : "معطّل"}
                   </span>
                   <span
-                    className="inline-flex items-center gap-1 text-[11px] text-slate-500 font-mono bg-slate-100 px-2 py-0.5 rounded-md"
+                    className="inline-flex items-center text-[11px] text-slate-500 font-mono bg-slate-100 px-2 py-0.5 rounded-md"
                     dir="ltr"
                   >
                     {client.id}
                   </span>
                 </div>
-                <h1 className="text-2xl font-extrabold text-slate-800">
+                <h1 className="text-2xl font-extrabold text-slate-800 truncate">
                   {client.fullName}
                 </h1>
                 <p className="text-xs text-slate-500 mt-1">
@@ -171,13 +179,13 @@ export default function ClientProfile() {
               </div>
             </div>
 
-            {/* Left: type/contract badges */}
-            <div className="flex flex-col items-start gap-2 pb-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand-50 text-brand-700 rounded-lg text-xs font-bold">
+            {/* Left side: type / contract badges */}
+            <div className="flex flex-col items-stretch gap-2 pt-1 shrink-0">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand-50 text-brand-700 rounded-lg text-xs font-bold whitespace-nowrap">
                 <Tag className="w-3 h-3" />
                 {clientTypeLabels[client.clientType] ?? client.clientType}
               </span>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-violet-50 text-violet-700 rounded-lg text-xs font-bold">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-violet-50 text-violet-700 rounded-lg text-xs font-bold whitespace-nowrap">
                 <FileText className="w-3 h-3" />
                 {contractTypeLabels[client.contractType] ?? client.contractType}
               </span>
