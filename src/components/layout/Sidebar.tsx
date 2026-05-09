@@ -4,8 +4,6 @@ import { useAuth } from "../../context/AuthContext";
 import {
   ChevronDown,
   Search,
-  Crown,
-  BookOpen,
   LogOut,
   User,
   Circle,
@@ -109,18 +107,6 @@ export default function Sidebar() {
             </kbd>
           </div>
         </div>
-      </div>
-
-      {/* Premium buttons */}
-      <div className="px-3 pb-3 space-y-2">
-        <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-white text-sm font-bold bg-gradient-to-l from-blue-500 to-brand-500 shadow hover:opacity-95">
-          <Crown className="w-4 h-4" />
-          الاشتراك
-        </button>
-        <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-white text-sm font-bold bg-gradient-to-l from-purple-500 to-orange-400 shadow hover:opacity-95">
-          <BookOpen className="w-4 h-4" />
-          الدليل الإرشادي
-        </button>
       </div>
 
       {/* Menu */}
