@@ -11,7 +11,6 @@ import Appointments from "./pages/Appointments";
 import CalendarPage from "./pages/Calendar";
 import Tasks from "./pages/Tasks";
 import Reports from "./pages/Reports";
-import NewConsultation from "./pages/consultations/NewConsultation";
 import Contracts from "./pages/contracts/Contracts";
 import NewContract from "./pages/contracts/NewContract";
 import Users from "./pages/users/Users";
@@ -55,13 +54,6 @@ export default function App() {
           <Route path="/cases/available" element={<Placeholder title="الطلبات المتاحة" />} />
           <Route path="/cases/my-requests" element={<Placeholder title="طلباتي" />} />
           <Route path="/cases/mine" element={<Placeholder title="قضاياي" />} />
-
-          {/* Consultations */}
-          <Route path="/consultations" element={<Placeholder title="إدارة الاستشارات" />} />
-          <Route path="/consultations/new" element={<NewConsultation />} />
-          <Route path="/consultations/mine" element={<Placeholder title="استشاراتي" />} />
-          <Route path="/consultations/available" element={<Placeholder title="الاستشارات المتاحة" />} />
-          <Route path="/consultations/policy" element={<Placeholder title="سياسة الاستشارات" />} />
 
           {/* Contracts */}
           <Route path="/contracts" element={<Contracts />} />
