@@ -5,6 +5,21 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    /* Default brand palette = teal (overridden at runtime by ThemeContext) */
+    --brand-50: 236 250 247;
+    --brand-100: 207 242 235;
+    --brand-200: 163 229 216;
+    --brand-300: 110 209 191;
+    --brand-400: 62 184 163;
+    --brand-500: 30 154 138;
+    --brand-600: 23 124 112;
+    --brand-700: 19 99 90;
+    --brand-800: 17 78 72;
+    --brand-900: 15 65 60;
+    --font-family: "Tajawal", system-ui, sans-serif;
+  }
+
   html {
     direction: rtl;
   }
@@ -13,6 +28,38 @@
   }
   * {
     -webkit-font-smoothing: antialiased;
+  }
+
+  /* Dark mode overrides */
+  .dark body {
+    @apply bg-slate-900 text-slate-200;
+  }
+  .dark .card {
+    @apply bg-slate-800 border-slate-700 text-slate-200;
+  }
+  .dark .bg-white {
+    @apply bg-slate-800;
+  }
+  .dark .text-slate-700,
+  .dark .text-slate-800 {
+    @apply text-slate-100;
+  }
+  .dark .text-slate-500,
+  .dark .text-slate-600 {
+    @apply text-slate-300;
+  }
+  .dark .border-slate-100,
+  .dark .border-slate-200 {
+    @apply border-slate-700;
+  }
+  .dark .bg-slate-50 {
+    @apply bg-slate-900;
+  }
+  .dark .bg-slate-100 {
+    @apply bg-slate-800;
+  }
+  .dark .hover\:bg-slate-50:hover {
+    @apply bg-slate-700;
   }
 }
 

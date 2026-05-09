@@ -1,6 +1,7 @@
 import { Outlet } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
+import { useTheme } from "../../context/ThemeContext";
 
 export default function Layout() {
   return (
@@ -28,7 +29,12 @@ function Footer() {
           حول
         </a>
       </div>
-      <div>© 2026 بواسطة شركة ناصر طريد للمحاماة</div>
+      <FooterCopyright />
     </footer>
   );
+}
+
+function FooterCopyright() {
+  const { theme } = useTheme();
+  return <div>© 2026 بواسطة {theme.officeName}</div>;
 }

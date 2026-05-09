@@ -2,12 +2,13 @@ import { useState } from "react";
 import { useNavigate, useLocation, Navigate } from "react-router-dom";
 import { Scale, Mail, Lock, Eye, EyeOff, AlertCircle, Loader2 } from "lucide-react";
 import { useAuth, isSupabaseConfigured } from "../context/AuthContext";
-import { office } from "../config/office";
+import { useTheme } from "../context/ThemeContext";
 
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signIn } = useAuth();
+  const { theme } = useTheme();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPwd, setShowPwd] = useState(false);
@@ -43,7 +44,7 @@ export default function Login() {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-brand-500 text-white shadow-lg mb-4">
             <Scale className="w-8 h-8" strokeWidth={2} />
           </div>
-          <h1 className="text-2xl font-extrabold text-slate-800">{office.name}</h1>
+          <h1 className="text-2xl font-extrabold text-slate-800">{theme.officeName}</h1>
           <p className="text-sm text-slate-500 mt-1">سجّل دخولك للوصول إلى لوحة التحكم</p>
         </div>
 
@@ -149,7 +150,7 @@ export default function Login() {
         </div>
 
         <p className="text-center text-xs text-slate-400 mt-6">
-          © 2026 {office.name} — جميع الحقوق محفوظة
+          © 2026 {theme.officeName} — جميع الحقوق محفوظة
         </p>
       </div>
     </div>

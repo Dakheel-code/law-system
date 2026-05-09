@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { useTheme } from "../../context/ThemeContext";
 import {
   ChevronDown,
   Search,
@@ -34,6 +35,7 @@ export default function Sidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
+  const { theme } = useTheme();
 
   const handleLogout = async () => {
     await signOut();
@@ -68,7 +70,7 @@ export default function Sidebar() {
       {/* Logo */}
       <div className="h-16 flex items-center justify-end px-5 border-b border-slate-100">
         <div className="text-lg font-extrabold text-brand-600 tracking-wide">
-          {office.shortName}
+          {theme.shortName}
         </div>
       </div>
 
