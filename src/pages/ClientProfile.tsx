@@ -5,7 +5,6 @@ import {
   User as UserIcon,
   Mail,
   Phone,
-  MapPin,
   Hash,
   Globe,
   Briefcase,
@@ -13,13 +12,14 @@ import {
   Edit3,
   Trash2,
   Download,
-  Image as ImageIcon,
   FileType,
   Calendar,
   StickyNote,
   Plus,
   Folder,
   CalendarClock,
+  Tag,
+  CheckCircle2,
 } from "lucide-react";
 import { useClients, deleteClient, type ClientRecord } from "../lib/clientStore";
 import { nationalities } from "../config/nationalities";
@@ -36,6 +36,15 @@ const contractTypeLabels: Record<string, string> = {
   default: "افتراضي",
   single: "أحادي",
   annual: "سنوي",
+};
+
+const formatDate = (iso: string) => {
+  // Force Latin numerals via unicode locale extension
+  return new Date(iso).toLocaleDateString("ar-EG-u-nu-latn", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 };
 
 export default function ClientProfile() {
@@ -79,6 +88,13 @@ export default function ClientProfile() {
     client.nationality ??
     "—";
 
+  const initials = client.fullName
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((s) => s[0])
+    .join("");
+
   return (
     <div className="space-y-5">
       {/* Top toolbar */}
@@ -105,30 +121,63 @@ export default function ClientProfile() {
         </Link>
       </div>
 
-      {/* Header card */}
+      {/* Header — RTL friendly: avatar on the right */}
       <div className="card relative overflow-hidden">
-        <div className="h-24 bg-gradient-to-l from-brand-700 to-brand-500" />
-        <div className="px-6 pb-6 -mt-12">
+        <div className="h-28 bg-gradient-to-l from-brand-700 via-brand-600 to-brand-500 relative">
+          <div className="absolute inset-0 opacity-20" style={{
+            backgroundImage: 'radial-gradient(circle at 70% 50%, white 1px, transparent 1px)',
+            backgroundSize: '24px 24px'
+          }} />
+        </div>
+        <div className="px-6 pb-6 -mt-14">
           <div className="flex items-end justify-between flex-wrap gap-4">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="px-2.5 py-1 bg-brand-50 text-brand-700 rounded-md text-xs font-bold">
-                {clientTypeLabels[client.clientType] ?? client.clientType}
-              </span>
-              <span className="px-2.5 py-1 bg-violet-50 text-violet-700 rounded-md text-xs font-bold">
-                {contractTypeLabels[client.contractType] ?? client.contractType}
-              </span>
-              <span className="text-xs text-slate-500 font-mono">{client.id}</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="text-right">
-                <h1 className="text-xl font-extrabold text-slate-800">{client.fullName}</h1>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  مسجّل منذ {new Date(client.createdAt).toLocaleDateString("ar-SA")}
+            {/* Right: avatar + name */}
+            <div className="flex items-end gap-4">
+              <div className="w-28 h-28 rounded-2xl bg-white border-4 border-white shadow-lg flex items-center justify-center shrink-0">
+                <div className="w-full h-full rounded-xl bg-gradient-to-br from-brand-100 to-brand-200 flex items-center justify-center">
+                  <span className="text-3xl font-extrabold text-brand-600">
+                    {initials || <UserIcon className="w-10 h-10" />}
+                  </span>
+                </div>
+              </div>
+              <div className="text-right pb-2">
+                <div className="flex items-center gap-2 mb-2 flex-wrap">
+                  <span
+                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold ${
+                      client.status === "active"
+                        ? "bg-emerald-50 text-emerald-700"
+                        : "bg-slate-100 text-slate-500"
+                    }`}
+                  >
+                    <CheckCircle2 className="w-3 h-3" />
+                    {client.status === "active" ? "نشط" : "معطّل"}
+                  </span>
+                  <span
+                    className="inline-flex items-center gap-1 text-[11px] text-slate-500 font-mono bg-slate-100 px-2 py-0.5 rounded-md"
+                    dir="ltr"
+                  >
+                    {client.id}
+                  </span>
+                </div>
+                <h1 className="text-2xl font-extrabold text-slate-800">
+                  {client.fullName}
+                </h1>
+                <p className="text-xs text-slate-500 mt-1">
+                  مسجّل منذ {formatDate(client.createdAt)}
                 </p>
               </div>
-              <div className="w-24 h-24 rounded-2xl bg-white border-4 border-white shadow-lg flex items-center justify-center">
-                <UserIcon className="w-12 h-12 text-brand-500" />
-              </div>
+            </div>
+
+            {/* Left: type/contract badges */}
+            <div className="flex flex-col items-start gap-2 pb-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand-50 text-brand-700 rounded-lg text-xs font-bold">
+                <Tag className="w-3 h-3" />
+                {clientTypeLabels[client.clientType] ?? client.clientType}
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-violet-50 text-violet-700 rounded-lg text-xs font-bold">
+                <FileText className="w-3 h-3" />
+                {contractTypeLabels[client.contractType] ?? client.contractType}
+              </span>
             </div>
           </div>
         </div>
@@ -136,61 +185,45 @@ export default function ClientProfile() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Stat icon={Briefcase} label="القضايا" value="0" color="text-sky-600 bg-sky-50" />
-        <Stat icon={FileText} label="الطلبات" value="0" color="text-violet-600 bg-violet-50" />
-        <Stat icon={CalendarClock} label="الجلسات" value="0" color="text-emerald-600 bg-emerald-50" />
+        <Stat icon={Briefcase} label="القضايا" value="0" tint="sky" />
+        <Stat icon={FileText} label="الطلبات" value="0" tint="violet" />
+        <Stat icon={CalendarClock} label="الجلسات" value="0" tint="emerald" />
         <Stat
           icon={Folder}
           label="المرفقات"
           value={String(client.attachments.length)}
-          color="text-amber-600 bg-amber-50"
+          tint="amber"
         />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Personal info */}
         <div className="lg:col-span-2 space-y-5">
-          <div className="card p-5">
-            <h2 className="flex items-center justify-end gap-2 text-base font-bold text-slate-800 mb-4 pb-3 border-b border-slate-100">
-              المعلومات الشخصية
-              <UserIcon className="w-4 h-4 text-brand-500" />
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <InfoItem icon={Hash} label="رقم الهوية" value={client.idNumber} />
+          <Section title="المعلومات الشخصية" icon={UserIcon}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+              <InfoItem icon={Hash} label="رقم الهوية" value={client.idNumber} mono />
               <InfoItem icon={Globe} label="الجنسية" value={nationalityLabel} />
+              <InfoItem icon={Phone} label="رقم الهاتف" value={client.phone} mono />
+              <InfoItem icon={Mail} label="البريد الإلكتروني" value={client.email} ltr />
               <InfoItem
-                icon={Phone}
-                label="رقم الهاتف"
-                value={client.phone}
-                ltr
-              />
-              <InfoItem
-                icon={Mail}
-                label="البريد الإلكتروني"
-                value={client.email}
-                ltr
-              />
-              <InfoItem icon={Calendar} label="تاريخ التسجيل" value={
-                new Date(client.createdAt).toLocaleDateString("ar-SA", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })
-              } />
-              <InfoItem
-                icon={MapPin}
+                icon={Tag}
                 label="نوع العميل"
                 value={clientTypeLabels[client.clientType] ?? client.clientType}
               />
+              <InfoItem
+                icon={Calendar}
+                label="تاريخ التسجيل"
+                value={formatDate(client.createdAt)}
+              />
             </div>
-          </div>
+          </Section>
 
           {/* Linked cases */}
           <div className="card p-5">
             <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
               <Link
                 to={`/cases/new?clientId=${client.id}`}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand-500 text-white rounded-lg text-xs font-bold hover:bg-brand-600"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand-500 text-white rounded-lg text-xs font-bold hover:bg-brand-600 shadow-sm"
               >
                 <Plus className="w-3.5 h-3.5" />
                 ربط قضية
@@ -203,8 +236,11 @@ export default function ClientProfile() {
             </div>
 
             <div className="flex flex-col items-center justify-center py-12 text-slate-300">
-              <Briefcase className="w-12 h-12 mb-3" strokeWidth={1.2} />
-              <p className="text-sm text-slate-500">لا توجد قضايا مرتبطة بهذا العميل</p>
+              <div className="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center mb-3">
+                <Briefcase className="w-8 h-8" strokeWidth={1.2} />
+              </div>
+              <p className="text-sm text-slate-600 font-medium">لا توجد قضايا مرتبطة بهذا العميل</p>
+              <p className="text-xs text-slate-400 mt-1">يمكنك إنشاء قضية جديدة وربطها بالعميل</p>
               <Link
                 to={`/cases/new?clientId=${client.id}`}
                 className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-brand-50 text-brand-700 rounded-lg text-sm font-bold hover:bg-brand-100"
@@ -217,20 +253,16 @@ export default function ClientProfile() {
 
           {/* Notes */}
           {client.notes && (
-            <div className="card p-5">
-              <h2 className="flex items-center justify-end gap-2 text-base font-bold text-slate-800 mb-4 pb-3 border-b border-slate-100">
-                ملاحظات
-                <StickyNote className="w-4 h-4 text-brand-500" />
-              </h2>
+            <Section title="ملاحظات" icon={StickyNote}>
               <p className="text-sm text-slate-600 leading-7 text-right whitespace-pre-wrap">
                 {client.notes}
               </p>
-            </div>
+            </Section>
           )}
         </div>
 
         {/* Attachments sidebar */}
-        <div className="space-y-5">
+        <div>
           <div className="card p-5 lg:sticky lg:top-24">
             <h2 className="flex items-center justify-end gap-2 text-base font-bold text-slate-800 mb-4 pb-3 border-b border-slate-100">
               المرفقات
@@ -259,56 +291,99 @@ export default function ClientProfile() {
   );
 }
 
+function Section({
+  title,
+  icon: Icon,
+  children,
+}: {
+  title: string;
+  icon: React.ComponentType<{ className?: string }>;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="card p-5">
+      <h2 className="flex items-center justify-end gap-2 text-base font-bold text-slate-800 mb-5 pb-3 border-b border-slate-100">
+        {title}
+        <Icon className="w-4 h-4 text-brand-500" />
+      </h2>
+      {children}
+    </div>
+  );
+}
+
 function Stat({
   icon: Icon,
   label,
   value,
-  color,
+  tint,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   value: string;
-  color: string;
+  tint: "sky" | "violet" | "emerald" | "amber";
 }) {
+  const styles: Record<string, string> = {
+    sky: "from-sky-50 to-sky-100 text-sky-600",
+    violet: "from-violet-50 to-violet-100 text-violet-600",
+    emerald: "from-emerald-50 to-emerald-100 text-emerald-600",
+    amber: "from-amber-50 to-amber-100 text-amber-600",
+  };
   return (
     <div className="card p-4 flex items-center justify-between">
-      <div className={`w-10 h-10 rounded-lg ${color} flex items-center justify-center`}>
+      <div
+        className={`w-12 h-12 rounded-xl bg-gradient-to-br ${styles[tint]} flex items-center justify-center`}
+      >
         <Icon className="w-5 h-5" />
       </div>
       <div className="text-right">
-        <div className="text-xs text-slate-500">{label}</div>
+        <div className="text-xs text-slate-500 font-medium">{label}</div>
         <div className="text-2xl font-extrabold text-slate-800 mt-0.5">{value}</div>
       </div>
     </div>
   );
 }
 
+/**
+ * InfoItem — label and value both right-aligned (RTL).
+ * For LTR content (email), use `ltr` to wrap the value in dir="ltr"
+ * (preserves correct character order) but the BLOCK stays right-aligned.
+ * For numbers/IDs, use `mono` for monospace display.
+ */
 function InfoItem({
   icon: Icon,
   label,
   value,
   ltr,
+  mono,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   value: string;
   ltr?: boolean;
+  mono?: boolean;
 }) {
   return (
     <div className="flex items-start gap-3">
-      <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 mt-0.5">
-        <Icon className="w-4 h-4 text-slate-500" />
+      <div className="w-9 h-9 rounded-lg bg-brand-50 flex items-center justify-center shrink-0 mt-0.5">
+        <Icon className="w-4 h-4 text-brand-600" />
       </div>
       <div className="flex-1 min-w-0 text-right">
-        <div className="text-xs text-slate-500">{label}</div>
+        <div className="text-xs text-slate-500 font-medium">{label}</div>
         <div
-          className={`text-sm font-medium text-slate-800 mt-0.5 truncate ${
-            ltr ? "text-left" : ""
+          className={`text-sm font-bold text-slate-800 mt-1 truncate ${
+            mono ? "font-mono" : ""
           }`}
-          dir={ltr ? "ltr" : undefined}
           title={value}
         >
-          {value || "—"}
+          {value ? (
+            ltr ? (
+              <bdi dir="ltr">{value}</bdi>
+            ) : (
+              <bdi>{value}</bdi>
+            )
+          ) : (
+            <span className="text-slate-300 font-normal">—</span>
+          )}
         </div>
       </div>
     </div>
@@ -329,14 +404,6 @@ function AttachmentRow({ file }: { file: ClientRecord["attachments"][number] }) 
         <Download className="w-4 h-4" />
       </a>
       <div className="flex items-center gap-2 min-w-0 flex-1">
-        <div className="text-right min-w-0 flex-1">
-          <div className="text-xs font-medium text-slate-700 truncate" title={file.name}>
-            {file.name}
-          </div>
-          <div className="text-[10px] text-slate-400 mt-0.5">
-            {formatSize(file.size)}
-          </div>
-        </div>
         {isImage ? (
           <img
             src={file.dataUrl}
@@ -353,13 +420,19 @@ function AttachmentRow({ file }: { file: ClientRecord["attachments"][number] }) 
           >
             {file.type === "application/pdf" ? (
               <FileText className="w-4 h-4" />
-            ) : isImage ? (
-              <ImageIcon className="w-4 h-4" />
             ) : (
               <FileType className="w-4 h-4" />
             )}
           </div>
         )}
+        <div className="text-right min-w-0 flex-1">
+          <div className="text-xs font-medium text-slate-700 truncate" title={file.name}>
+            {file.name}
+          </div>
+          <div className="text-[10px] text-slate-400 mt-0.5">
+            {formatSize(file.size)}
+          </div>
+        </div>
       </div>
     </li>
   );
