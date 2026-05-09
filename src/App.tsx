@@ -7,6 +7,7 @@ import Layout from "./components/layout/Layout";
 import Dashboard from "./pages/Dashboard";
 import Clients from "./pages/Clients";
 import NewClient from "./pages/NewClient";
+import ClientProfile from "./pages/ClientProfile";
 import NewCase from "./pages/cases/NewCase";
 import CasesList from "./pages/cases/CasesList";
 import Requests from "./pages/cases/Requests";
@@ -42,6 +43,7 @@ export default function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/clients" element={<Clients />} />
           <Route path="/clients/new" element={<NewClient />} />
+          <Route path="/clients/:id" element={<ClientProfile />} />
           <Route path="/appointments" element={<Appointments />} />
           <Route path="/calendar" element={<CalendarPage />} />
           <Route path="/tasks" element={<Tasks />} />

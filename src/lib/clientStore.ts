@@ -54,6 +54,10 @@ export function listClients(): ClientRecord[] {
   return readAll();
 }
 
+export function getClient(id: string): ClientRecord | undefined {
+  return readAll().find((c) => c.id === id);
+}
+
 export function addClient(
   input: Omit<ClientRecord, "id" | "createdAt" | "status" | "fullName"> & {
     id?: string;

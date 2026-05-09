@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   ChevronDown,
   Trash2,
@@ -7,6 +8,7 @@ import {
   Paperclip,
   Search,
   User as UserIcon,
+  ChevronLeft,
 } from "lucide-react";
 import ClientsKpiStrip from "../components/clients/ClientsKpiStrip";
 import ClientsToolbar from "../components/clients/ClientsToolbar";
@@ -34,6 +36,7 @@ const contractTypeLabels: Record<string, string> = {
 
 export default function Clients() {
   const clients = useClients();
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [pageSize, setPageSize] = useState(20);
 
@@ -52,7 +55,10 @@ export default function Clients() {
 
   const visible = filtered.slice(0, pageSize);
 
-  const handleDelete = (c: ClientRecord) => {
+  const openClient = (c: ClientRecord) => navigate(`/clients/${c.id}`);
+
+  const handleDelete = (c: ClientRecord, e: React.MouseEvent) => {
+    e.stopPropagation();
     if (confirm(`حذف العميل "${c.fullName}"؟`)) deleteClient(c.id);
   };
 
@@ -116,51 +122,70 @@ export default function Clients() {
                 {visible.map((c) => (
                   <tr
                     key={c.id}
-                    className="border-t border-slate-100 hover:bg-slate-50 transition"
+                    onClick={() => openClient(c)}
+                    className="border-t border-slate-100 hover:bg-brand-50/40 transition cursor-pointer group"
                   >
-                    <td className="px-4 py-3 text-right text-xs font-mono text-slate-500">
-                      {c.id}
-                    </td>
                     <td className="px-4 py-3 text-right">
-                      <div className="flex items-center gap-2 justify-end">
-                        <span className="text-sm font-medium text-slate-700">
-                          {c.fullName}
-                        </span>
-                        <div className="w-8 h-8 rounded-full bg-brand-50 border border-brand-100 flex items-center justify-center shrink-0">
-                          <UserIcon className="w-4 h-4 text-brand-500" />
+                      <span className="text-xs font-mono text-slate-500 group-hover:text-brand-700">
+                        {c.id}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3 justify-start">
+                        <div className="w-9 h-9 rounded-full bg-brand-100 flex items-center justify-center shrink-0 ring-2 ring-white group-hover:ring-brand-100">
+                          <UserIcon className="w-4 h-4 text-brand-600" />
+                        </div>
+                        <div className="text-right min-w-0">
+                          <div className="text-sm font-bold text-slate-800 truncate">
+                            {c.fullName}
+                          </div>
+                          {c.idNumber && (
+                            <div className="text-[11px] text-slate-400 mt-0.5" dir="ltr">
+                              {c.idNumber}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </td>
                     <td className="px-4 py-3 text-sm text-right">
                       <div className="flex flex-col items-end gap-0.5">
-                        {c.phone && (
-                          <span className="inline-flex items-center gap-1 text-slate-600" dir="ltr">
-                            {c.phone}
-                            <Phone className="w-3 h-3 text-slate-400" />
-                          </span>
-                        )}
-                        {c.email && (
+                        {c.phone ? (
                           <span
-                            className="inline-flex items-center gap-1 text-xs text-slate-500 truncate max-w-[200px]"
+                            className="inline-flex items-center gap-1.5 text-slate-700"
                             dir="ltr"
                           >
-                            {c.email}
-                            <Mail className="w-3 h-3 text-slate-400" />
+                            {c.phone}
+                            <Phone className="w-3 h-3 text-emerald-500" />
                           </span>
+                        ) : null}
+                        {c.email ? (
+                          <span
+                            className="inline-flex items-center gap-1.5 text-xs text-slate-500 truncate max-w-[200px]"
+                            dir="ltr"
+                            title={c.email}
+                          >
+                            {c.email}
+                            <Mail className="w-3 h-3 text-sky-500" />
+                          </span>
+                        ) : null}
+                        {!c.phone && !c.email && (
+                          <span className="text-slate-300 text-xs">—</span>
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-600 text-right">
-                      <span className="inline-flex items-center px-2 py-0.5 bg-brand-50 text-brand-700 rounded-md text-xs font-bold">
+                    <td className="px-4 py-3 text-sm text-right">
+                      <span className="inline-flex items-center px-2.5 py-1 bg-brand-50 text-brand-700 rounded-md text-xs font-bold">
                         {clientTypeLabels[c.clientType] ?? c.clientType}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-600 text-right">
-                      {contractTypeLabels[c.contractType] ?? c.contractType}
+                    <td className="px-4 py-3 text-sm text-right">
+                      <span className="inline-flex items-center px-2.5 py-1 bg-violet-50 text-violet-700 rounded-md text-xs font-bold">
+                        {contractTypeLabels[c.contractType] ?? c.contractType}
+                      </span>
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-600">
+                    <td className="px-4 py-3 text-sm text-right">
                       {c.attachments.length > 0 ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-violet-50 text-violet-700 rounded-md text-xs font-bold">
+                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-50 text-amber-700 rounded-md text-xs font-bold">
                           <Paperclip className="w-3 h-3" />
                           {c.attachments.length}
                         </span>
@@ -169,13 +194,16 @@ export default function Clients() {
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <button
-                        onClick={() => handleDelete(c)}
-                        title="حذف"
-                        className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-md"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={(e) => handleDelete(c, e)}
+                          title="حذف"
+                          className="p-1.5 text-rose-500 hover:bg-rose-100 rounded-md transition"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                        <ChevronLeft className="w-4 h-4 text-slate-300 group-hover:text-brand-600 group-hover:-translate-x-1 transition" />
+                      </div>
                     </td>
                   </tr>
                 ))}
