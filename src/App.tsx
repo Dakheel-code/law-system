@@ -7,6 +7,11 @@ import Dashboard from "./pages/Dashboard";
 import Clients from "./pages/Clients";
 import NewClient from "./pages/NewClient";
 import NewCase from "./pages/cases/NewCase";
+import CasesList from "./pages/cases/CasesList";
+import Requests from "./pages/cases/Requests";
+import AvailableRequests from "./pages/cases/AvailableRequests";
+import MyRequests from "./pages/cases/MyRequests";
+import MyCases from "./pages/cases/MyCases";
 import Appointments from "./pages/Appointments";
 import CalendarPage from "./pages/Calendar";
 import Tasks from "./pages/Tasks";
@@ -48,12 +53,12 @@ export default function App() {
           <Route path="/reports" element={<Reports />} />
 
           {/* Cases */}
-          <Route path="/cases" element={<Placeholder title="إدارة القضايا" />} />
+          <Route path="/cases" element={<CasesList />} />
           <Route path="/cases/new" element={<NewCase />} />
-          <Route path="/cases/requests" element={<Placeholder title="إدارة الطلبات" />} />
-          <Route path="/cases/available" element={<Placeholder title="الطلبات المتاحة" />} />
-          <Route path="/cases/my-requests" element={<Placeholder title="طلباتي" />} />
-          <Route path="/cases/mine" element={<Placeholder title="قضاياي" />} />
+          <Route path="/cases/requests" element={<Requests />} />
+          <Route path="/cases/available" element={<AvailableRequests />} />
+          <Route path="/cases/my-requests" element={<MyRequests />} />
+          <Route path="/cases/mine" element={<MyCases />} />
 
           {/* Contracts */}
           <Route path="/contracts" element={<Contracts />} />
