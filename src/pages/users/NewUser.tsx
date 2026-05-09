@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Save, X } from "lucide-react";
 import AvatarUpload from "../../components/users/AvatarUpload";
@@ -7,11 +7,12 @@ import Select from "../../components/ui/Select";
 import Toggle from "../../components/ui/Toggle";
 import FileUpload from "../../components/ui/FileUpload";
 import { userTypes } from "../../config/userConfig";
-
-const userId = "USR-" + Math.floor(10000 + Math.random() * 90000);
+import { addUser, generateUserId } from "../../lib/userStore";
 
 export default function NewUser() {
   const navigate = useNavigate();
+  const userId = useMemo(generateUserId, []);
+  const [avatar, setAvatar] = useState<string | null>(null);
   const [data, setData] = useState({
     type: "",
     name: "",
@@ -25,20 +26,41 @@ export default function NewUser() {
     email: "",
     linkExisting: false,
   });
+  const [error, setError] = useState<string | null>(null);
 
   const update = <K extends keyof typeof data>(key: K, value: (typeof data)[K]) =>
     setData((p) => ({ ...p, [key]: value }));
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("New user:", data);
-    alert("تم حفظ المستخدم ✓");
+    setError(null);
+
+    // Basic validation
+    if (!data.type) return setError("اختر نوع المستخدم");
+    if (!data.name.trim()) return setError("أدخل اسم المستخدم");
+    if (!data.lastName.trim()) return setError("أدخل الاسم الأخير");
+
+    addUser({
+      id: userId,
+      type: data.type,
+      fullName: data.name,
+      firstName: data.firstName,
+      middleName: data.middleName,
+      thirdName: data.thirdName,
+      lastName: data.lastName,
+      email: data.email,
+      phone: data.phone,
+      idNumber: data.idNumber,
+      nationality: data.nationality,
+      avatarDataUrl: avatar,
+    });
+
     navigate("/users");
   };
 
   return (
     <form onSubmit={submit} className="card p-6 space-y-6">
-      <AvatarUpload />
+      <AvatarUpload value={avatar} onChange={setAvatar} />
 
       <div className="border-t border-dashed border-slate-200 pt-5 grid grid-cols-1 md:grid-cols-3 gap-4">
         <Field label="نوع المستخدم *">
@@ -149,6 +171,12 @@ export default function NewUser() {
           hint="الأنواع المسموحة: jpg, jpeg, png, pdf. الحد الأقصى: 5 ميجابايت"
         />
       </div>
+
+      {error && (
+        <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-sm text-rose-700 text-right">
+          {error}
+        </div>
+      )}
 
       <div className="border-t border-slate-100 pt-4 flex items-center justify-between">
         <button
