@@ -20,15 +20,7 @@ export default function Layout() {
 
 function Footer() {
   return (
-    <footer className="px-6 py-4 flex items-center justify-between text-xs text-slate-400 border-t border-slate-100">
-      <div className="flex items-center gap-4">
-        <a href="#" className="hover:text-brand-600">
-          الدعم
-        </a>
-        <a href="#" className="hover:text-brand-600">
-          حول
-        </a>
-      </div>
+    <footer className="px-6 py-4 flex items-center justify-end text-xs text-slate-400 border-t border-slate-100">
       <FooterCopyright />
     </footer>
   );
