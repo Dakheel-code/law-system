@@ -68,15 +68,18 @@ export default function Sidebar() {
   return (
     <aside className="w-64 shrink-0 bg-white border-l border-slate-200 flex flex-col h-screen sticky top-0">
       {/* Logo */}
-      <div className="h-16 flex items-center justify-end gap-2 px-5 border-b border-slate-100">
+      <div className="h-16 flex items-center gap-2.5 px-4 border-b border-slate-100 overflow-hidden">
         {theme.logoDataUrl && (
           <img
             src={theme.logoDataUrl}
             alt="logo"
-            className="h-9 w-auto object-contain"
+            className="h-9 w-9 object-contain shrink-0"
           />
         )}
-        <div className="text-lg font-extrabold text-brand-600 tracking-wide">
+        <div
+          className="flex-1 min-w-0 text-lg font-extrabold text-brand-600 tracking-wide truncate text-right"
+          title={theme.shortName}
+        >
           {theme.shortName}
         </div>
       </div>
