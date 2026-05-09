@@ -95,14 +95,14 @@ export default function Budget() {
           <table className="w-full">
             <thead className="bg-slate-50 text-xs text-slate-500 font-bold">
               <tr>
-                <th className="px-4 py-3 text-right">إجراءات</th>
-                <th className="px-4 py-3 text-right">الحالة</th>
-                <th className="px-4 py-3 text-right">المتبقي</th>
-                <th className="px-4 py-3 text-right">المنفق</th>
-                <th className="px-4 py-3 text-right">المخصص</th>
-                <th className="px-4 py-3 text-right">الفترة</th>
-                <th className="px-4 py-3 text-right">القسم</th>
                 <th className="px-4 py-3 text-right">الاسم</th>
+                <th className="px-4 py-3 text-right">القسم</th>
+                <th className="px-4 py-3 text-right">الفترة</th>
+                <th className="px-4 py-3 text-right">المخصص</th>
+                <th className="px-4 py-3 text-right">المنفق</th>
+                <th className="px-4 py-3 text-right">المتبقي</th>
+                <th className="px-4 py-3 text-right">الحالة</th>
+                <th className="px-4 py-3 text-right">إجراءات</th>
               </tr>
             </thead>
             <tbody>

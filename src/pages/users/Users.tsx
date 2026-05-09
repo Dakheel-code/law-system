@@ -13,13 +13,13 @@ import { useUsers, deleteUser, updateUser, type UserRecord } from "../../lib/use
 import { userTypes } from "../../config/userConfig";
 
 const columns = [
-  "إجراءات",
-  "الحالة",
-  "الدور",
-  "البريد",
-  "الجوال",
-  "الاسم",
   "رقم المستخدم",
+  "الاسم",
+  "الجوال",
+  "البريد",
+  "الدور",
+  "الحالة",
+  "إجراءات",
 ];
 
 export default function Users() {
@@ -141,6 +141,53 @@ export default function Users() {
                     key={u.id}
                     className="border-t border-slate-100 hover:bg-slate-50 transition"
                   >
+                    <td className="px-4 py-3 text-right text-xs font-mono text-slate-500">
+                      {u.id}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex items-center gap-2 justify-end">
+                        <span className="text-sm font-medium text-slate-700">
+                          {u.fullName}
+                        </span>
+                        <div className="w-8 h-8 rounded-full bg-brand-50 border border-brand-100 flex items-center justify-center overflow-hidden shrink-0">
+                          {u.avatarDataUrl ? (
+                            <img
+                              src={u.avatarDataUrl}
+                              alt=""
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <UserIcon className="w-4 h-4 text-brand-500" />
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td
+                      className="px-4 py-3 text-sm text-slate-600 text-left"
+                      dir="ltr"
+                    >
+                      {u.phone || "—"}
+                    </td>
+                    <td
+                      className="px-4 py-3 text-sm text-slate-600 text-left"
+                      dir="ltr"
+                    >
+                      {u.email || "—"}
+                    </td>
+                    <td className="px-4 py-3 text-right text-sm text-slate-600">
+                      {typeLabel(u.type)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold ${
+                          u.status === "active"
+                            ? "bg-emerald-50 text-emerald-700"
+                            : "bg-slate-100 text-slate-500"
+                        }`}
+                      >
+                        {u.status === "active" ? "نشط" : "معطّل"}
+                      </span>
+                    </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center gap-2">
                         <button
@@ -162,53 +209,6 @@ export default function Users() {
                           )}
                         </button>
                       </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold ${
-                          u.status === "active"
-                            ? "bg-emerald-50 text-emerald-700"
-                            : "bg-slate-100 text-slate-500"
-                        }`}
-                      >
-                        {u.status === "active" ? "نشط" : "معطّل"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right text-sm text-slate-600">
-                      {typeLabel(u.type)}
-                    </td>
-                    <td
-                      className="px-4 py-3 text-sm text-slate-600 text-left"
-                      dir="ltr"
-                    >
-                      {u.email || "—"}
-                    </td>
-                    <td
-                      className="px-4 py-3 text-sm text-slate-600 text-left"
-                      dir="ltr"
-                    >
-                      {u.phone || "—"}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center gap-2 justify-end">
-                        <span className="text-sm font-medium text-slate-700">
-                          {u.fullName}
-                        </span>
-                        <div className="w-8 h-8 rounded-full bg-brand-50 border border-brand-100 flex items-center justify-center overflow-hidden shrink-0">
-                          {u.avatarDataUrl ? (
-                            <img
-                              src={u.avatarDataUrl}
-                              alt=""
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <UserIcon className="w-4 h-4 text-brand-500" />
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-right text-xs font-mono text-slate-500">
-                      {u.id}
                     </td>
                   </tr>
                 ))
