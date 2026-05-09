@@ -2,13 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
-import {
-  ChevronDown,
-  Search,
-  LogOut,
-  User,
-  Circle,
-} from "lucide-react";
+import { ChevronDown, LogOut, User, Circle } from "lucide-react";
 import { menu, type MenuChild } from "../../config/menu";
 
 function ChildLink({ child }: { child: MenuChild }) {
@@ -111,25 +105,6 @@ export default function Sidebar() {
               <Circle className="w-2 h-2 fill-emerald-500 text-emerald-500" />
               مدير المكتب
             </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Quick search */}
-      <div className="px-3 pb-2">
-        <div className="relative">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input
-            placeholder="بحث سريع..."
-            className="w-full pr-9 pl-14 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-200"
-          />
-          <div className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-            <kbd className="text-[10px] px-1.5 py-0.5 bg-white border border-slate-200 rounded">
-              Ctrl
-            </kbd>
-            <kbd className="text-[10px] px-1.5 py-0.5 bg-white border border-slate-200 rounded">
-              K
-            </kbd>
           </div>
         </div>
       </div>

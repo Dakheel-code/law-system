@@ -34,6 +34,12 @@
   .dark body {
     @apply bg-slate-900 text-slate-200;
   }
+  .dark aside {
+    @apply bg-slate-900 border-slate-800;
+  }
+  .dark header {
+    background-color: rgb(15 23 42 / 0.85);
+  }
   .dark .card {
     @apply bg-slate-800 border-slate-700 text-slate-200;
   }
@@ -60,6 +66,19 @@
   }
   .dark .hover\:bg-slate-50:hover {
     @apply bg-slate-700;
+  }
+  /* Brand-50 (light brand background) becomes a darker tinted variant in dark mode */
+  .dark .bg-brand-50 {
+    background-color: rgb(var(--brand-900) / 0.35);
+  }
+  .dark .border-brand-100 {
+    border-color: rgb(var(--brand-800) / 0.5);
+  }
+  .dark .text-brand-700 {
+    color: rgb(var(--brand-300));
+  }
+  .dark .text-brand-600 {
+    color: rgb(var(--brand-300));
   }
 }
 
