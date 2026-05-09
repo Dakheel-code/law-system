@@ -41,9 +41,19 @@ export default function Login() {
 
       <div className="relative w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-brand-500 text-white shadow-lg mb-4">
-            <Scale className="w-8 h-8" strokeWidth={2} />
-          </div>
+          {theme.logoDataUrl ? (
+            <div className="inline-flex items-center justify-center mb-4">
+              <img
+                src={theme.logoDataUrl}
+                alt="logo"
+                className="max-h-20 max-w-[180px] object-contain"
+              />
+            </div>
+          ) : (
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-brand-500 text-white shadow-lg mb-4">
+              <Scale className="w-8 h-8" strokeWidth={2} />
+            </div>
+          )}
           <h1 className="text-2xl font-extrabold text-slate-800">{theme.officeName}</h1>
           <p className="text-sm text-slate-500 mt-1">سجّل دخولك للوصول إلى لوحة التحكم</p>
         </div>

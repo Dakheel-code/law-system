@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Field, Input } from "../components/ui/Field";
 import Toggle from "../components/ui/Toggle";
+import LogoUpload from "../components/users/LogoUpload";
 import { useTheme } from "../context/ThemeContext";
 import { colorThemes, fonts } from "../lib/themes";
 
@@ -143,11 +144,13 @@ export default function Theme() {
                 <label className="block text-xs font-bold text-slate-500 mb-1.5 text-right">
                   شعار المكتب
                 </label>
-                <button className="w-full border-2 border-dashed border-slate-200 rounded-xl py-8 flex flex-col items-center justify-center text-slate-400 hover:border-brand-300 hover:bg-brand-50/30 hover:text-brand-600 transition">
-                  <ImageIcon className="w-10 h-10 mb-2" strokeWidth={1.4} />
-                  <span className="text-sm font-bold">اضغط لرفع الشعار</span>
-                  <span className="text-xs mt-1">PNG, SVG, JPG — حتى 2MB</span>
-                </button>
+                <LogoUpload
+                  value={theme.logoDataUrl}
+                  onChange={(v) => update("logoDataUrl", v)}
+                />
+                <p className="text-xs text-slate-400 mt-1.5 text-right">
+                  سيظهر في الشريط الجانبي وصفحة الدخول
+                </p>
               </div>
             </div>
           </div>
@@ -256,7 +259,15 @@ export default function Theme() {
           <div className="card overflow-hidden">
             <div className="p-5 text-white bg-gradient-to-l from-brand-700 to-brand-500">
               <div className="flex items-center justify-between mb-3">
-                <Sparkles className="w-5 h-5 opacity-80" />
+                {theme.logoDataUrl ? (
+                  <img
+                    src={theme.logoDataUrl}
+                    alt="logo"
+                    className="h-10 w-auto bg-white/20 rounded-lg p-1"
+                  />
+                ) : (
+                  <Sparkles className="w-5 h-5 opacity-80" />
+                )}
                 <div className="text-right">
                   <div className="text-xs opacity-90">{theme.shortName}</div>
                   <div className="text-lg font-extrabold mt-0.5">{theme.officeName}</div>

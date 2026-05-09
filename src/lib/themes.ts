@@ -174,6 +174,7 @@ export type ThemeSettings = {
   compactMode: boolean;
   officeName: string;
   shortName: string;
+  logoDataUrl: string | null;
 };
 
 export const defaultTheme: ThemeSettings = {
@@ -185,6 +186,7 @@ export const defaultTheme: ThemeSettings = {
   compactMode: false,
   officeName: "شركة ناصر طريد للمحاماة",
   shortName: "ناصر طريد",
+  logoDataUrl: null,
 };
 
 export const STORAGE_KEY = "law-system-theme";
