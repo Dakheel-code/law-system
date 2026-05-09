@@ -130,42 +130,40 @@ export default function Clients() {
                         {c.id}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3 justify-start">
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full bg-brand-100 flex items-center justify-center shrink-0 ring-2 ring-white group-hover:ring-brand-100">
                           <UserIcon className="w-4 h-4 text-brand-600" />
                         </div>
-                        <div className="text-right min-w-0">
+                        <div className="min-w-0">
                           <div className="text-sm font-bold text-slate-800 truncate">
                             {c.fullName}
                           </div>
                           {c.idNumber && (
-                            <div className="text-[11px] text-slate-400 mt-0.5" dir="ltr">
-                              {c.idNumber}
+                            <div className="text-[11px] text-slate-400 mt-0.5">
+                              <bdi dir="ltr">{c.idNumber}</bdi>
                             </div>
                           )}
                         </div>
                       </div>
                     </td>
                     <td className="px-4 py-3 text-sm text-right">
-                      <div className="flex flex-col items-end gap-0.5">
+                      <div className="flex flex-col gap-0.5 items-start">
                         {c.phone ? (
-                          <span
-                            className="inline-flex items-center gap-1.5 text-slate-700"
-                            dir="ltr"
-                          >
-                            {c.phone}
-                            <Phone className="w-3 h-3 text-emerald-500" />
+                          <span className="inline-flex items-center gap-1.5 text-slate-700">
+                            <Phone className="w-3 h-3 text-emerald-500 shrink-0" />
+                            <bdi dir="ltr">{c.phone}</bdi>
                           </span>
                         ) : null}
                         {c.email ? (
                           <span
-                            className="inline-flex items-center gap-1.5 text-xs text-slate-500 truncate max-w-[200px]"
-                            dir="ltr"
+                            className="inline-flex items-center gap-1.5 text-xs text-slate-500 max-w-[220px]"
                             title={c.email}
                           >
-                            {c.email}
-                            <Mail className="w-3 h-3 text-sky-500" />
+                            <Mail className="w-3 h-3 text-sky-500 shrink-0" />
+                            <bdi dir="ltr" className="truncate">
+                              {c.email}
+                            </bdi>
                           </span>
                         ) : null}
                         {!c.phone && !c.email && (
@@ -193,8 +191,9 @@ export default function Clients() {
                         <span className="text-slate-300 text-xs">—</span>
                       )}
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1">
+                    <td className="px-4 py-3 text-right">
+                      <div className="inline-flex items-center gap-1">
+                        <ChevronLeft className="w-4 h-4 text-slate-300 group-hover:text-brand-600 group-hover:-translate-x-1 transition" />
                         <button
                           onClick={(e) => handleDelete(c, e)}
                           title="حذف"
@@ -202,7 +201,6 @@ export default function Clients() {
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
-                        <ChevronLeft className="w-4 h-4 text-slate-300 group-hover:text-brand-600 group-hover:-translate-x-1 transition" />
                       </div>
                     </td>
                   </tr>

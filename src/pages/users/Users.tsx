@@ -141,14 +141,11 @@ export default function Users() {
                     key={u.id}
                     className="border-t border-slate-100 hover:bg-slate-50 transition"
                   >
-                    <td className="px-4 py-3 text-right text-xs font-mono text-slate-500">
-                      {u.id}
+                    <td className="px-4 py-3 text-right">
+                      <span className="text-xs font-mono text-slate-500">{u.id}</span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <div className="flex items-center gap-2 justify-end">
-                        <span className="text-sm font-medium text-slate-700">
-                          {u.fullName}
-                        </span>
+                      <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-full bg-brand-50 border border-brand-100 flex items-center justify-center overflow-hidden shrink-0">
                           {u.avatarDataUrl ? (
                             <img
@@ -160,24 +157,21 @@ export default function Users() {
                             <UserIcon className="w-4 h-4 text-brand-500" />
                           )}
                         </div>
+                        <span className="text-sm font-medium text-slate-700">
+                          {u.fullName}
+                        </span>
                       </div>
                     </td>
-                    <td
-                      className="px-4 py-3 text-sm text-slate-600 text-left"
-                      dir="ltr"
-                    >
-                      {u.phone || "—"}
+                    <td className="px-4 py-3 text-right text-sm text-slate-600">
+                      <bdi dir="ltr">{u.phone || "—"}</bdi>
                     </td>
-                    <td
-                      className="px-4 py-3 text-sm text-slate-600 text-left"
-                      dir="ltr"
-                    >
-                      {u.email || "—"}
+                    <td className="px-4 py-3 text-right text-sm text-slate-600">
+                      <bdi dir="ltr">{u.email || "—"}</bdi>
                     </td>
                     <td className="px-4 py-3 text-right text-sm text-slate-600">
                       {typeLabel(u.type)}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 text-right">
                       <span
                         className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold ${
                           u.status === "active"
@@ -189,14 +183,7 @@ export default function Users() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleDelete(u)}
-                          title="حذف"
-                          className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-md"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                      <div className="inline-flex items-center gap-1">
                         <button
                           onClick={() => toggleStatus(u)}
                           title={u.status === "active" ? "تعطيل" : "تفعيل"}
@@ -207,6 +194,13 @@ export default function Users() {
                           ) : (
                             <CheckCircle2 className="w-4 h-4" />
                           )}
+                        </button>
+                        <button
+                          onClick={() => handleDelete(u)}
+                          title="حذف"
+                          className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-md"
+                        >
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </td>
