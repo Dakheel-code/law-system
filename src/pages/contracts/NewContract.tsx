@@ -19,6 +19,7 @@ import Select from "../../components/ui/Select";
 import MoneyInput from "../../components/ui/MoneyInput";
 import { contractTypes, taxRates } from "../../config/consultationConfig";
 import { priorities } from "../../config/caseConfig";
+import { addContract } from "../../lib/contractStore";
 
 const steps: HStep[] = [
   { title: "بيانات العميل" },
@@ -103,10 +104,9 @@ export default function NewContract() {
   const update = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setData((p) => ({ ...p, [key]: value }));
 
-  const submit = () => {
-    console.log("Contract:", data);
-    alert("تم إنشاء العقد بنجاح ✓");
-    navigate("/contracts");
+  const submit = async () => {
+    const created = await addContract(data);
+    if (created) navigate("/contracts");
   };
 
   const subtotal = data.services.reduce((sum, s) => sum + s.qty * s.price, 0);

@@ -9,6 +9,7 @@ import Step4Fees from "../../components/cases/steps/Step4Fees";
 import Step5Duration from "../../components/cases/steps/Step5Duration";
 import Step6Attachments from "../../components/cases/steps/Step6Attachments";
 import { initialCase, type CaseFormState } from "../../components/cases/caseFormTypes";
+import { addCase } from "../../lib/caseStore";
 
 const steps: Step[] = [
   { title: "معلومات العميل", description: "بيانات صاحب الطلب" },
@@ -30,10 +31,9 @@ export default function NewCase() {
   const next = () => setCurrent((c) => Math.min(c + 1, steps.length - 1));
   const prev = () => setCurrent((c) => Math.max(c - 1, 0));
 
-  const submit = () => {
-    console.log("New case:", data);
-    alert("تم إنشاء الطلب بنجاح ✓");
-    navigate("/cases");
+  const submit = async () => {
+    const created = await addCase(data);
+    if (created) navigate("/cases");
   };
 
   const stepProps = { data, update };

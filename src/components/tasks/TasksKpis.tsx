@@ -8,6 +8,7 @@ import {
   Archive,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { useTasks } from "../../lib/taskStore";
 
 type Stat = {
   title: string;
@@ -19,74 +20,87 @@ type Stat = {
   text: string;
 };
 
-const top: Stat[] = [
-  {
-    title: "إجمالي المهام",
-    value: 0,
-    icon: LayoutGrid,
-    bg: "bg-emerald-50",
-    iconBg: "bg-emerald-500",
-    iconColor: "text-white",
-    text: "text-emerald-700",
-  },
-  {
-    title: "مستحقة اليوم",
-    value: 0,
-    icon: CalendarClock,
-    bg: "bg-violet-50",
-    iconBg: "bg-violet-500",
-    iconColor: "text-white",
-    text: "text-violet-700",
-  },
-  {
-    title: "المتبقية",
-    value: 0,
-    icon: CircleDashed,
-    bg: "bg-slate-50",
-    iconBg: "bg-slate-400",
+export default function TasksKpis() {
+  const { tasks } = useTasks();
+  const today = new Date().toISOString().slice(0, 10);
+
+  const total = tasks.filter((t) => !t.archived).length;
+  const dueToday = tasks.filter((t) => t.dueDate === today && !t.archived).length;
+  const todo = tasks.filter((t) => t.status === "todo" && !t.archived).length;
+  const doing = tasks.filter((t) => t.status === "doing" && !t.archived).length;
+  const overdue = tasks.filter(
+    (t) => t.dueDate && t.dueDate < today && t.status !== "done" && !t.archived
+  ).length;
+  const done = tasks.filter((t) => t.status === "done" && !t.archived).length;
+  const archived = tasks.filter((t) => t.archived).length;
+
+  const top: Stat[] = [
+    {
+      title: "إجمالي المهام",
+      value: total,
+      icon: LayoutGrid,
+      bg: "bg-emerald-50",
+      iconBg: "bg-emerald-500",
+      iconColor: "text-white",
+      text: "text-emerald-700",
+    },
+    {
+      title: "مستحقة اليوم",
+      value: dueToday,
+      icon: CalendarClock,
+      bg: "bg-violet-50",
+      iconBg: "bg-violet-500",
+      iconColor: "text-white",
+      text: "text-violet-700",
+    },
+    {
+      title: "للقيام بها",
+      value: todo,
+      icon: CircleDashed,
+      bg: "bg-slate-50",
+      iconBg: "bg-slate-400",
+      iconColor: "text-white",
+      text: "text-slate-700",
+    },
+    {
+      title: "قيد التنفيذ",
+      value: doing,
+      icon: Loader,
+      bg: "bg-amber-50",
+      iconBg: "bg-amber-400",
+      iconColor: "text-white",
+      text: "text-amber-700",
+    },
+    {
+      title: "متأخرة",
+      value: overdue,
+      icon: AlertCircle,
+      bg: "bg-rose-50",
+      iconBg: "bg-rose-500",
+      iconColor: "text-white",
+      text: "text-rose-700",
+    },
+    {
+      title: "مكتملة",
+      value: done,
+      icon: CheckCircle2,
+      bg: "bg-sky-50",
+      iconBg: "bg-sky-500",
+      iconColor: "text-white",
+      text: "text-sky-700",
+    },
+  ];
+
+  const archive: Stat = {
+    title: "مؤرشفة",
+    value: archived,
+    icon: Archive,
+    bg: "bg-slate-100",
+    iconBg: "bg-slate-700",
     iconColor: "text-white",
     text: "text-slate-700",
-  },
-  {
-    title: "قيد التنفيذ",
-    value: 0,
-    icon: Loader,
-    bg: "bg-amber-50",
-    iconBg: "bg-amber-400",
-    iconColor: "text-white",
-    text: "text-amber-700",
-  },
-  {
-    title: "متأخرة",
-    value: 0,
-    icon: AlertCircle,
-    bg: "bg-rose-50",
-    iconBg: "bg-rose-500",
-    iconColor: "text-white",
-    text: "text-rose-700",
-  },
-  {
-    title: "مكتملة",
-    value: 0,
-    icon: CheckCircle2,
-    bg: "bg-sky-50",
-    iconBg: "bg-sky-500",
-    iconColor: "text-white",
-    text: "text-sky-700",
-  },
-];
+  };
 
-const archive: Stat = {
-  title: "مؤرشفة",
-  value: 0,
-  icon: Archive,
-  bg: "bg-slate-100",
-  iconBg: "bg-slate-700",
-  iconColor: "text-white",
-  text: "text-slate-700",
-};
-
-export default function TasksKpis() {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
       {top.map((s) => (
