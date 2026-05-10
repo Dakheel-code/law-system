@@ -97,7 +97,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     })();
 
     const channel = sb
-      .channel("office-settings-changes")
+      .channel(`office-settings-${crypto.randomUUID()}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "office_settings" },

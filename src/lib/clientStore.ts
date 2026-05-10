@@ -219,7 +219,7 @@ export function useClients() {
     const sb = supabase;
     if (!sb) return;
     const channel = sb
-      .channel("clients-changes")
+      .channel(`clients-${crypto.randomUUID()}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "clients" },

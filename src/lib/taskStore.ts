@@ -125,7 +125,7 @@ export function useTasks() {
     const sb = supabase;
     if (!sb) return;
     const channel = sb
-      .channel("tasks-changes")
+      .channel(`tasks-${crypto.randomUUID()}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "tasks" },

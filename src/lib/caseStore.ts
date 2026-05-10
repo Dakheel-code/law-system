@@ -185,7 +185,7 @@ export function useCases() {
     const sb = supabase;
     if (!sb) return;
     const channel = sb
-      .channel("cases-changes")
+      .channel(`cases-${crypto.randomUUID()}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "cases" },

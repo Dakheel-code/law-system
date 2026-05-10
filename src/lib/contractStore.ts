@@ -183,7 +183,7 @@ export function useContracts() {
     const sb = supabase;
     if (!sb) return;
     const channel = sb
-      .channel("contracts-changes")
+      .channel(`contracts-${crypto.randomUUID()}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "contracts" },

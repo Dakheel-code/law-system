@@ -186,7 +186,7 @@ export function useUsers() {
     const sb = supabase;
     if (!sb) return;
     const channel = sb
-      .channel("staff-changes")
+      .channel(`staff-${crypto.randomUUID()}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "staff" },
