@@ -65,25 +65,32 @@ export default function NewClient() {
   // Load existing data when in edit mode
   useEffect(() => {
     if (!editId) return;
-    const c = getClient(editId);
-    if (!c) {
-      setNotFound(true);
-      return;
-    }
-    setClientType(c.clientType);
-    setContractType(c.contractType);
-    setAttachments(c.attachments);
-    setForm({
-      firstName: c.firstName,
-      secondName: c.secondName,
-      thirdName: c.thirdName,
-      lastName: c.lastName,
-      idNumber: c.idNumber,
-      nationality: c.nationality,
-      email: c.email,
-      phone: c.phone,
-      notes: c.notes,
-    });
+    let cancelled = false;
+    (async () => {
+      const c = await getClient(editId);
+      if (cancelled) return;
+      if (!c) {
+        setNotFound(true);
+        return;
+      }
+      setClientType(c.clientType);
+      setContractType(c.contractType);
+      setAttachments(c.attachments);
+      setForm({
+        firstName: c.firstName,
+        secondName: c.secondName,
+        thirdName: c.thirdName,
+        lastName: c.lastName,
+        idNumber: c.idNumber,
+        nationality: c.nationality,
+        email: c.email,
+        phone: c.phone,
+        notes: c.notes,
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [editId]);
 
   const update =
@@ -91,7 +98,9 @@ export default function NewClient() {
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
       setForm((p) => ({ ...p, [key]: e.target.value }));
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -120,12 +129,15 @@ export default function NewClient() {
       notes: form.notes,
     };
 
+    setSaving(true);
     if (isEditMode && editId) {
-      updateClient(editId, { ...payload, fullName });
-      navigate(`/clients/${editId}`);
+      const ok = await updateClient(editId, { ...payload, fullName });
+      setSaving(false);
+      if (ok) navigate(`/clients/${editId}`);
     } else {
-      addClient(payload);
-      navigate("/clients");
+      const created = await addClient(payload);
+      setSaving(false);
+      if (created) navigate("/clients");
     }
   };
 
@@ -275,10 +287,11 @@ export default function NewClient() {
       <div className="flex items-center justify-between">
         <button
           type="submit"
-          className="inline-flex items-center gap-2 px-6 py-3 bg-brand-500 text-white rounded-lg text-sm font-bold shadow-card hover:bg-brand-600"
+          disabled={saving}
+          className="inline-flex items-center gap-2 px-6 py-3 bg-brand-500 text-white rounded-lg text-sm font-bold shadow-card hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed"
         >
           <Save className="w-4 h-4" />
-          {isEditMode ? "حفظ التغييرات" : "حفظ"}
+          {saving ? "جارٍ الحفظ..." : isEditMode ? "حفظ التغييرات" : "حفظ"}
         </button>
         <Link
           to={isEditMode && editId ? `/clients/${editId}` : "/clients"}

@@ -2,6 +2,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -10,7 +11,11 @@ import {
   defaultTheme,
   STORAGE_KEY,
   type ThemeSettings,
+  type ThemeKey,
+  type ModeKey,
+  type FontKey,
 } from "../lib/themes";
+import { supabase } from "../lib/supabase";
 
 type Ctx = {
   theme: ThemeSettings;
@@ -21,7 +26,7 @@ type Ctx = {
 
 const ThemeContext = createContext<Ctx | undefined>(undefined);
 
-function loadFromStorage(): ThemeSettings {
+function loadFromLocal(): ThemeSettings {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaultTheme;
@@ -32,15 +37,119 @@ function loadFromStorage(): ThemeSettings {
   }
 }
 
+type SettingsRow = {
+  id: string;
+  office_name: string | null;
+  short_name: string | null;
+  logo_data_url: string | null;
+  theme_color: string | null;
+  theme_mode: string | null;
+  font_family: string | null;
+  sidebar_position: string | null;
+  sidebar_collapsed: boolean | null;
+  compact_mode: boolean | null;
+};
+
+function fromRow(row: SettingsRow): ThemeSettings {
+  return {
+    color: (row.theme_color as ThemeKey) ?? defaultTheme.color,
+    mode: (row.theme_mode as ModeKey) ?? defaultTheme.mode,
+    font: (row.font_family as FontKey) ?? defaultTheme.font,
+    sidebarPosition:
+      (row.sidebar_position as ThemeSettings["sidebarPosition"]) ?? "right",
+    sidebarCollapsed: row.sidebar_collapsed ?? false,
+    compactMode: row.compact_mode ?? false,
+    officeName: row.office_name ?? defaultTheme.officeName,
+    shortName: row.short_name ?? defaultTheme.shortName,
+    logoDataUrl: row.logo_data_url,
+  };
+}
+
+function toUpdatePayload(t: ThemeSettings): Record<string, unknown> {
+  return {
+    theme_color: t.color,
+    theme_mode: t.mode,
+    font_family: t.font,
+    sidebar_position: t.sidebarPosition,
+    sidebar_collapsed: t.sidebarCollapsed,
+    compact_mode: t.compactMode,
+    office_name: t.officeName,
+    short_name: t.shortName,
+    logo_data_url: t.logoDataUrl,
+  };
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<ThemeSettings>(loadFromStorage);
+  const [theme, setThemeState] = useState<ThemeSettings>(loadFromLocal);
+  const settingsRowId = useRef<string | null>(null);
+  const skipNextSave = useRef(true);
 
   // Apply theme on mount and on every change
   useEffect(() => {
     applyTheme(theme);
   }, [theme]);
 
-  // Listen for system color-scheme changes when mode === "system"
+  // Load settings from Supabase on mount + subscribe to changes
+  useEffect(() => {
+    const sb = supabase;
+    if (!sb) return;
+
+    let cancelled = false;
+    (async () => {
+      const { data } = await sb
+        .from("office_settings")
+        .select("*")
+        .limit(1)
+        .maybeSingle();
+      if (cancelled || !data) return;
+      settingsRowId.current = (data as SettingsRow).id;
+      const remote = fromRow(data as SettingsRow);
+      skipNextSave.current = true;
+      setThemeState(remote);
+    })();
+
+    const channel = sb
+      .channel("office-settings-changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "office_settings" },
+        (payload) => {
+          if (payload.new) {
+            settingsRowId.current = (payload.new as SettingsRow).id;
+            skipNextSave.current = true;
+            setThemeState(fromRow(payload.new as SettingsRow));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      cancelled = true;
+      sb.removeChannel(channel);
+    };
+  }, []);
+
+  // Save to Supabase whenever theme changes (debounced via ref skip)
+  useEffect(() => {
+    if (skipNextSave.current) {
+      skipNextSave.current = false;
+      return;
+    }
+    const sb = supabase;
+    if (!sb || !settingsRowId.current) return;
+
+    const t = setTimeout(() => {
+      sb.from("office_settings")
+        .update(toUpdatePayload(theme))
+        .eq("id", settingsRowId.current)
+        .then(({ error }) => {
+          if (error) console.error("save settings", error);
+        });
+    }, 500);
+    return () => clearTimeout(t);
+  }, [theme]);
+
+  // System color-scheme changes
   useEffect(() => {
     if (theme.mode !== "system") return;
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
@@ -54,7 +163,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
     } catch {
-      // ignore — quota or privacy mode
+      /* ignore */
     }
   };
 

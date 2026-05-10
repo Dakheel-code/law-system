@@ -24,7 +24,7 @@ const columns = [
 ];
 
 export default function Users() {
-  const users = useUsers();
+  const { users, loading } = useUsers();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
@@ -43,7 +43,7 @@ export default function Users() {
           u.email.toLowerCase().includes(q) ||
           u.phone.includes(q) ||
           u.idNumber.includes(q) ||
-          u.id.toLowerCase().includes(q)
+          u.code.toLowerCase().includes(q)
       );
     }
     if (roleFilter) list = list.filter((u) => u.type === roleFilter);
@@ -51,12 +51,12 @@ export default function Users() {
     return list;
   }, [users, search, roleFilter, statusFilter]);
 
-  const handleDelete = (u: UserRecord) => {
-    if (confirm(`حذف المستخدم "${u.fullName}"؟`)) deleteUser(u.id);
+  const handleDelete = async (u: UserRecord) => {
+    if (confirm(`حذف المستخدم "${u.fullName}"؟`)) await deleteUser(u.id);
   };
 
-  const toggleStatus = (u: UserRecord) => {
-    updateUser(u.id, { status: u.status === "active" ? "inactive" : "active" });
+  const toggleStatus = async (u: UserRecord) => {
+    await updateUser(u.id, { status: u.status === "active" ? "inactive" : "active" });
   };
 
   return (
@@ -124,7 +124,13 @@ export default function Users() {
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={columns.length} className="py-16 text-center text-sm text-slate-400">
+                    جارٍ التحميل...
+                  </td>
+                </tr>
+              ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={columns.length} className="py-16">
                     <div className="flex flex-col items-center justify-center text-slate-300">
@@ -144,7 +150,7 @@ export default function Users() {
                     className="border-t border-slate-100 hover:bg-slate-50 transition"
                   >
                     <td className="px-4 py-3 text-right">
-                      <span className="text-xs font-mono text-slate-500">{u.id}</span>
+                      <span className="text-xs font-mono text-slate-500">{u.code}</span>
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center gap-2">

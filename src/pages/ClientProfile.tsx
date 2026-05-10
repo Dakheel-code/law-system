@@ -51,7 +51,7 @@ const formatDate = (iso: string) => {
 
 export default function ClientProfile() {
   const { id } = useParams<{ id: string }>();
-  const clients = useClients();
+  const { clients, loading } = useClients();
   const navigate = useNavigate();
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
 
@@ -59,6 +59,14 @@ export default function ClientProfile() {
     () => clients.find((c) => c.id === id),
     [clients, id]
   );
+
+  if (loading && !client) {
+    return (
+      <div className="card p-12 text-center text-slate-400 text-sm">
+        جارٍ التحميل...
+      </div>
+    );
+  }
 
   if (!client) {
     return (
@@ -79,10 +87,10 @@ export default function ClientProfile() {
     );
   }
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (confirm(`حذف العميل "${client.fullName}"؟`)) {
-      deleteClient(client.id);
-      navigate("/clients", { replace: true });
+      const ok = await deleteClient(client.id);
+      if (ok) navigate("/clients", { replace: true });
     }
   };
 
@@ -154,7 +162,7 @@ export default function ClientProfile() {
                   className="inline-flex items-center text-[11px] text-slate-500 font-mono bg-slate-100 px-2 py-0.5 rounded-md"
                   dir="ltr"
                 >
-                  {client.id}
+                  {client.code}
                 </span>
               </div>
               <h1 className="text-2xl font-extrabold text-slate-800 truncate">

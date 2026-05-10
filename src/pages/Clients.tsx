@@ -35,7 +35,7 @@ const contractTypeLabels: Record<string, string> = {
 };
 
 export default function Clients() {
-  const clients = useClients();
+  const { clients, loading } = useClients();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [pageSize, setPageSize] = useState(20);
@@ -49,7 +49,7 @@ export default function Clients() {
         c.email.toLowerCase().includes(q) ||
         c.phone.includes(q) ||
         c.idNumber.includes(q) ||
-        c.id.toLowerCase().includes(q)
+        c.code.toLowerCase().includes(q)
     );
   }, [clients, search]);
 
@@ -57,9 +57,9 @@ export default function Clients() {
 
   const openClient = (c: ClientRecord) => navigate(`/clients/${c.id}`);
 
-  const handleDelete = (c: ClientRecord, e: React.MouseEvent) => {
+  const handleDelete = async (c: ClientRecord, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (confirm(`حذف العميل "${c.fullName}"؟`)) deleteClient(c.id);
+    if (confirm(`حذف العميل "${c.fullName}"؟`)) await deleteClient(c.id);
   };
 
   return (
@@ -102,7 +102,11 @@ export default function Clients() {
           </div>
         </div>
 
-        {visible.length === 0 ? (
+        {loading ? (
+          <div className="py-16 text-center text-slate-400 text-sm">
+            جارٍ التحميل...
+          </div>
+        ) : visible.length === 0 ? (
           <ClientsEmpty />
         ) : (
           <div className="overflow-x-auto">
@@ -127,7 +131,7 @@ export default function Clients() {
                   >
                     <td className="px-4 py-3 text-right">
                       <span className="text-xs font-mono text-slate-500 group-hover:text-brand-700">
-                        {c.id}
+                        {c.code}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">

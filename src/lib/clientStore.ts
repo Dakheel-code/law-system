@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { supabase } from "./supabase";
 
 export type AttachmentRecord = {
   name: string;
@@ -8,9 +9,10 @@ export type AttachmentRecord = {
 };
 
 export type ClientRecord = {
-  id: string;
-  clientType: string; // individual, private, institution, government, semi-government
-  contractType: string; // default, single, annual
+  id: string;            // UUID (database primary key)
+  code: string;          // CLT-XXXXX (display)
+  clientType: string;
+  contractType: string;
   firstName: string;
   secondName: string;
   thirdName: string;
@@ -26,89 +28,209 @@ export type ClientRecord = {
   createdAt: string;
 };
 
-const STORAGE_KEY = "law-system-clients";
+// ---------- mappers between DB rows (snake_case) and TS records (camelCase) ----------
 
-function readAll(): ClientRecord[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    return JSON.parse(raw) as ClientRecord[];
-  } catch {
-    return [];
-  }
-}
+type ClientRow = {
+  id: string;
+  client_code: string;
+  client_type: string;
+  contract_type: string | null;
+  first_name: string | null;
+  second_name: string | null;
+  third_name: string | null;
+  last_name: string | null;
+  full_name: string;
+  id_number: string | null;
+  nationality: string | null;
+  email: string | null;
+  phone: string | null;
+  attachments: AttachmentRecord[] | null;
+  notes: string | null;
+  status: "active" | "inactive";
+  created_at: string;
+};
 
-function writeAll(list: ClientRecord[]) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-  } catch (e) {
-    alert(
-      "تعذّر الحفظ — قد تكون المرفقات كبيرة جداً. حاول رفع ملفات أصغر."
-    );
-    throw e;
-  }
-  window.dispatchEvent(new Event("law-system-clients-updated"));
-}
+const fromRow = (row: ClientRow): ClientRecord => ({
+  id: row.id,
+  code: row.client_code,
+  clientType: row.client_type,
+  contractType: row.contract_type ?? "default",
+  firstName: row.first_name ?? "",
+  secondName: row.second_name ?? "",
+  thirdName: row.third_name ?? "",
+  lastName: row.last_name ?? "",
+  fullName: row.full_name,
+  idNumber: row.id_number ?? "",
+  nationality: row.nationality ?? "",
+  email: row.email ?? "",
+  phone: row.phone ?? "",
+  attachments: row.attachments ?? [],
+  notes: row.notes ?? "",
+  status: row.status,
+  createdAt: row.created_at,
+});
 
-export function listClients(): ClientRecord[] {
-  return readAll();
-}
-
-export function getClient(id: string): ClientRecord | undefined {
-  return readAll().find((c) => c.id === id);
-}
-
-export function addClient(
-  input: Omit<ClientRecord, "id" | "createdAt" | "status" | "fullName"> & {
-    id?: string;
+const toInsert = (
+  c: Omit<ClientRecord, "id" | "code" | "createdAt" | "fullName" | "status"> & {
+    fullName?: string;
     status?: ClientRecord["status"];
   }
-): ClientRecord {
-  const fullName = [
-    input.firstName,
-    input.secondName,
-    input.thirdName,
-    input.lastName,
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .trim();
+): Record<string, unknown> => ({
+  client_code: generateClientCode(),
+  client_type: c.clientType,
+  contract_type: c.contractType,
+  first_name: c.firstName,
+  second_name: c.secondName,
+  third_name: c.thirdName,
+  last_name: c.lastName,
+  full_name:
+    (c.fullName ??
+      [c.firstName, c.secondName, c.thirdName, c.lastName]
+        .filter(Boolean)
+        .join(" ")
+        .trim()) ||
+    "—",
+  id_number: c.idNumber,
+  nationality: c.nationality,
+  email: c.email,
+  phone: c.phone,
+  attachments: c.attachments,
+  notes: c.notes,
+  status: c.status ?? "active",
+});
 
-  const record: ClientRecord = {
-    ...input,
-    id: input.id ?? generateClientId(),
-    status: input.status ?? "active",
-    fullName: fullName || "—",
-    createdAt: new Date().toISOString(),
-  };
-  const all = readAll();
-  all.unshift(record);
-  writeAll(all);
-  return record;
-}
+const toUpdate = (
+  c: Partial<Omit<ClientRecord, "id" | "code" | "createdAt">>
+): Record<string, unknown> => {
+  const out: Record<string, unknown> = {};
+  if (c.clientType !== undefined) out.client_type = c.clientType;
+  if (c.contractType !== undefined) out.contract_type = c.contractType;
+  if (c.firstName !== undefined) out.first_name = c.firstName;
+  if (c.secondName !== undefined) out.second_name = c.secondName;
+  if (c.thirdName !== undefined) out.third_name = c.thirdName;
+  if (c.lastName !== undefined) out.last_name = c.lastName;
+  if (c.fullName !== undefined) out.full_name = c.fullName;
+  if (c.idNumber !== undefined) out.id_number = c.idNumber;
+  if (c.nationality !== undefined) out.nationality = c.nationality;
+  if (c.email !== undefined) out.email = c.email;
+  if (c.phone !== undefined) out.phone = c.phone;
+  if (c.attachments !== undefined) out.attachments = c.attachments;
+  if (c.notes !== undefined) out.notes = c.notes;
+  if (c.status !== undefined) out.status = c.status;
+  return out;
+};
 
-export function deleteClient(id: string) {
-  writeAll(readAll().filter((c) => c.id !== id));
-}
-
-export function updateClient(id: string, patch: Partial<ClientRecord>) {
-  writeAll(readAll().map((c) => (c.id === id ? { ...c, ...patch } : c)));
-}
-
-export function generateClientId(): string {
+export function generateClientCode(): string {
   return "CLT-" + Math.floor(10000 + Math.random() * 90000);
 }
 
+// ---------- public API ----------
+
+export async function listClients(): Promise<ClientRecord[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("clients")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) {
+    console.error("listClients", error);
+    return [];
+  }
+  return (data as ClientRow[]).map(fromRow);
+}
+
+export async function getClient(id: string): Promise<ClientRecord | null> {
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from("clients")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  if (error || !data) return null;
+  return fromRow(data as ClientRow);
+}
+
+export async function addClient(
+  input: Omit<ClientRecord, "id" | "code" | "createdAt" | "fullName" | "status"> & {
+    fullName?: string;
+    status?: ClientRecord["status"];
+  }
+): Promise<ClientRecord | null> {
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from("clients")
+    .insert(toInsert(input))
+    .select()
+    .single();
+  if (error) {
+    alert(`فشل الحفظ: ${error.message}`);
+    console.error("addClient", error);
+    return null;
+  }
+  return fromRow(data as ClientRow);
+}
+
+export async function updateClient(
+  id: string,
+  patch: Partial<Omit<ClientRecord, "id" | "code" | "createdAt">>
+): Promise<boolean> {
+  if (!supabase) return false;
+  const { error } = await supabase.from("clients").update(toUpdate(patch)).eq("id", id);
+  if (error) {
+    alert(`فشل التحديث: ${error.message}`);
+    console.error("updateClient", error);
+    return false;
+  }
+  return true;
+}
+
+export async function deleteClient(id: string): Promise<boolean> {
+  if (!supabase) return false;
+  const { error } = await supabase.from("clients").delete().eq("id", id);
+  if (error) {
+    alert(`فشل الحذف: ${error.message}`);
+    return false;
+  }
+  return true;
+}
+
+// ---------- React hook with realtime sync ----------
+
 export function useClients() {
-  const [clients, setClients] = useState<ClientRecord[]>(readAll);
+  const [clients, setClients] = useState<ClientRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const refresh = async () => {
+    setError(null);
+    try {
+      const list = await listClients();
+      setClients(list);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const refresh = () => setClients(readAll());
-    window.addEventListener("storage", refresh);
-    window.addEventListener("law-system-clients-updated", refresh);
+    refresh();
+
+    const sb = supabase;
+    if (!sb) return;
+    const channel = sb
+      .channel("clients-changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "clients" },
+        () => refresh()
+      )
+      .subscribe();
+
     return () => {
-      window.removeEventListener("storage", refresh);
-      window.removeEventListener("law-system-clients-updated", refresh);
+      sb.removeChannel(channel);
     };
   }, []);
-  return clients;
+
+  return { clients, loading, error, refresh };
 }

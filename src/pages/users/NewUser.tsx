@@ -7,15 +7,16 @@ import Select from "../../components/ui/Select";
 import Toggle from "../../components/ui/Toggle";
 import FileUpload from "../../components/ui/FileUpload";
 import { userTypes } from "../../config/userConfig";
-import { addUser, generateUserId, getUser, updateUser } from "../../lib/userStore";
+import { addUser, generateUserCode, getUser, updateUser } from "../../lib/userStore";
 
 export default function NewUser() {
   const navigate = useNavigate();
   const { id: editId } = useParams<{ id: string }>();
   const isEditMode = Boolean(editId);
 
-  const generatedId = useMemo(generateUserId, []);
-  const [userId, setUserId] = useState(generatedId);
+  const generatedCode = useMemo(generateUserCode, []);
+  const [userCode, setUserCode] = useState(generatedCode);
+  const [saving, setSaving] = useState(false);
   const [avatar, setAvatar] = useState<string | null>(null);
   const [data, setData] = useState({
     type: "",
@@ -36,32 +37,39 @@ export default function NewUser() {
   // Load existing user data in edit mode
   useEffect(() => {
     if (!editId) return;
-    const u = getUser(editId);
-    if (!u) {
-      setNotFound(true);
-      return;
-    }
-    setUserId(u.id);
-    setAvatar(u.avatarDataUrl);
-    setData({
-      type: u.type,
-      name: u.fullName,
-      firstName: u.firstName,
-      middleName: u.middleName,
-      thirdName: u.thirdName,
-      lastName: u.lastName,
-      idNumber: u.idNumber,
-      nationality: u.nationality,
-      phone: u.phone,
-      email: u.email,
-      linkExisting: false,
-    });
+    let cancelled = false;
+    (async () => {
+      const u = await getUser(editId);
+      if (cancelled) return;
+      if (!u) {
+        setNotFound(true);
+        return;
+      }
+      setUserCode(u.code);
+      setAvatar(u.avatarDataUrl);
+      setData({
+        type: u.type,
+        name: u.fullName,
+        firstName: u.firstName,
+        middleName: u.middleName,
+        thirdName: u.thirdName,
+        lastName: u.lastName,
+        idNumber: u.idNumber,
+        nationality: u.nationality,
+        phone: u.phone,
+        email: u.email,
+        linkExisting: false,
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [editId]);
 
   const update = <K extends keyof typeof data>(key: K, value: (typeof data)[K]) =>
     setData((p) => ({ ...p, [key]: value }));
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -83,13 +91,16 @@ export default function NewUser() {
       avatarDataUrl: avatar,
     };
 
+    setSaving(true);
     if (isEditMode && editId) {
-      updateUser(editId, payload);
+      const ok = await updateUser(editId, payload);
+      setSaving(false);
+      if (ok) navigate("/users");
     } else {
-      addUser({ id: userId, ...payload });
+      const created = await addUser({ code: userCode, ...payload });
+      setSaving(false);
+      if (created) navigate("/users");
     }
-
-    navigate("/users");
   };
 
   if (notFound) {
@@ -143,7 +154,7 @@ export default function NewUser() {
             />
           </Field>
           <Field label="رقم المستخدم">
-            <Input value={userId} readOnly className="bg-slate-100 cursor-not-allowed" />
+            <Input value={userCode} readOnly className="bg-slate-100 cursor-not-allowed" />
           </Field>
         </div>
 
@@ -248,10 +259,11 @@ export default function NewUser() {
       <div className="flex items-center justify-between">
         <button
           type="submit"
-          className="inline-flex items-center gap-2 px-6 py-3 bg-brand-500 text-white rounded-lg text-sm font-bold shadow-card hover:bg-brand-600"
+          disabled={saving}
+          className="inline-flex items-center gap-2 px-6 py-3 bg-brand-500 text-white rounded-lg text-sm font-bold shadow-card hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed"
         >
           <Save className="w-4 h-4" />
-          {isEditMode ? "حفظ التغييرات" : "حفظ"}
+          {saving ? "جارٍ الحفظ..." : isEditMode ? "حفظ التغييرات" : "حفظ"}
         </button>
         <button
           type="button"
