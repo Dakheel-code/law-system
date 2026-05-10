@@ -38,6 +38,10 @@ export function listUsers(): UserRecord[] {
   return readAll();
 }
 
+export function getUser(id: string): UserRecord | undefined {
+  return readAll().find((u) => u.id === id);
+}
+
 export function addUser(user: Omit<UserRecord, "createdAt" | "status"> & {
   status?: UserRecord["status"];
 }): UserRecord {

@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Plus,
   Users as UsersIcon,
@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   XCircle,
   User as UserIcon,
+  Edit3,
 } from "lucide-react";
 import { useUsers, deleteUser, updateUser, type UserRecord } from "../../lib/userStore";
 import { userTypes } from "../../config/userConfig";
@@ -24,6 +25,7 @@ const columns = [
 
 export default function Users() {
   const users = useUsers();
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -184,6 +186,13 @@ export default function Users() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="inline-flex items-center gap-1">
+                        <button
+                          onClick={() => navigate(`/users/${u.id}/edit`)}
+                          title="تعديل"
+                          className="p-1.5 text-brand-600 hover:bg-brand-50 rounded-md"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
                         <button
                           onClick={() => toggleStatus(u)}
                           title={u.status === "active" ? "تعطيل" : "تفعيل"}

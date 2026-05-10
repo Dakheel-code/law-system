@@ -64,6 +64,7 @@ export default function App() {
           {/* Users & Settings */}
           <Route path="/users" element={<Users />} />
           <Route path="/users/new" element={<NewUser />} />
+          <Route path="/users/:id/edit" element={<NewUser />} />
           <Route path="/users/permissions" element={<Permissions />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/theme" element={<Theme />} />
