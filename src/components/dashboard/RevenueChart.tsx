@@ -9,17 +9,59 @@ import {
   Legend,
 } from "recharts";
 import SectionCard from "../ui/SectionCard";
+import { useCases } from "../../lib/caseStore";
+import { useContracts } from "../../lib/contractStore";
 
-const data = [
-  { month: "ديسمبر", cases: 0, revenue: 0 },
-  { month: "يناير", cases: 0, revenue: 0 },
-  { month: "فبراير", cases: 0, revenue: 0 },
-  { month: "مارس", cases: 0, revenue: 0 },
-  { month: "أبريل", cases: 0, revenue: 0 },
-  { month: "مايو", cases: 0, revenue: 0 },
+const arabicMonths = [
+  "يناير",
+  "فبراير",
+  "مارس",
+  "أبريل",
+  "مايو",
+  "يونيو",
+  "يوليو",
+  "أغسطس",
+  "سبتمبر",
+  "أكتوبر",
+  "نوفمبر",
+  "ديسمبر",
 ];
 
+const sumServices = (services: { qty: number; price: number }[]) =>
+  services.reduce((s, x) => s + x.qty * x.price, 0);
+
 export default function RevenueChart() {
+  const { cases } = useCases();
+  const { contracts } = useContracts();
+
+  // last 6 months keys
+  const now = new Date();
+  const months: { label: string; year: number; month: number }[] = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push({
+      label: arabicMonths[d.getMonth()],
+      year: d.getFullYear(),
+      month: d.getMonth(),
+    });
+  }
+
+  const data = months.map((m) => {
+    const monthCases = cases.filter((c) => {
+      const d = new Date(c.createdAt);
+      return d.getFullYear() === m.year && d.getMonth() === m.month;
+    });
+    const monthContracts = contracts.filter((c) => {
+      const d = new Date(c.createdAt);
+      return d.getFullYear() === m.year && d.getMonth() === m.month;
+    });
+    return {
+      month: m.label,
+      cases: monthCases.length,
+      revenue: monthContracts.reduce((s, c) => s + sumServices(c.services), 0),
+    };
+  });
+
   return (
     <SectionCard
       title="الإيرادات والقضايا الشهرية"
@@ -50,6 +92,7 @@ export default function RevenueChart() {
               tick={{ fontSize: 12, fill: "#94a3b8" }}
               axisLine={false}
               tickLine={false}
+              allowDecimals={false}
             />
             <Tooltip
               contentStyle={{
