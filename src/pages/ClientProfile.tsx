@@ -110,10 +110,13 @@ export default function ClientProfile() {
             <Trash2 className="w-4 h-4" />
             حذف
           </button>
-          <button className="inline-flex items-center gap-2 px-4 py-2.5 bg-brand-50 text-brand-700 rounded-lg text-sm font-bold hover:bg-brand-100">
+          <Link
+            to={`/clients/${client.id}/edit`}
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-brand-50 text-brand-700 rounded-lg text-sm font-bold hover:bg-brand-100"
+          >
             <Edit3 className="w-4 h-4" />
             تعديل
-          </button>
+          </Link>
         </div>
         <Link
           to="/clients"

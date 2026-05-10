@@ -1,8 +1,9 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowRight,
   UserPlus,
+  Edit3,
   User,
   Briefcase,
   Building2,
@@ -17,7 +18,12 @@ import RadioGroup from "../components/ui/RadioGroup";
 import { Field, Input, Textarea } from "../components/ui/Field";
 import Select from "../components/ui/Select";
 import AttachmentsUpload from "../components/ui/AttachmentsUpload";
-import { addClient, type AttachmentRecord } from "../lib/clientStore";
+import {
+  addClient,
+  getClient,
+  updateClient,
+  type AttachmentRecord,
+} from "../lib/clientStore";
 import { nationalities } from "../config/nationalities";
 
 const clientTypeOptions = [
@@ -36,10 +42,14 @@ const contractTypeOptions = [
 
 export default function NewClient() {
   const navigate = useNavigate();
+  const { id: editId } = useParams<{ id: string }>();
+  const isEditMode = Boolean(editId);
+
   const [clientType, setClientType] = useState("individual");
   const [contractType, setContractType] = useState("default");
   const [attachments, setAttachments] = useState<AttachmentRecord[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [notFound, setNotFound] = useState(false);
   const [form, setForm] = useState({
     firstName: "",
     secondName: "",
@@ -51,6 +61,30 @@ export default function NewClient() {
     phone: "",
     notes: "",
   });
+
+  // Load existing data when in edit mode
+  useEffect(() => {
+    if (!editId) return;
+    const c = getClient(editId);
+    if (!c) {
+      setNotFound(true);
+      return;
+    }
+    setClientType(c.clientType);
+    setContractType(c.contractType);
+    setAttachments(c.attachments);
+    setForm({
+      firstName: c.firstName,
+      secondName: c.secondName,
+      thirdName: c.thirdName,
+      lastName: c.lastName,
+      idNumber: c.idNumber,
+      nationality: c.nationality,
+      email: c.email,
+      phone: c.phone,
+      notes: c.notes,
+    });
+  }, [editId]);
 
   const update =
     (key: keyof typeof form) =>
@@ -66,7 +100,12 @@ export default function NewClient() {
       return;
     }
 
-    addClient({
+    const fullName = [form.firstName, form.secondName, form.thirdName, form.lastName]
+      .filter(Boolean)
+      .join(" ")
+      .trim();
+
+    const payload = {
       clientType,
       contractType,
       firstName: form.firstName,
@@ -79,10 +118,34 @@ export default function NewClient() {
       phone: form.phone,
       attachments,
       notes: form.notes,
-    });
+    };
 
-    navigate("/clients");
+    if (isEditMode && editId) {
+      updateClient(editId, { ...payload, fullName });
+      navigate(`/clients/${editId}`);
+    } else {
+      addClient(payload);
+      navigate("/clients");
+    }
   };
+
+  if (notFound) {
+    return (
+      <div className="card p-12 text-center">
+        <h2 className="text-lg font-bold text-slate-700">العميل غير موجود</h2>
+        <p className="text-sm text-slate-500 mt-1">
+          ربما تم حذفه أو الرابط غير صحيح.
+        </p>
+        <Link
+          to="/clients"
+          className="inline-flex items-center gap-2 mt-5 px-5 py-2.5 bg-brand-500 text-white rounded-lg text-sm font-bold hover:bg-brand-600"
+        >
+          <ArrowRight className="w-4 h-4" />
+          العودة للعملاء
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -91,7 +154,7 @@ export default function NewClient() {
 
         <div className="p-6 flex items-center justify-between">
           <Link
-            to="/clients"
+            to={isEditMode && editId ? `/clients/${editId}` : "/clients"}
             className="inline-flex items-center gap-2 px-4 py-2 bg-rose-50 text-rose-500 rounded-lg text-sm font-bold hover:bg-rose-100"
           >
             <ArrowRight className="w-4 h-4" />
@@ -99,8 +162,12 @@ export default function NewClient() {
           </Link>
 
           <h2 className="flex items-center gap-2 text-lg font-extrabold text-slate-800">
-            إضافة عميل جديد
-            <UserPlus className="w-5 h-5 text-brand-500" />
+            {isEditMode ? "تعديل عميل" : "إضافة عميل جديد"}
+            {isEditMode ? (
+              <Edit3 className="w-5 h-5 text-brand-500" />
+            ) : (
+              <UserPlus className="w-5 h-5 text-brand-500" />
+            )}
           </h2>
         </div>
 
@@ -211,10 +278,10 @@ export default function NewClient() {
           className="inline-flex items-center gap-2 px-6 py-3 bg-brand-500 text-white rounded-lg text-sm font-bold shadow-card hover:bg-brand-600"
         >
           <Save className="w-4 h-4" />
-          حفظ
+          {isEditMode ? "حفظ التغييرات" : "حفظ"}
         </button>
         <Link
-          to="/clients"
+          to={isEditMode && editId ? `/clients/${editId}` : "/clients"}
           className="inline-flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 text-slate-600 rounded-lg text-sm font-bold hover:bg-slate-50"
         >
           إلغاء
