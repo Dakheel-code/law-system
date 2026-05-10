@@ -159,30 +159,28 @@ export default function Admin() {
       )}
 
       <div className="card">
-        <div className="border-b border-slate-200 flex justify-end overflow-x-auto">
-          <div className="flex">
-            {tabs.map((t) => {
-              const Icon = t.icon;
-              const active = tab === t.key;
-              return (
-                <button
-                  key={t.key}
-                  onClick={() => setTab(t.key)}
-                  className={`inline-flex items-center gap-2 px-4 py-3 text-sm transition relative whitespace-nowrap ${
-                    active
-                      ? "text-brand-700 font-bold"
-                      : "text-slate-500 hover:text-slate-700"
-                  }`}
-                >
-                  <span>{t.label}</span>
-                  <Icon className="w-4 h-4" />
-                  {active && (
-                    <span className="absolute -bottom-px right-0 left-0 h-0.5 bg-brand-500" />
-                  )}
-                </button>
-              );
-            })}
-          </div>
+        <div className="border-b border-slate-200 flex flex-wrap justify-start gap-y-1">
+          {tabs.map((t) => {
+            const Icon = t.icon;
+            const active = tab === t.key;
+            return (
+              <button
+                key={t.key}
+                onClick={() => setTab(t.key)}
+                className={`inline-flex items-center gap-2 px-4 py-3 text-sm transition relative whitespace-nowrap ${
+                  active
+                    ? "text-brand-700 font-bold"
+                    : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                <span>{t.label}</span>
+                <Icon className="w-4 h-4" />
+                {active && (
+                  <span className="absolute -bottom-px right-0 left-0 h-0.5 bg-brand-500" />
+                )}
+              </button>
+            );
+          })}
         </div>
 
         <div className="p-6">
