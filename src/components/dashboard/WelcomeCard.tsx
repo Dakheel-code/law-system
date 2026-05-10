@@ -13,7 +13,7 @@ export default function WelcomeCard() {
 
       <div className="relative flex items-center justify-between">
         <div className="text-right">
-          <div className="flex items-center justify-end gap-3 mb-2">
+          <div className="flex items-center justify-start gap-3 mb-2">
             <h1 className="text-3xl font-extrabold">
               {greeting}، {office.user.name}
             </h1>

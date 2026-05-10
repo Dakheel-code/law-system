@@ -24,11 +24,11 @@ export default function CasesPageShell({
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between flex-wrap gap-3">
-        {primaryAction}
         <h2 className="flex items-center gap-2 text-xl font-extrabold text-slate-800">
           {title}
           <Icon className="w-5 h-5 text-brand-500" />
         </h2>
+        {primaryAction}
       </div>
 
       {kpis}

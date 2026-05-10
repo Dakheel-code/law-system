@@ -24,7 +24,7 @@ export default function TypeChips() {
   ];
 
   return (
-    <div className="flex flex-wrap gap-2 justify-end">
+    <div className="flex flex-wrap gap-2 justify-start">
       {chips.map((c) => {
         const Icon = c.icon;
         return (

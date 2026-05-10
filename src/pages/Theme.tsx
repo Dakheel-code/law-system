@@ -32,6 +32,10 @@ export default function Theme() {
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between flex-wrap gap-3">
+        <h2 className="flex items-center gap-2 text-xl font-extrabold text-slate-800">
+          تخصيص الواجهة
+          <Palette className="w-5 h-5 text-brand-500" />
+        </h2>
         <div className="flex items-center gap-2">
           <button
             onClick={reset}
@@ -48,10 +52,6 @@ export default function Theme() {
             حفظ التغييرات
           </button>
         </div>
-        <h2 className="flex items-center gap-2 text-xl font-extrabold text-slate-800">
-          تخصيص الواجهة
-          <Palette className="w-5 h-5 text-brand-500" />
-        </h2>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
@@ -59,7 +59,7 @@ export default function Theme() {
         <div className="lg:col-span-2 space-y-5">
           {/* Theme color */}
           <div className="card p-5">
-            <h3 className="flex items-center justify-end gap-2 text-base font-bold text-slate-800 mb-4">
+            <h3 className="flex items-center justify-start gap-2 text-base font-bold text-slate-800 mb-4">
               اللون الرئيسي
               <Sparkles className="w-4 h-4 text-brand-500" />
             </h3>
@@ -91,7 +91,7 @@ export default function Theme() {
 
           {/* Mode */}
           <div className="card p-5">
-            <h3 className="flex items-center justify-end gap-2 text-base font-bold text-slate-800 mb-4">
+            <h3 className="flex items-center justify-start gap-2 text-base font-bold text-slate-800 mb-4">
               وضع العرض
               <Sun className="w-4 h-4 text-brand-500" />
             </h3>
@@ -123,7 +123,7 @@ export default function Theme() {
 
           {/* Logo & Name */}
           <div className="card p-5">
-            <h3 className="flex items-center justify-end gap-2 text-base font-bold text-slate-800 mb-4">
+            <h3 className="flex items-center justify-start gap-2 text-base font-bold text-slate-800 mb-4">
               الشعار واسم المكتب
               <ImageIcon className="w-4 h-4 text-brand-500" />
             </h3>
@@ -157,7 +157,7 @@ export default function Theme() {
 
           {/* Font */}
           <div className="card p-5">
-            <h3 className="flex items-center justify-end gap-2 text-base font-bold text-slate-800 mb-4">
+            <h3 className="flex items-center justify-start gap-2 text-base font-bold text-slate-800 mb-4">
               نوع الخط
               <Type className="w-4 h-4 text-brand-500" />
             </h3>
@@ -198,7 +198,7 @@ export default function Theme() {
 
           {/* Layout */}
           <div className="card p-5">
-            <h3 className="flex items-center justify-end gap-2 text-base font-bold text-slate-800 mb-4">
+            <h3 className="flex items-center justify-start gap-2 text-base font-bold text-slate-800 mb-4">
               تخطيط الواجهة
               <Layout className="w-4 h-4 text-brand-500" />
             </h3>

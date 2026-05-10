@@ -9,7 +9,7 @@ export default function StepHeader({
 }) {
   return (
     <div className="text-right">
-      <h2 className="flex items-center justify-end gap-2 text-xl font-extrabold text-slate-800">
+      <h2 className="flex items-center justify-start gap-2 text-xl font-extrabold text-slate-800">
         {title}
         <Info className="w-4 h-4 text-brand-500" />
       </h2>

@@ -118,6 +118,10 @@ export default function NewContract() {
   return (
     <div className="card p-6 space-y-6">
       <div className="flex items-center justify-between">
+        <h2 className="flex items-center gap-2 text-xl font-extrabold text-slate-800">
+          إنشاء عقد جديد
+          <Plus className="w-5 h-5 text-brand-500" />
+        </h2>
         <Link
           to="/contracts"
           className="inline-flex items-center gap-2 px-4 py-2 bg-rose-50 text-rose-500 rounded-lg text-sm font-bold hover:bg-rose-100"
@@ -125,10 +129,6 @@ export default function NewContract() {
           <X className="w-4 h-4" />
           إلغاء
         </Link>
-        <h2 className="flex items-center gap-2 text-xl font-extrabold text-slate-800">
-          إنشاء عقد جديد
-          <Plus className="w-5 h-5 text-brand-500" />
-        </h2>
       </div>
 
       <HStepper steps={steps} current={current} onJump={setCurrent} />

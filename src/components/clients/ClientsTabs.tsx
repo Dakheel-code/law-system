@@ -12,7 +12,7 @@ export default function ClientsTabs() {
   const [active, setActive] = useState("all");
 
   return (
-    <div className="flex flex-wrap gap-2 justify-end">
+    <div className="flex flex-wrap gap-2 justify-start">
       {tabs.map((t) => {
         const Icon = t.icon;
         const isActive = active === t.key;

@@ -19,7 +19,7 @@ export default function Step1Client({ data, update }: Props) {
       />
 
       <div className="rounded-xl border-2 border-dashed border-violet-200 bg-violet-50/40 p-4">
-        <div className="flex items-center justify-end gap-2 mb-1">
+        <div className="flex items-center justify-start gap-2 mb-1">
           <h3 className="text-sm font-bold text-slate-700">البحث عن عميل</h3>
           <FileSearch className="w-4 h-4 text-violet-500" />
         </div>

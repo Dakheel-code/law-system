@@ -69,6 +69,10 @@ export default function Contracts() {
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between flex-wrap gap-3">
+        <h2 className="flex items-center gap-2 text-xl font-extrabold text-slate-800">
+          إدارة التعاقدات
+          <FileText className="w-5 h-5 text-brand-500" />
+        </h2>
         <Link
           to="/contracts/new"
           className="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-500 text-white rounded-lg text-sm font-bold shadow hover:bg-brand-600"
@@ -76,10 +80,6 @@ export default function Contracts() {
           <Plus className="w-4 h-4" />
           عقد جديد
         </Link>
-        <h2 className="flex items-center gap-2 text-xl font-extrabold text-slate-800">
-          إدارة التعاقدات
-          <FileText className="w-5 h-5 text-brand-500" />
-        </h2>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
@@ -92,8 +92,7 @@ export default function Contracts() {
       </div>
 
       <div className="card">
-        <div className="border-b border-slate-200 flex justify-end px-5">
-          <div className="flex">
+        <div className="border-b border-slate-200 flex justify-start px-5">
             {tabs.map((t) => {
               const active = tab === t.key;
               return (
@@ -111,7 +110,6 @@ export default function Contracts() {
                 </button>
               );
             })}
-          </div>
         </div>
 
         <div className="p-5 space-y-4">

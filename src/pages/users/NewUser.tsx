@@ -123,7 +123,7 @@ export default function NewUser() {
   return (
     <form onSubmit={submit} className="space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-end">
+      <div className="flex items-center justify-start">
         <h2 className="flex items-center gap-2 text-xl font-extrabold text-slate-800">
           {isEditMode ? "تعديل مستخدم" : "إضافة مستخدم جديد"}
           {isEditMode ? (

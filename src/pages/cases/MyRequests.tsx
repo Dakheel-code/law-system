@@ -53,26 +53,24 @@ export default function MyRequests() {
       kpis={<CasesKpiStrip items={kpis} />}
       searchPlaceholder="ابحث في طلباتي..."
     >
-      <div className="border-b border-slate-200 flex justify-end px-5">
-        <div className="flex">
-          {tabs.map((t) => {
-            const active = tab === t.key;
-            return (
-              <button
-                key={t.key}
-                onClick={() => setTab(t.key)}
-                className={`px-4 py-3 text-sm transition relative ${
-                  active ? "text-brand-700 font-bold" : "text-slate-500 hover:text-slate-700"
-                }`}
-              >
-                {t.label}
-                {active && (
-                  <span className="absolute -bottom-px right-0 left-0 h-0.5 bg-brand-500" />
-                )}
-              </button>
-            );
-          })}
-        </div>
+      <div className="border-b border-slate-200 flex justify-start px-5">
+        {tabs.map((t) => {
+          const active = tab === t.key;
+          return (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`px-4 py-3 text-sm transition relative ${
+                active ? "text-brand-700 font-bold" : "text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              {t.label}
+              {active && (
+                <span className="absolute -bottom-px right-0 left-0 h-0.5 bg-brand-500" />
+              )}
+            </button>
+          );
+        })}
       </div>
       <CasesTable columns={columns} emptyIcon={Inbox} emptyText="لم تقدّم أي طلب بعد" />
     </CasesPageShell>

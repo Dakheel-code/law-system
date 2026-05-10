@@ -82,7 +82,7 @@ export default function Permissions() {
 
   return (
     <div className="space-y-5">
-      <div className="card p-5 flex items-center justify-end">
+      <div className="card p-5 flex items-center justify-start">
         <h2 className="flex items-center gap-2 text-xl font-extrabold text-slate-800">
           إدارة الصلاحيات والتفويض
           <ShieldCheck className="w-5 h-5 text-brand-500" />
@@ -90,30 +90,28 @@ export default function Permissions() {
       </div>
 
       <div className="card">
-        <div className="border-b border-slate-200 flex justify-end">
-          <div className="flex">
-            {tabs.map((t) => {
-              const Icon = t.icon;
-              const active = tab === t.key;
-              return (
-                <button
-                  key={t.key}
-                  onClick={() => setTab(t.key)}
-                  className={`inline-flex items-center gap-2 px-4 py-3 text-sm transition relative ${
-                    active
-                      ? "text-brand-700 font-bold"
-                      : "text-slate-500 hover:text-slate-700"
-                  }`}
-                >
-                  <span>{t.label}</span>
-                  <Icon className="w-4 h-4" />
-                  {active && (
-                    <span className="absolute -bottom-px right-0 left-0 h-0.5 bg-brand-500" />
-                  )}
-                </button>
-              );
-            })}
-          </div>
+        <div className="border-b border-slate-200 flex justify-start">
+          {tabs.map((t) => {
+            const Icon = t.icon;
+            const active = tab === t.key;
+            return (
+              <button
+                key={t.key}
+                onClick={() => setTab(t.key)}
+                className={`inline-flex items-center gap-2 px-4 py-3 text-sm transition relative ${
+                  active
+                    ? "text-brand-700 font-bold"
+                    : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                <span>{t.label}</span>
+                <Icon className="w-4 h-4" />
+                {active && (
+                  <span className="absolute -bottom-px right-0 left-0 h-0.5 bg-brand-500" />
+                )}
+              </button>
+            );
+          })}
         </div>
 
         <div className="p-5 grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-5">

@@ -49,7 +49,7 @@ export default function InfoBanner({
         <X className="w-4 h-4" />
       </button>
       <div className="flex-1 text-right">
-        <h3 className={`flex items-center justify-end gap-2 font-bold ${palette.title}`}>
+        <h3 className={`flex items-center justify-start gap-2 font-bold ${palette.title}`}>
           {title}
           <span className={`w-7 h-7 rounded-lg flex items-center justify-center ${palette.iconBg}`}>
             <Icon className={`w-4 h-4 ${palette.icon}`} />

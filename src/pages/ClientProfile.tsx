@@ -269,7 +269,7 @@ export default function ClientProfile() {
         {/* Attachments sidebar */}
         <div>
           <div className="card p-5 lg:sticky lg:top-24">
-            <h2 className="flex items-center justify-end gap-2 text-base font-bold text-slate-800 mb-4 pb-3 border-b border-slate-100">
+            <h2 className="flex items-center justify-start gap-2 text-base font-bold text-slate-800 mb-4 pb-3 border-b border-slate-100">
               المرفقات
               <span className="text-xs text-slate-400 font-normal">
                 ({client.attachments.length})
@@ -320,7 +320,7 @@ function Section({
 }) {
   return (
     <div className="card p-5">
-      <h2 className="flex items-center justify-end gap-2 text-base font-bold text-slate-800 mb-5 pb-3 border-b border-slate-100">
+      <h2 className="flex items-center justify-start gap-2 text-base font-bold text-slate-800 mb-5 pb-3 border-b border-slate-100">
         {title}
         <Icon className="w-4 h-4 text-brand-500" />
       </h2>

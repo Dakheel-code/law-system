@@ -23,8 +23,8 @@ export default function CalendarPage() {
 
       <div className="card p-5">
         <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-          <EventChips />
           <h2 className="text-xl font-extrabold text-slate-800">التقويم</h2>
+          <EventChips />
         </div>
       </div>
 

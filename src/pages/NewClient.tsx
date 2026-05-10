@@ -165,14 +165,6 @@ export default function NewClient() {
         <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-l from-blue-500 via-brand-500 to-emerald-500" />
 
         <div className="p-6 flex items-center justify-between">
-          <Link
-            to={isEditMode && editId ? `/clients/${editId}` : "/clients"}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-rose-50 text-rose-500 rounded-lg text-sm font-bold hover:bg-rose-100"
-          >
-            <ArrowRight className="w-4 h-4" />
-            عودة
-          </Link>
-
           <h2 className="flex items-center gap-2 text-lg font-extrabold text-slate-800">
             {isEditMode ? "تعديل عميل" : "إضافة عميل جديد"}
             {isEditMode ? (
@@ -181,6 +173,14 @@ export default function NewClient() {
               <UserPlus className="w-5 h-5 text-brand-500" />
             )}
           </h2>
+
+          <Link
+            to={isEditMode && editId ? `/clients/${editId}` : "/clients"}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-rose-50 text-rose-500 rounded-lg text-sm font-bold hover:bg-rose-100"
+          >
+            <ArrowRight className="w-4 h-4" />
+            عودة
+          </Link>
         </div>
 
         <div className="px-6 pb-6 space-y-6">

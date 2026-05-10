@@ -59,7 +59,7 @@ export default function SelectedDayEvents({ date, onClose }: Props) {
   if (!date) {
     return (
       <div className="card p-5 lg:sticky lg:top-24">
-        <h3 className="flex items-center justify-end gap-2 text-base font-bold text-slate-800 mb-4 pb-3 border-b border-slate-100">
+        <h3 className="flex items-center justify-start gap-2 text-base font-bold text-slate-800 mb-4 pb-3 border-b border-slate-100">
           أحداث اليوم المحدّد
           <Calendar className="w-4 h-4 text-brand-500" />
         </h3>

@@ -9,6 +9,16 @@ export default function ReportsHeader() {
   return (
     <div className="card p-5">
       <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="text-right">
+          <h2 className="flex items-center justify-start gap-2 text-xl font-extrabold text-slate-800">
+            الإحصائيات والتقارير
+            <BarChart3 className="w-6 h-6 text-brand-500" />
+          </h2>
+          <p className="text-xs text-slate-500 mt-1">
+            تحليل شامل للطلبات والقضايا والعملاء والمدفوعات
+          </p>
+        </div>
+
         <div className="flex items-center gap-2 flex-wrap">
           <button className="inline-flex items-center gap-2 px-3 py-2 bg-violet-500 text-white rounded-lg text-sm font-bold shadow hover:bg-violet-600">
             <FileDown className="w-4 h-4" />
@@ -38,16 +48,6 @@ export default function ReportsHeader() {
           <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-brand-50 text-brand-700 rounded-lg text-sm font-bold">
             هذا الشهر 05-2026
           </span>
-        </div>
-
-        <div className="text-right">
-          <h2 className="flex items-center justify-end gap-2 text-xl font-extrabold text-slate-800">
-            الإحصائيات والتقارير
-            <BarChart3 className="w-6 h-6 text-brand-500" />
-          </h2>
-          <p className="text-xs text-slate-500 mt-1">
-            تحليل شامل للطلبات والقضايا والعملاء والمدفوعات
-          </p>
         </div>
       </div>
     </div>
