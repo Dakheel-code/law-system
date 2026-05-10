@@ -22,9 +22,9 @@ export default function Reports() {
       <div className="card">
         <ReportsTabs active={tab} onChange={setTab} />
         <div className="p-5 space-y-5">
-          <ReportsKpis />
-          <ReportsMiniStats />
-          <ReportsCharts />
+          <ReportsKpis tab={tab} />
+          <ReportsMiniStats tab={tab} />
+          <ReportsCharts tab={tab} />
         </div>
       </div>
     </div>
