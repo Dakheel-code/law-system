@@ -8,6 +8,7 @@ import {
   hijriMonthYear,
   isSameDay,
 } from "../../lib/hijri";
+import { useCalendarEvents } from "../../lib/calendarEvents";
 
 const weekdays = [
   "السبت",
@@ -21,10 +22,26 @@ const weekdays = [
 
 const views = ["شهر", "أسبوع", "يوم", "قائمة"];
 
-export default function MonthGrid() {
+const colorBg: Record<string, string> = {
+  violet: "bg-violet-500",
+  sky: "bg-sky-500",
+  amber: "bg-amber-500",
+  emerald: "bg-emerald-500",
+  rose: "bg-rose-500",
+};
+
+type Props = {
+  selectedDate: string | null;
+  onSelectDate: (iso: string) => void;
+};
+
+const isoOf = (d: Date) => d.toISOString().slice(0, 10);
+
+export default function MonthGrid({ selectedDate, onSelectDate }: Props) {
   const [view, setView] = useState("شهر");
   const [ref, setRef] = useState(() => new Date());
   const today = new Date();
+  const { byDate } = useCalendarEvents();
 
   const cells = useMemo(() => buildMonthGrid(ref), [ref]);
 
@@ -100,15 +117,25 @@ export default function MonthGrid() {
 
         {cells.map(({ date, inMonth }, i) => {
           const isToday = isSameDay(date, today);
+          const iso = isoOf(date);
+          const events = byDate.get(iso) ?? [];
           const hijriDayNum = hijriDay(date);
           const gregDayNum = date.getDate();
           const isFirstOfHijriMonth = hijriDayNum === "١";
+          const isSelected = selectedDate === iso;
+
           return (
-            <div
+            <button
               key={i}
-              className={`min-h-[88px] border-l border-b border-slate-200 p-2 text-right transition ${
-                isToday ? "bg-sky-50/60" : "bg-white"
-              } ${!inMonth ? "opacity-40" : "hover:bg-slate-50"}`}
+              type="button"
+              onClick={() => onSelectDate(iso)}
+              className={`min-h-[88px] border-l border-b border-slate-200 p-2 text-right transition relative ${
+                isSelected
+                  ? "bg-brand-50 ring-2 ring-brand-500 ring-inset"
+                  : isToday
+                  ? "bg-sky-50/60"
+                  : "bg-white hover:bg-slate-50"
+              } ${!inMonth ? "opacity-40" : ""}`}
             >
               <div className="flex items-start justify-between">
                 <div className="text-[11px] text-rose-500 font-bold">{hijriDayNum}</div>
@@ -125,7 +152,24 @@ export default function MonthGrid() {
                   {hijriMonth(date)}
                 </div>
               )}
-            </div>
+
+              {events.length > 0 && (
+                <div className="absolute bottom-1.5 left-1.5 flex items-center gap-0.5 flex-wrap max-w-[80%]">
+                  {events.slice(0, 4).map((ev) => (
+                    <span
+                      key={ev.id}
+                      className={`w-1.5 h-1.5 rounded-full ${colorBg[ev.color] ?? "bg-slate-400"}`}
+                      title={ev.title}
+                    />
+                  ))}
+                  {events.length > 4 && (
+                    <span className="text-[9px] text-slate-500 ml-0.5">
+                      +{events.length - 4}
+                    </span>
+                  )}
+                </div>
+              )}
+            </button>
           );
         })}
       </div>
