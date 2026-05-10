@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Clock, CalendarX2, Calendar, AlertOctagon, Briefcase, ListTodo } from "lucide-react";
 import InfoBanner from "../components/ui/InfoBanner";
 import AppointmentsKpis from "../components/appointments/AppointmentsKpis";
@@ -8,17 +8,18 @@ import FilterBar from "../components/appointments/FilterBar";
 import EmptyState from "../components/ui/EmptyState";
 import { useTasks, type TaskRecord } from "../lib/taskStore";
 import { useCases, type CaseRecord } from "../lib/caseStore";
+import { defaultFilters, type AppointmentFilters } from "../components/appointments/filtersTypes";
 
 type Appointment = {
   key: string;
   title: string;
   description: string;
   date: string;
-  time?: string;
   type: "task" | "case";
   priority: string;
   status: string;
   code: string;
+  assignedTo: string | null;
 };
 
 const priorityColors: Record<string, string> = {
@@ -59,6 +60,7 @@ const taskToAppointment = (t: TaskRecord): Appointment => ({
   priority: t.priority,
   status: t.status,
   code: t.code,
+  assignedTo: t.assignedTo,
 });
 
 const caseToAppointment = (c: CaseRecord): Appointment => ({
@@ -70,16 +72,72 @@ const caseToAppointment = (c: CaseRecord): Appointment => ({
   priority: c.priority,
   status: c.status,
   code: c.code,
+  assignedTo: c.assignedLawyer,
 });
+
+// ---- Date range helpers ----
+
+const todayStr = () => new Date().toISOString().slice(0, 10);
+
+const periodRange = (period: string): { from: string; to: string } | null => {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth();
+  const d = now.getDate();
+  const iso = (dt: Date) => dt.toISOString().slice(0, 10);
+
+  if (period === "today") {
+    const today = new Date(y, m, d);
+    return { from: iso(today), to: iso(today) };
+  }
+  if (period === "week") {
+    const day = now.getDay();
+    const offset = day === 6 ? 0 : day + 1; // Saturday start
+    const start = new Date(y, m, d - offset);
+    const end = new Date(y, m, d - offset + 6);
+    return { from: iso(start), to: iso(end) };
+  }
+  if (period === "month") {
+    const start = new Date(y, m, 1);
+    const end = new Date(y, m + 1, 0);
+    return { from: iso(start), to: iso(end) };
+  }
+  return null; // "all"
+};
+
+const matchesStatus = (a: Appointment, status: string): boolean => {
+  if (status === "all") return true;
+  const isCompleted = a.status === "done" || a.status === "ended";
+  const isOverdue = a.date < todayStr() && !isCompleted;
+  if (status === "completed") return isCompleted;
+  if (status === "overdue") return isOverdue;
+  if (status === "pending") return !isCompleted && !isOverdue;
+  return true;
+};
+
+const matchesScope = (a: Appointment, scope: string): boolean => {
+  if (scope === "all") return true;
+  if (scope === "ended") {
+    return a.status === "done" || a.status === "ended" || a.date < todayStr();
+  }
+  return true;
+};
+
+// ---- Page ----
 
 export default function Appointments() {
   const { tasks } = useTasks();
   const { cases } = useCases();
+  const [filters, setFilters] = useState<AppointmentFilters>(defaultFilters);
+
+  const onFilterChange = (patch: Partial<AppointmentFilters>) =>
+    setFilters((p) => ({ ...p, ...patch }));
+  const onReset = () => setFilters(defaultFilters);
 
   const today = new Date();
-  const todayStr = today.toISOString().slice(0, 10);
+  const tStr = todayStr();
 
-  const appointments = useMemo<Appointment[]>(() => {
+  const allAppointments = useMemo<Appointment[]>(() => {
     const list: Appointment[] = [];
     tasks.forEach((t) => {
       if (t.dueDate && !t.archived) list.push(taskToAppointment(t));
@@ -90,11 +148,49 @@ export default function Appointments() {
     return list.sort((a, b) => a.date.localeCompare(b.date));
   }, [tasks, cases]);
 
-  const todayAppointments = appointments.filter((a) => a.date === todayStr);
-  const upcomingAppointments = appointments.filter(
-    (a) =>
-      a.date >= todayStr && a.status !== "done" && a.status !== "ended"
+  const filtered = useMemo(() => {
+    const q = filters.search.trim().toLowerCase();
+    const range = periodRange(filters.period);
+    return allAppointments.filter((a) => {
+      if (filters.type !== "all" && a.type !== filters.type) return false;
+      if (filters.lawyer !== "all" && a.assignedTo !== filters.lawyer) return false;
+      if (!matchesStatus(a, filters.status)) return false;
+      if (!matchesScope(a, filters.dateScope)) return false;
+      if (range && (a.date < range.from || a.date > range.to)) return false;
+      if (q) {
+        const hay = `${a.title} ${a.description} ${a.code}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [allAppointments, filters]);
+
+  const todayAppointments = filtered.filter((a) => a.date === tStr);
+  const upcomingAppointments = filtered.filter(
+    (a) => a.date >= tStr && a.status !== "done" && a.status !== "ended"
   );
+
+  const handleExport = () => {
+    const rows = [
+      ["الكود", "العنوان", "النوع", "الحالة", "الأولوية", "التاريخ"].join(","),
+      ...filtered.map((a) =>
+        [a.code, a.title, a.type, a.status, a.priority, a.date]
+          .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+          .join(",")
+      ),
+    ].join("\n");
+    const blob = new Blob(["﻿" + rows], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `appointments-${tStr}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handlePrint = () => window.print();
 
   return (
     <div className="space-y-5">
@@ -105,9 +201,28 @@ export default function Appointments() {
       />
 
       <AppointmentsKpis />
-      <TypeChips />
-      <ViewToolbar />
-      <FilterBar />
+      <TypeChips filters={filters} onChange={onFilterChange} />
+      <ViewToolbar
+        filters={filters}
+        onChange={onFilterChange}
+        onExport={handleExport}
+        onPrint={handlePrint}
+      />
+      <FilterBar filters={filters} onChange={onFilterChange} onReset={onReset} />
+
+      <div className="flex items-center justify-start gap-3 text-xs text-slate-500">
+        <span className="px-2 py-1 rounded-md bg-slate-100">
+          النتائج: <bdi dir="ltr">{filtered.length}</bdi>
+        </span>
+        {(filters.search ||
+          filters.lawyer !== "all" ||
+          filters.status !== "all" ||
+          filters.period !== "all" ||
+          filters.type !== "all" ||
+          filters.dateScope !== "all") && (
+          <span className="text-amber-600">فلاتر مطبّقة</span>
+        )}
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <div className="card p-5">
