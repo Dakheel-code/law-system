@@ -14,13 +14,18 @@ import {
   Inbox,
   CheckCheck,
   Palette,
+  Menu,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Dropdown from "../ui/Dropdown";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
 
-export default function Header() {
+type HeaderProps = {
+  onMenuClick?: () => void;
+};
+
+export default function Header({ onMenuClick }: HeaderProps = {}) {
   const [search, setSearch] = useState("");
   const navigate = useNavigate();
   const { theme, update } = useTheme();
@@ -48,23 +53,34 @@ export default function Header() {
   };
 
   return (
-    <header className="h-20 px-6 flex items-center gap-4 sticky top-0 z-10 bg-slate-50/80 backdrop-blur">
+    <header className="h-16 lg:h-20 px-3 lg:px-6 flex items-center gap-2 lg:gap-4 sticky top-0 z-10 bg-slate-50/80 backdrop-blur">
+      {/* Mobile menu button */}
+      <button
+        onClick={onMenuClick}
+        title="القائمة"
+        className="lg:hidden w-10 h-10 rounded-lg bg-white border border-slate-200 shadow-card flex items-center justify-center text-slate-600 hover:bg-slate-50 shrink-0"
+      >
+        <Menu className="w-5 h-5" />
+      </button>
+
       {/* Search */}
-      <form onSubmit={onSearch} className="flex-1 max-w-3xl">
+      <form onSubmit={onSearch} className="flex-1 max-w-3xl min-w-0">
         <div className="relative">
-          <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+          <Search className="absolute right-3 lg:right-4 top-1/2 -translate-y-1/2 w-4 h-4 lg:w-5 lg:h-5 text-slate-400" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="ابحث في العملاء، المستخدمين، القضايا والمهام.."
-            className="w-full pr-12 pl-4 py-3.5 bg-white border border-slate-200 rounded-xl shadow-card text-sm focus:outline-none focus:ring-2 focus:ring-brand-200"
+            placeholder="ابحث..."
+            className="w-full pr-9 lg:pr-12 pl-3 lg:pl-4 py-2.5 lg:py-3.5 bg-white border border-slate-200 rounded-xl shadow-card text-sm focus:outline-none focus:ring-2 focus:ring-brand-200"
           />
         </div>
       </form>
 
-      <div className="flex items-center gap-2 mr-auto">
-        {/* Calendar — direct nav */}
-        <IconLink to="/calendar" icon={Calendar} title="التقويم" />
+      <div className="flex items-center gap-1 lg:gap-2 mr-auto">
+        {/* Calendar — hidden on smallest screens */}
+        <span className="hidden sm:inline-flex">
+          <IconLink to="/calendar" icon={Calendar} title="التقويم" />
+        </span>
 
         {/* Notifications */}
         <Dropdown
@@ -74,21 +90,23 @@ export default function Header() {
           <NotificationsPanel />
         </Dropdown>
 
-        {/* Messages */}
-        <Dropdown
-          align="left"
-          trigger={(open) => <IconBtn icon={MessageSquare} title="الرسائل" active={open} />}
-        >
-          <MessagesPanel />
-        </Dropdown>
+        {/* Messages — hidden on smallest screens */}
+        <span className="hidden sm:inline-flex">
+          <Dropdown
+            align="left"
+            trigger={(open) => <IconBtn icon={MessageSquare} title="الرسائل" active={open} />}
+          >
+            <MessagesPanel />
+          </Dropdown>
+        </span>
 
         {/* Theme mode toggle */}
         <button
           onClick={cycleMode}
           title={`الوضع: ${theme.mode === "dark" ? "داكن" : theme.mode === "system" ? "تلقائي" : "فاتح"}`}
-          className="relative w-11 h-11 rounded-full bg-white border border-slate-200 shadow-card flex items-center justify-center text-slate-500 hover:bg-slate-50 hover:text-brand-600 transition"
+          className="relative w-9 h-9 lg:w-11 lg:h-11 rounded-full bg-white border border-slate-200 shadow-card flex items-center justify-center text-slate-500 hover:bg-slate-50 hover:text-brand-600 transition shrink-0"
         >
-          <ModeIcon className="w-5 h-5" />
+          <ModeIcon className="w-4 h-4 lg:w-5 lg:h-5" />
         </button>
 
         {/* User menu */}
@@ -96,8 +114,8 @@ export default function Header() {
           align="left"
           width="w-64"
           trigger={() => (
-            <button className="w-11 h-11 rounded-full bg-white border border-slate-200 shadow-card flex items-center justify-center text-slate-500 hover:bg-slate-50 transition">
-              <User className="w-5 h-5" />
+            <button className="w-9 h-9 lg:w-11 lg:h-11 rounded-full bg-white border border-slate-200 shadow-card flex items-center justify-center text-slate-500 hover:bg-slate-50 transition shrink-0">
+              <User className="w-4 h-4 lg:w-5 lg:h-5" />
             </button>
           )}
         >
@@ -121,9 +139,9 @@ function IconLink({
     <Link
       to={to}
       title={title}
-      className="w-11 h-11 rounded-full bg-white border border-slate-200 shadow-card flex items-center justify-center text-slate-500 hover:bg-slate-50 hover:text-brand-600 transition"
+      className="w-9 h-9 lg:w-11 lg:h-11 rounded-full bg-white border border-slate-200 shadow-card flex items-center justify-center text-slate-500 hover:bg-slate-50 hover:text-brand-600 transition shrink-0"
     >
-      <Icon className="w-5 h-5" />
+      <Icon className="w-4 h-4 lg:w-5 lg:h-5" />
     </Link>
   );
 }
@@ -142,13 +160,13 @@ function IconBtn({
   return (
     <button
       title={title}
-      className={`relative w-11 h-11 rounded-full border shadow-card flex items-center justify-center transition ${
+      className={`relative w-9 h-9 lg:w-11 lg:h-11 rounded-full border shadow-card flex items-center justify-center transition shrink-0 ${
         active
           ? "bg-brand-50 border-brand-200 text-brand-600"
           : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-brand-600"
       }`}
     >
-      <Icon className="w-5 h-5" />
+      <Icon className="w-4 h-4 lg:w-5 lg:h-5" />
       {dot && (
         <span className="absolute top-2 left-2 w-2 h-2 rounded-full bg-rose-500" />
       )}

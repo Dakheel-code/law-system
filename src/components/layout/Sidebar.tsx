@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
-import { ChevronDown, LogOut, User, Circle } from "lucide-react";
+import { ChevronDown, LogOut, User, Circle, X } from "lucide-react";
 import { menu, type MenuChild } from "../../config/menu";
 
 function ChildLink({ child }: { child: MenuChild }) {
@@ -24,7 +24,12 @@ function ChildLink({ child }: { child: MenuChild }) {
   );
 }
 
-export default function Sidebar() {
+type SidebarProps = {
+  isOpen?: boolean;
+  onClose?: () => void;
+};
+
+export default function Sidebar({ isOpen = false, onClose }: SidebarProps = {}) {
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
@@ -73,7 +78,21 @@ export default function Sidebar() {
     setOpenItems((p) => ({ ...p, [key]: !p[key] }));
 
   return (
-    <aside className="w-64 shrink-0 bg-white border-l border-slate-200 flex flex-col h-screen sticky top-0">
+    <aside
+      className={`w-64 shrink-0 bg-white border-l border-slate-200 flex flex-col h-screen
+        fixed top-0 right-0 z-40 transition-transform duration-300
+        ${isOpen ? "translate-x-0" : "translate-x-full"}
+        lg:sticky lg:top-0 lg:translate-x-0 lg:z-auto`}
+    >
+      {/* Mobile close button */}
+      <button
+        onClick={onClose}
+        className="lg:hidden absolute top-3 left-3 w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-500"
+        title="إغلاق"
+      >
+        <X className="w-5 h-5" />
+      </button>
+
       {/* Logo */}
       <div className="h-16 flex items-center gap-2.5 px-4 border-b border-slate-100 overflow-hidden">
         {theme.logoDataUrl && (
