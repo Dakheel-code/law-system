@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Building2,
   Settings,
@@ -19,10 +19,28 @@ import {
   Download,
   Upload,
   Shield,
+  Loader2,
+  Check,
+  Trash2,
+  User as UserIcon,
 } from "lucide-react";
 import { Field, Input } from "../components/ui/Field";
 import Select from "../components/ui/Select";
 import Toggle from "../components/ui/Toggle";
+import {
+  useOffice,
+  updateOffice,
+  defaultNotifications,
+  type OfficeInfo,
+  type NotificationPrefs,
+  createBackup,
+  downloadBackup,
+  restoreBackup,
+  logActivity,
+  useActivities,
+  clearActivities,
+  type BackupPayload,
+} from "../lib/officeStore";
 
 const tabs = [
   { key: "office", label: "بيانات المكتب", icon: Building },
@@ -30,7 +48,9 @@ const tabs = [
   { key: "notifications", label: "الإشعارات", icon: Bell },
   { key: "backup", label: "النسخ الاحتياطي", icon: Database },
   { key: "activity", label: "سجل النشاطات", icon: Activity },
-];
+] as const;
+
+type TabKey = (typeof tabs)[number]["key"];
 
 const languages = [
   { value: "ar", label: "العربية" },
@@ -57,8 +77,66 @@ const dateFormats = [
   { value: "mdy", label: "شهر/يوم/سنة (05/10/2026)" },
 ];
 
+type SaveState = "idle" | "saving" | "saved" | "error";
+
 export default function Admin() {
-  const [tab, setTab] = useState("office");
+  const [tab, setTab] = useState<TabKey>("office");
+  const { office, loading, refresh, isConfigured } = useOffice();
+  const [draft, setDraft] = useState<OfficeInfo | null>(null);
+  const [saveState, setSaveState] = useState<SaveState>("idle");
+
+  // Sync draft from server, but don't clobber unsaved edits
+  const lastServerSnapshot = useRef<string>("");
+  useEffect(() => {
+    if (!office) return;
+    const snap = JSON.stringify(office);
+    if (snap === lastServerSnapshot.current) return;
+    lastServerSnapshot.current = snap;
+    setDraft(office);
+  }, [office]);
+
+  const dirty =
+    draft && office ? JSON.stringify(draft) !== JSON.stringify(office) : false;
+
+  const update = <K extends keyof OfficeInfo>(k: K, v: OfficeInfo[K]) => {
+    setDraft((p) => (p ? { ...p, [k]: v } : p));
+    if (saveState === "saved") setSaveState("idle");
+  };
+
+  const handleSave = async () => {
+    if (!draft || !office || !dirty) return;
+    if (!isConfigured || !draft.id) {
+      setSaveState("error");
+      return;
+    }
+    setSaveState("saving");
+    const ok = await updateOffice(draft.id, draft);
+    if (ok) {
+      setSaveState("saved");
+      const changedKeys = (Object.keys(draft) as (keyof OfficeInfo)[]).filter(
+        (k) => JSON.stringify(draft[k]) !== JSON.stringify(office[k])
+      );
+      await logActivity({
+        action: "update_office",
+        category: "office",
+        description: getActivityDescription(tab, changedKeys),
+        meta: { tab, changed: changedKeys.map(String) },
+      });
+      await refresh();
+      setTimeout(() => setSaveState("idle"), 2000);
+    } else {
+      setSaveState("error");
+    }
+  };
+
+  if (loading || !draft) {
+    return (
+      <div className="flex items-center justify-center py-20 text-slate-400">
+        <Loader2 className="w-6 h-6 animate-spin" />
+        <span className="mr-2 text-sm">جارٍ تحميل الإعدادات...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
@@ -68,6 +146,17 @@ export default function Admin() {
           <Building2 className="w-5 h-5 text-brand-500" />
         </h2>
       </div>
+
+      {!isConfigured && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 flex items-start gap-2">
+          <Shield className="w-4 h-4 shrink-0 mt-0.5" />
+          <p className="text-right flex-1 leading-6">
+            Supabase غير مهيّأ في هذه البيئة. التعديلات لن تُحفظ. الرجاء ضبط
+            <bdi dir="ltr"> VITE_SUPABASE_URL</bdi> و
+            <bdi dir="ltr"> VITE_SUPABASE_ANON_KEY</bdi>.
+          </p>
+        </div>
+      )}
 
       <div className="card">
         <div className="border-b border-slate-200 flex justify-end overflow-x-auto">
@@ -97,40 +186,77 @@ export default function Admin() {
         </div>
 
         <div className="p-6">
-          {tab === "office" && <OfficeSection />}
-          {tab === "general" && <GeneralSection />}
-          {tab === "notifications" && <NotificationsSection />}
-          {tab === "backup" && <BackupSection />}
+          {tab === "office" && <OfficeSection draft={draft} update={update} />}
+          {tab === "general" && <GeneralSection draft={draft} update={update} />}
+          {tab === "notifications" && (
+            <NotificationsSection draft={draft} update={update} />
+          )}
+          {tab === "backup" && <BackupSection draft={draft} update={update} />}
           {tab === "activity" && <ActivitySection />}
         </div>
       </div>
 
-      {tab !== "activity" && (
-        <div className="flex justify-start">
-          <button className="inline-flex items-center gap-2 px-6 py-3 bg-brand-500 text-white rounded-lg text-sm font-bold shadow hover:bg-brand-600">
-            <Save className="w-4 h-4" />
-            حفظ التغييرات
+      {tab !== "activity" && tab !== "backup" && (
+        <div className="flex items-center justify-start gap-3">
+          <button
+            disabled={!dirty || saveState === "saving"}
+            onClick={handleSave}
+            className={`inline-flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-bold shadow transition ${
+              !dirty || saveState === "saving"
+                ? "bg-slate-200 text-slate-400 cursor-not-allowed"
+                : "bg-brand-500 text-white hover:bg-brand-600"
+            }`}
+          >
+            {saveState === "saving" ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : saveState === "saved" ? (
+              <Check className="w-4 h-4" />
+            ) : (
+              <Save className="w-4 h-4" />
+            )}
+            {saveState === "saving"
+              ? "جارٍ الحفظ..."
+              : saveState === "saved"
+              ? "تم الحفظ"
+              : "حفظ التغييرات"}
           </button>
+          {dirty && saveState === "idle" && (
+            <span className="text-xs text-amber-600">يوجد تغييرات غير محفوظة</span>
+          )}
+          {saveState === "error" && (
+            <span className="text-xs text-rose-600">حدث خطأ أثناء الحفظ</span>
+          )}
         </div>
       )}
     </div>
   );
 }
 
-function OfficeSection() {
-  const [form, setForm] = useState({
-    name: "شركة ناصر طريد للمحاماة",
-    shortName: "ناصر طريد",
-    phone: "",
-    email: "",
-    website: "",
-    address: "",
-    cr: "",
-    tax: "",
-  });
-  const update = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) =>
-    setForm((p) => ({ ...p, [k]: v }));
+function getActivityDescription(tab: TabKey, _keys: (keyof OfficeInfo)[]): string {
+  switch (tab) {
+    case "office":
+      return "تحديث بيانات المكتب";
+    case "general":
+      return "تحديث الإعدادات العامة";
+    case "notifications":
+      return "تحديث إعدادات الإشعارات";
+    case "backup":
+      return "تحديث إعدادات النسخ الاحتياطي";
+    default:
+      return "تحديث الإعدادات";
+  }
+}
 
+// ============================================================
+// Office Section
+// ============================================================
+
+type SectionProps = {
+  draft: OfficeInfo;
+  update: <K extends keyof OfficeInfo>(k: K, v: OfficeInfo[K]) => void;
+};
+
+function OfficeSection({ draft, update }: SectionProps) {
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -138,20 +264,23 @@ function OfficeSection() {
           <div className="relative">
             <Building className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
             <Input
-              value={form.name}
-              onChange={(e) => update("name", e.target.value)}
+              value={draft.officeName}
+              onChange={(e) => update("officeName", e.target.value)}
               className="pr-10"
             />
           </div>
         </Field>
         <Field label="الاسم المختصر (يظهر في الشريط الجانبي)">
-          <Input value={form.shortName} onChange={(e) => update("shortName", e.target.value)} />
+          <Input
+            value={draft.shortName}
+            onChange={(e) => update("shortName", e.target.value)}
+          />
         </Field>
         <Field label="رقم الجوال / الهاتف">
           <div className="relative">
             <Phone className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
             <Input
-              value={form.phone}
+              value={draft.phone}
               onChange={(e) => update("phone", e.target.value)}
               placeholder="+966 5X XXX XXXX"
               dir="ltr"
@@ -163,7 +292,7 @@ function OfficeSection() {
           <div className="relative">
             <Mail className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
             <Input
-              value={form.email}
+              value={draft.email}
               onChange={(e) => update("email", e.target.value)}
               placeholder="info@nasser-tareed.com"
               dir="ltr"
@@ -176,7 +305,7 @@ function OfficeSection() {
           <div className="relative">
             <Globe className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
             <Input
-              value={form.website}
+              value={draft.website}
               onChange={(e) => update("website", e.target.value)}
               placeholder="https://example.com"
               dir="ltr"
@@ -188,7 +317,7 @@ function OfficeSection() {
           <div className="relative">
             <MapPin className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
             <Input
-              value={form.address}
+              value={draft.address}
               onChange={(e) => update("address", e.target.value)}
               className="pr-10"
               placeholder="الرياض، المملكة العربية السعودية"
@@ -199,8 +328,8 @@ function OfficeSection() {
           <div className="relative">
             <FileText className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
             <Input
-              value={form.cr}
-              onChange={(e) => update("cr", e.target.value)}
+              value={draft.crNumber}
+              onChange={(e) => update("crNumber", e.target.value)}
               dir="ltr"
               className="text-left pr-10"
               placeholder="1010XXXXXX"
@@ -209,8 +338,8 @@ function OfficeSection() {
         </Field>
         <Field label="الرقم الضريبي">
           <Input
-            value={form.tax}
-            onChange={(e) => update("tax", e.target.value)}
+            value={draft.taxNumber}
+            onChange={(e) => update("taxNumber", e.target.value)}
             dir="ltr"
             className="text-left"
             placeholder="3XXXXXXXXX0003"
@@ -221,64 +350,74 @@ function OfficeSection() {
   );
 }
 
-function GeneralSection() {
-  const [s, setS] = useState({
-    language: "ar",
-    timezone: "asia-riyadh",
-    currency: "sar",
-    calendar: "both",
-    dateFormat: "dmy",
-  });
-  const u = <K extends keyof typeof s>(k: K, v: (typeof s)[K]) =>
-    setS((p) => ({ ...p, [k]: v }));
+// ============================================================
+// General Section
+// ============================================================
 
+function GeneralSection({ draft, update }: SectionProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <Field label="اللغة الافتراضية">
         <div className="relative">
           <Languages className="absolute right-10 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none z-10" />
-          <Select options={languages} value={s.language} onChange={(e) => u("language", e.target.value)} />
+          <Select
+            options={languages}
+            value={draft.language}
+            onChange={(e) => update("language", e.target.value)}
+          />
         </div>
       </Field>
       <Field label="المنطقة الزمنية">
         <div className="relative">
           <Clock className="absolute right-10 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none z-10" />
-          <Select options={timezones} value={s.timezone} onChange={(e) => u("timezone", e.target.value)} />
+          <Select
+            options={timezones}
+            value={draft.timezone}
+            onChange={(e) => update("timezone", e.target.value)}
+          />
         </div>
       </Field>
       <Field label="العملة">
         <div className="relative">
           <DollarSign className="absolute right-10 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none z-10" />
-          <Select options={currencies} value={s.currency} onChange={(e) => u("currency", e.target.value)} />
+          <Select
+            options={currencies}
+            value={draft.currency}
+            onChange={(e) => update("currency", e.target.value)}
+          />
         </div>
       </Field>
       <Field label="التقويم الافتراضي">
         <div className="relative">
           <Calendar className="absolute right-10 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none z-10" />
-          <Select options={calendars} value={s.calendar} onChange={(e) => u("calendar", e.target.value)} />
+          <Select
+            options={calendars}
+            value={draft.calendarFormat}
+            onChange={(e) => update("calendarFormat", e.target.value)}
+          />
         </div>
       </Field>
       <Field label="تنسيق التاريخ">
-        <Select options={dateFormats} value={s.dateFormat} onChange={(e) => u("dateFormat", e.target.value)} />
+        <Select
+          options={dateFormats}
+          value={draft.dateFormat}
+          onChange={(e) => update("dateFormat", e.target.value)}
+        />
       </Field>
     </div>
   );
 }
 
-function NotificationsSection() {
-  const [n, setN] = useState({
-    email: true,
-    sms: false,
-    push: true,
-    sessions: true,
-    deadlines: true,
-    payments: true,
-    newRequests: true,
-    weekly: false,
-  });
-  const u = <K extends keyof typeof n>(k: K, v: boolean) => setN((p) => ({ ...p, [k]: v }));
+// ============================================================
+// Notifications Section
+// ============================================================
 
-  const items: { key: keyof typeof n; title: string; desc: string }[] = [
+function NotificationsSection({ draft, update }: SectionProps) {
+  const n = { ...defaultNotifications, ...draft.notifications };
+  const toggle = (k: keyof NotificationPrefs, v: boolean) =>
+    update("notifications", { ...n, [k]: v });
+
+  const items: { key: keyof NotificationPrefs; title: string; desc: string }[] = [
     { key: "email", title: "إشعارات البريد الإلكتروني", desc: "تلقي الإشعارات على البريد الإلكتروني" },
     { key: "sms", title: "إشعارات الرسائل النصية (SMS)", desc: "تلقي الإشعارات على رقم الجوال" },
     { key: "push", title: "إشعارات داخل النظام", desc: "تنبيهات داخل لوحة التحكم" },
@@ -296,7 +435,7 @@ function NotificationsSection() {
           key={it.key}
           className="flex items-start gap-4 p-4 rounded-xl border border-slate-200 hover:bg-slate-50"
         >
-          <Toggle checked={n[it.key]} onChange={(v) => u(it.key, v)} />
+          <Toggle checked={n[it.key]} onChange={(v) => toggle(it.key, v)} />
           <div className="flex-1 text-right">
             <div className="text-sm font-bold text-slate-700">{it.title}</div>
             <div className="text-xs text-slate-500 mt-1">{it.desc}</div>
@@ -307,17 +446,102 @@ function NotificationsSection() {
   );
 }
 
-function BackupSection() {
-  const [auto, setAuto] = useState(true);
+// ============================================================
+// Backup Section
+// ============================================================
+
+function BackupSection({ draft, update }: SectionProps) {
+  const [busy, setBusy] = useState<"idle" | "creating" | "restoring">("idle");
+  const [result, setResult] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const handleAutoToggle = async (v: boolean) => {
+    update("backupAuto", v);
+    await updateOffice(draft.id, { backupAuto: v });
+    await logActivity({
+      action: "toggle_backup_auto",
+      category: "backup",
+      description: v ? "تفعيل النسخ الاحتياطي التلقائي" : "إيقاف النسخ الاحتياطي التلقائي",
+    });
+  };
+
+  const handleBackup = async () => {
+    setBusy("creating");
+    setResult(null);
+    setError(null);
+    try {
+      const payload = await createBackup();
+      if (!payload) {
+        setError("تعذّر إنشاء النسخة الاحتياطية");
+        setBusy("idle");
+        return;
+      }
+      downloadBackup(payload);
+      const now = new Date().toISOString();
+      await updateOffice(draft.id, { lastBackupAt: now });
+      update("lastBackupAt", now);
+      await logActivity({
+        action: "backup_create",
+        category: "backup",
+        description: "إنشاء نسخة احتياطية يدوية",
+        meta: {
+          counts: Object.fromEntries(
+            Object.entries(payload.tables).map(([k, v]) => [k, (v as unknown[]).length])
+          ),
+        },
+      });
+      setResult("تم إنشاء النسخة الاحتياطية بنجاح وتنزيل الملف.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy("idle");
+    }
+  };
+
+  const handleRestoreClick = () => {
+    fileRef.current?.click();
+  };
+
+  const handleRestoreFile = async (file: File) => {
+    if (!confirm("سيتم استعادة البيانات من الملف. سيتم تحديث السجلات الموجودة بنفس المعرف. هل تريد المتابعة؟")) {
+      return;
+    }
+    setBusy("restoring");
+    setResult(null);
+    setError(null);
+    try {
+      const text = await file.text();
+      const payload = JSON.parse(text) as BackupPayload;
+      const res = await restoreBackup(payload);
+      if (!res.ok) {
+        setError(`فشلت الاستعادة جزئياً: ${res.errors.join(" | ")}`);
+      } else {
+        const total = Object.values(res.inserted).reduce((a, b) => a + b, 0);
+        setResult(`تمت الاستعادة بنجاح. (${total} سجل)`);
+        await logActivity({
+          action: "backup_restore",
+          category: "backup",
+          description: "استعادة من نسخة احتياطية",
+          meta: { inserted: res.inserted },
+        });
+      }
+    } catch (e) {
+      setError(`ملف غير صالح: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setBusy("idle");
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  };
 
   return (
     <div className="space-y-5">
       <div className="flex items-start gap-4 p-4 rounded-xl border border-slate-200">
-        <Toggle checked={auto} onChange={setAuto} />
+        <Toggle checked={draft.backupAuto} onChange={handleAutoToggle} />
         <div className="flex-1 text-right">
           <h4 className="text-sm font-bold text-slate-700">النسخ الاحتياطي التلقائي</h4>
           <p className="text-xs text-slate-500 mt-1">
-            ينشئ نسخة احتياطية يومياً في الساعة 2:00 صباحاً تلقائياً
+            تذكير بإنشاء نسخة احتياطية يومياً (يتطلب الضغط اليدوي حالياً)
           </p>
         </div>
       </div>
@@ -327,51 +551,222 @@ function BackupSection() {
           آخر نسخة احتياطية
           <Database className="w-4 h-4 text-brand-500" />
         </h3>
-        <div className="text-sm text-slate-500 text-right">لم يتم إنشاء نسخة احتياطية بعد</div>
+        <div className="text-sm text-slate-500 text-right">
+          {draft.lastBackupAt ? (
+            <bdi dir="ltr">
+              {new Date(draft.lastBackupAt).toLocaleString("ar-EG-u-nu-latn", {
+                dateStyle: "medium",
+                timeStyle: "short",
+              })}
+            </bdi>
+          ) : (
+            "لم يتم إنشاء نسخة احتياطية بعد"
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <button className="card p-5 hover:bg-brand-50 hover:border-brand-200 transition text-right">
+        <button
+          onClick={handleBackup}
+          disabled={busy !== "idle"}
+          className="card p-5 hover:bg-brand-50 hover:border-brand-200 transition text-right disabled:opacity-60 disabled:cursor-not-allowed"
+        >
           <div className="flex items-center gap-3 justify-end">
             <div>
               <div className="text-sm font-bold text-slate-800">إنشاء نسخة احتياطية الآن</div>
               <div className="text-xs text-slate-500 mt-1">تنزيل نسخة من جميع البيانات</div>
             </div>
             <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
-              <Download className="w-5 h-5 text-emerald-600" />
+              {busy === "creating" ? (
+                <Loader2 className="w-5 h-5 text-emerald-600 animate-spin" />
+              ) : (
+                <Download className="w-5 h-5 text-emerald-600" />
+              )}
             </div>
           </div>
         </button>
 
-        <button className="card p-5 hover:bg-brand-50 hover:border-brand-200 transition text-right">
+        <button
+          onClick={handleRestoreClick}
+          disabled={busy !== "idle"}
+          className="card p-5 hover:bg-brand-50 hover:border-brand-200 transition text-right disabled:opacity-60 disabled:cursor-not-allowed"
+        >
           <div className="flex items-center gap-3 justify-end">
             <div>
               <div className="text-sm font-bold text-slate-800">استعادة من نسخة احتياطية</div>
               <div className="text-xs text-slate-500 mt-1">رفع ملف نسخة احتياطية سابقة</div>
             </div>
             <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center">
-              <Upload className="w-5 h-5 text-amber-600" />
+              {busy === "restoring" ? (
+                <Loader2 className="w-5 h-5 text-amber-600 animate-spin" />
+              ) : (
+                <Upload className="w-5 h-5 text-amber-600" />
+              )}
             </div>
           </div>
         </button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="application/json"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) void handleRestoreFile(f);
+          }}
+        />
       </div>
+
+      {result && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-800 text-right">
+          {result}
+        </div>
+      )}
+      {error && (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800 text-right">
+          {error}
+        </div>
+      )}
 
       <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800">
         <Shield className="w-4 h-4 shrink-0 mt-0.5" />
         <p className="text-right flex-1 leading-6">
-          النسخ الاحتياطية مشفّرة ومخزّنة بأمان. ينصح بالاحتفاظ بنسخة محلية إضافية في مكان آمن.
+          النسخ الاحتياطية تحوي جميع جداول النظام بصيغة JSON. ينصح بالاحتفاظ بنسخة محلية في مكان آمن.
         </p>
       </div>
     </div>
   );
 }
 
+// ============================================================
+// Activity Section
+// ============================================================
+
 function ActivitySection() {
+  const { items, loading } = useActivities(200);
+  const [clearing, setClearing] = useState(false);
+
+  const handleClear = async () => {
+    if (!confirm("سيتم مسح جميع سجلات النشاطات. هل تريد المتابعة؟")) return;
+    setClearing(true);
+    await clearActivities();
+    setClearing(false);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16 text-slate-400">
+        <Loader2 className="w-6 h-6 animate-spin" />
+      </div>
+    );
+  }
+
+  if (items.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-slate-300">
+        <Activity className="w-14 h-14 mb-3" strokeWidth={1.2} />
+        <p className="text-sm text-slate-500">لا توجد نشاطات مسجّلة بعد</p>
+        <p className="text-xs text-slate-400 mt-1">سيتم تسجيل جميع تغييرات النظام هنا</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col items-center justify-center py-16 text-slate-300">
-      <Activity className="w-14 h-14 mb-3" strokeWidth={1.2} />
-      <p className="text-sm text-slate-500">لا توجد نشاطات مسجّلة بعد</p>
-      <p className="text-xs text-slate-400 mt-1">سيتم تسجيل جميع تغييرات النظام هنا</p>
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <button
+          onClick={handleClear}
+          disabled={clearing}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 disabled:opacity-60"
+        >
+          {clearing ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : (
+            <Trash2 className="w-3.5 h-3.5" />
+          )}
+          مسح السجل
+        </button>
+        <div className="text-xs text-slate-500">
+          إجمالي السجلات: <bdi dir="ltr">{items.length}</bdi>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        {items.map((it) => {
+          const color = categoryColor(it.category);
+          return (
+            <div
+              key={it.id}
+              className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 hover:bg-slate-50"
+            >
+              <div
+                className={`w-8 h-8 shrink-0 rounded-lg flex items-center justify-center ${color.bg}`}
+              >
+                <UserIcon className={`w-4 h-4 ${color.text}`} />
+              </div>
+              <div className="flex-1 text-right min-w-0">
+                <div className="text-sm font-bold text-slate-700">
+                  {it.description ?? it.action}
+                </div>
+                <div className="text-xs text-slate-500 mt-1 flex items-center gap-2 flex-wrap justify-end">
+                  <span>{it.actorName ?? "النظام"}</span>
+                  <span className="text-slate-300">•</span>
+                  <bdi dir="ltr">
+                    {new Date(it.createdAt).toLocaleString("ar-EG-u-nu-latn", {
+                      dateStyle: "short",
+                      timeStyle: "short",
+                    })}
+                  </bdi>
+                  {it.category && (
+                    <>
+                      <span className="text-slate-300">•</span>
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] ${color.bg} ${color.text}`}
+                      >
+                        {categoryLabel(it.category)}
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
+}
+
+function categoryColor(category: string | null): { bg: string; text: string } {
+  switch (category) {
+    case "office":
+      return { bg: "bg-blue-100", text: "text-blue-600" };
+    case "backup":
+      return { bg: "bg-emerald-100", text: "text-emerald-600" };
+    case "client":
+      return { bg: "bg-purple-100", text: "text-purple-600" };
+    case "case":
+      return { bg: "bg-amber-100", text: "text-amber-600" };
+    case "task":
+      return { bg: "bg-rose-100", text: "text-rose-600" };
+    case "contract":
+      return { bg: "bg-indigo-100", text: "text-indigo-600" };
+    case "auth":
+      return { bg: "bg-slate-100", text: "text-slate-600" };
+    default:
+      return { bg: "bg-slate-100", text: "text-slate-500" };
+  }
+}
+
+function categoryLabel(category: string): string {
+  const labels: Record<string, string> = {
+    office: "المكتب",
+    backup: "نسخ احتياطي",
+    client: "عميل",
+    case: "قضية",
+    task: "مهمة",
+    contract: "عقد",
+    auth: "حساب",
+  };
+  return labels[category] ?? category;
 }
