@@ -359,8 +359,9 @@ function GeneralSection({ draft, update }: SectionProps) {
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <Field label="اللغة الافتراضية">
         <div className="relative">
-          <Languages className="absolute right-10 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none z-10" />
+          <Languages className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none z-10" />
           <Select
+            className="pr-10"
             options={languages}
             value={draft.language}
             onChange={(e) => update("language", e.target.value)}
@@ -369,8 +370,9 @@ function GeneralSection({ draft, update }: SectionProps) {
       </Field>
       <Field label="المنطقة الزمنية">
         <div className="relative">
-          <Clock className="absolute right-10 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none z-10" />
+          <Clock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none z-10" />
           <Select
+            className="pr-10"
             options={timezones}
             value={draft.timezone}
             onChange={(e) => update("timezone", e.target.value)}
@@ -379,8 +381,9 @@ function GeneralSection({ draft, update }: SectionProps) {
       </Field>
       <Field label="العملة">
         <div className="relative">
-          <DollarSign className="absolute right-10 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none z-10" />
+          <DollarSign className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none z-10" />
           <Select
+            className="pr-10"
             options={currencies}
             value={draft.currency}
             onChange={(e) => update("currency", e.target.value)}
@@ -389,8 +392,9 @@ function GeneralSection({ draft, update }: SectionProps) {
       </Field>
       <Field label="التقويم الافتراضي">
         <div className="relative">
-          <Calendar className="absolute right-10 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none z-10" />
+          <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none z-10" />
           <Select
+            className="pr-10"
             options={calendars}
             value={draft.calendarFormat}
             onChange={(e) => update("calendarFormat", e.target.value)}
@@ -398,11 +402,15 @@ function GeneralSection({ draft, update }: SectionProps) {
         </div>
       </Field>
       <Field label="تنسيق التاريخ">
-        <Select
-          options={dateFormats}
-          value={draft.dateFormat}
-          onChange={(e) => update("dateFormat", e.target.value)}
-        />
+        <div className="relative">
+          <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none z-10" />
+          <Select
+            className="pr-10"
+            options={dateFormats}
+            value={draft.dateFormat}
+            onChange={(e) => update("dateFormat", e.target.value)}
+          />
+        </div>
       </Field>
     </div>
   );
