@@ -189,8 +189,6 @@ export const defaultTheme: ThemeSettings = {
   logoDataUrl: null,
 };
 
-export const STORAGE_KEY = "law-system-theme";
-
 const loadedFonts = new Set<FontKey>(["tajawal"]); // tajawal already in index.css
 
 export function loadFont(key: FontKey) {

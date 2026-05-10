@@ -9,7 +9,6 @@ import {
 import {
   applyTheme,
   defaultTheme,
-  STORAGE_KEY,
   type ThemeSettings,
   type ThemeKey,
   type ModeKey,
@@ -25,17 +24,6 @@ type Ctx = {
 };
 
 const ThemeContext = createContext<Ctx | undefined>(undefined);
-
-function loadFromLocal(): ThemeSettings {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return defaultTheme;
-    const parsed = JSON.parse(raw) as Partial<ThemeSettings>;
-    return { ...defaultTheme, ...parsed };
-  } catch {
-    return defaultTheme;
-  }
-}
 
 type SettingsRow = {
   id: string;
@@ -80,7 +68,7 @@ function toUpdatePayload(t: ThemeSettings): Record<string, unknown> {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<ThemeSettings>(loadFromLocal);
+  const [theme, setThemeState] = useState<ThemeSettings>(defaultTheme);
   const settingsRowId = useRef<string | null>(null);
   const skipNextSave = useRef(true);
 
@@ -160,11 +148,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const setTheme = (s: ThemeSettings) => {
     setThemeState(s);
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
-    } catch {
-      /* ignore */
-    }
   };
 
   const update = <K extends keyof ThemeSettings>(key: K, value: ThemeSettings[K]) => {
