@@ -10,7 +10,6 @@ import {
   UserCog,
   Building2,
   Palette,
-  UserPlus,
   ShieldCheck,
   Gavel,
   Paperclip,
@@ -65,8 +64,7 @@ export const menu: MenuGroup[] = [
         label: "إدارة المستخدم",
         icon: UserCog,
         children: [
-          { label: "إضافة مستخدم", icon: UserPlus, to: "/users/new" },
-          { label: "عرض المستخدمين", icon: Users, to: "/users" },
+          { label: "المستخدمين", icon: Users, to: "/users" },
           { label: "إدارة الصلاحيات", icon: ShieldCheck, to: "/users/permissions" },
         ],
       },
