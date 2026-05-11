@@ -11,6 +11,7 @@ import ClientProfile from "./pages/ClientProfile";
 import NewCase from "./pages/cases/NewCase";
 import CasesList from "./pages/cases/CasesList";
 import CaseDetail from "./pages/cases/CaseDetail";
+import Sessions from "./pages/Sessions";
 import Requests from "./pages/cases/Requests";
 import AvailableRequests from "./pages/cases/AvailableRequests";
 import MyRequests from "./pages/cases/MyRequests";
@@ -51,6 +52,9 @@ export default function App() {
           <Route path="/calendar" element={<CalendarPage />} />
           <Route path="/tasks" element={<Tasks />} />
           <Route path="/reports" element={<Reports />} />
+
+          {/* Sessions */}
+          <Route path="/sessions" element={<Sessions />} />
 
           {/* Cases */}
           <Route path="/cases" element={<CasesList />} />

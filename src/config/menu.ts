@@ -14,6 +14,7 @@ import {
   Palette,
   UserPlus,
   ShieldCheck,
+  Gavel,
   type LucideIcon,
 } from "lucide-react";
 
@@ -53,6 +54,7 @@ export const menu: MenuGroup[] = [
     title: "العمل القانوني",
     items: [
       { label: "إدارة القضايا", icon: Briefcase, to: "/cases" },
+      { label: "الجلسات", icon: Gavel, to: "/sessions" },
       {
         label: "التعاقدات",
         icon: FileText,

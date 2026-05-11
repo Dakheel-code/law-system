@@ -269,6 +269,86 @@ export async function updateCase(
   return true;
 }
 
+// ============================================================
+// Session helpers — single-session CRUD on a case's sessions array
+// ============================================================
+
+export async function addSession(
+  caseId: string,
+  session: CaseSession
+): Promise<boolean> {
+  if (!supabase) return false;
+  const { data, error } = await supabase
+    .from("cases")
+    .select("sessions")
+    .eq("id", caseId)
+    .maybeSingle();
+  if (error || !data) {
+    alert(`فشل الحفظ: ${error?.message ?? "القضية غير موجودة"}`);
+    return false;
+  }
+  const current = Array.isArray((data as { sessions: CaseSession[] }).sessions)
+    ? (data as { sessions: CaseSession[] }).sessions
+    : [];
+  const next = [...current, session];
+  const { error: uerr } = await supabase
+    .from("cases")
+    .update({ sessions: next })
+    .eq("id", caseId);
+  if (uerr) {
+    alert(`فشل الحفظ: ${uerr.message}`);
+    return false;
+  }
+  return true;
+}
+
+export async function updateSessionOnCase(
+  caseId: string,
+  sessionId: string,
+  patch: Partial<CaseSession>
+): Promise<boolean> {
+  if (!supabase) return false;
+  const { data, error } = await supabase
+    .from("cases")
+    .select("sessions")
+    .eq("id", caseId)
+    .maybeSingle();
+  if (error || !data) return false;
+  const current = Array.isArray((data as { sessions: CaseSession[] }).sessions)
+    ? (data as { sessions: CaseSession[] }).sessions
+    : [];
+  const next = current.map((s) => (s.id === sessionId ? { ...s, ...patch } : s));
+  const { error: uerr } = await supabase
+    .from("cases")
+    .update({ sessions: next })
+    .eq("id", caseId);
+  if (uerr) return false;
+  return true;
+}
+
+export async function removeSession(
+  caseId: string,
+  sessionId: string
+): Promise<boolean> {
+  if (!supabase) return false;
+  const { data, error } = await supabase
+    .from("cases")
+    .select("sessions")
+    .eq("id", caseId)
+    .maybeSingle();
+  if (error || !data) return false;
+  const current = Array.isArray((data as { sessions: CaseSession[] }).sessions)
+    ? (data as { sessions: CaseSession[] }).sessions
+    : [];
+  const next = current.filter((s) => s.id !== sessionId);
+  const { error: uerr } = await supabase
+    .from("cases")
+    .update({ sessions: next })
+    .eq("id", caseId);
+  if (uerr) return false;
+  return true;
+}
+
 export async function deleteCase(id: string): Promise<boolean> {
   if (!supabase) return false;
   const { error } = await supabase.from("cases").delete().eq("id", id);
