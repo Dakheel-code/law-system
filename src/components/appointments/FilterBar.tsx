@@ -95,10 +95,7 @@ export default function FilterBar({ filters, onChange, onReset }: Props) {
 
       <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-start gap-4 text-xs text-slate-500 flex-wrap">
         <span className="font-bold text-slate-600">أنواع المواعيد:</span>
-        <Legend color="bg-emerald-500" label="جلسات" />
-        <Legend color="bg-amber-500" label="استشارات" />
-        <Legend color="bg-orange-500" label="كتابة عدل" />
-        <Legend color="bg-rose-500" label="عقود زواج" />
+        <Legend color="bg-emerald-500" label="جلسات قضايا" />
         <Legend color="bg-violet-500" label="مهام" />
       </div>
     </div>
