@@ -5,7 +5,7 @@ import Stepper, { type Step } from "../../components/cases/Stepper";
 import StepNav from "../../components/cases/StepNav";
 import Step1Client from "../../components/cases/steps/Step1Client";
 import Step2Details from "../../components/cases/steps/Step2Details";
-import Step3Financial from "../../components/cases/steps/Step3Financial";
+import Step3Assignment from "../../components/cases/steps/Step3Assignment";
 import Step5Duration from "../../components/cases/steps/Step5Duration";
 import Step6Attachments from "../../components/cases/steps/Step6Attachments";
 import { initialCase, type CaseFormState } from "../../components/cases/caseFormTypes";
@@ -13,9 +13,9 @@ import { addCase, getCase, updateCase } from "../../lib/caseStore";
 
 const steps: Step[] = [
   { title: "معلومات العميل", description: "بيانات صاحب الطلب" },
-  { title: "تفاصيل الطلب", description: "الطرف الآخر ونوع القضية" },
-  { title: "المالية والمطالبة", description: "نوع المطالبة والمبالغ" },
-  { title: "المدة والإدارة", description: "الأولوية والعقود" },
+  { title: "تفاصيل الطلب", description: "الأطراف ونوع القضية" },
+  { title: "إسناد القضية", description: "تعيين المحامين" },
+  { title: "المدة والإدارة", description: "الأولوية والمواعيد" },
   { title: "المرفقات والملاحظات", description: "إتمام الطلب" },
 ];
 
@@ -157,7 +157,7 @@ export default function NewCase() {
         )}
         {current === 0 && <Step1Client {...stepProps} />}
         {current === 1 && <Step2Details {...stepProps} />}
-        {current === 2 && <Step3Financial {...stepProps} />}
+        {current === 2 && <Step3Assignment {...stepProps} />}
         {current === 3 && <Step5Duration {...stepProps} />}
         {current === 4 && <Step6Attachments {...stepProps} />}
 
