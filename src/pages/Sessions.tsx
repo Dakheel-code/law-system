@@ -360,166 +360,194 @@ function SessionRow({
   const isPast = s.date < today;
   const isToday = s.date === today;
 
-  const wrapperCls = isToday
-    ? "border-brand-300 bg-brand-50/40"
-    : isPast
-    ? "border-slate-200 bg-slate-50/30 opacity-80"
-    : isOnline
-    ? "border-violet-200 bg-violet-50/30"
-    : "border-sky-200 bg-sky-50/30";
-
-  const modeChipCls = isOnline
-    ? "bg-violet-500 text-white"
-    : "bg-sky-500 text-white";
   const ModeIcon = isOnline ? Video : MapPin;
 
-  const dayLabel = isToday
-    ? "اليوم"
-    : new Date(s.date).toLocaleDateString("ar-EG-u-nu-latn", {
-        weekday: "short",
-        day: "2-digit",
-        month: "short",
-      });
+  // Date column styling — colored pill that conveys state at a glance
+  const dateTone = isToday
+    ? "bg-gradient-to-br from-brand-500 to-brand-600 text-white shadow-md"
+    : isPast
+    ? "bg-slate-100 text-slate-500 border border-slate-200"
+    : "bg-white text-slate-700 border border-slate-200";
+
+  // Card border accent
+  const cardCls = isToday
+    ? "border-brand-300 ring-1 ring-brand-200"
+    : isPast
+    ? "border-slate-200 opacity-90"
+    : "border-slate-200 hover:border-brand-300";
+
+  const d = s.date ? new Date(s.date) : null;
+  const weekday = d
+    ? d.toLocaleDateString("ar-EG-u-nu-latn", { weekday: "short" })
+    : "—";
+  const dayNum = d
+    ? d.toLocaleDateString("ar-EG-u-nu-latn", { day: "2-digit" })
+    : "—";
+  const monthName = d
+    ? d.toLocaleDateString("ar-EG-u-nu-latn", { month: "short" })
+    : "";
 
   return (
-    <li className={`rounded-xl border p-4 ${wrapperCls}`}>
-      <div className="flex items-start justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-1 shrink-0">
-          <button
-            onClick={onDelete}
-            title="حذف"
-            className="p-1.5 text-rose-500 hover:bg-rose-100 rounded-md"
+    <li className={`card p-4 transition ${cardCls}`}>
+      <div className="flex items-start gap-4">
+        {/* === Date pill (right in RTL = start) === */}
+        <div className="shrink-0 flex flex-col items-center">
+          <div
+            className={`w-16 rounded-xl flex flex-col items-center py-2 ${dateTone}`}
           >
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
-          <button
-            onClick={onEdit}
-            title="تعديل"
-            className="p-1.5 text-blue-500 hover:bg-blue-100 rounded-md"
-          >
-            <Edit3 className="w-3.5 h-3.5" />
-          </button>
-          <button
-            onClick={onOpenCase}
-            title="فتح القضية"
-            className="p-1.5 text-brand-600 hover:bg-brand-100 rounded-md"
-          >
-            <Eye className="w-3.5 h-3.5" />
-          </button>
+            <div className="text-[10px] font-bold uppercase tracking-wide opacity-90">
+              {isToday ? "اليوم" : weekday}
+            </div>
+            <div className="text-2xl font-extrabold leading-none my-1">
+              <bdi dir="ltr">{dayNum}</bdi>
+            </div>
+            <div className="text-[10px] opacity-90">{monthName}</div>
+          </div>
+          {s.time && (
+            <div className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-mono text-slate-600">
+              <Clock className="w-3 h-3" />
+              <bdi dir="ltr">{s.time}</bdi>
+            </div>
+          )}
         </div>
 
-        <div className="text-right flex-1 min-w-0">
-          <div className="flex items-center justify-start gap-2 mb-1 flex-wrap">
+        {/* === Main content === */}
+        <div className="flex-1 min-w-0 text-right">
+          {/* Top row — badges */}
+          <div className="flex items-center justify-start gap-1.5 flex-wrap mb-2">
             <span
-              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold ${modeChipCls}`}
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                isOnline
+                  ? "bg-violet-100 text-violet-700"
+                  : "bg-sky-100 text-sky-700"
+              }`}
             >
               <ModeIcon className="w-3 h-3" />
               {isOnline ? "أون لاين" : "حضوري"}
             </span>
             {isToday && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-brand-500 text-white">
-                اليوم
+              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-brand-100 text-brand-700">
+                جلسة اليوم
               </span>
             )}
             {isPast && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-200 text-slate-700">
-                سابقة
+              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-200 text-slate-600">
+                منتهية
               </span>
             )}
           </div>
+
+          {/* Title + case meta */}
           <Link
             to={`/cases/${s.caseId}`}
-            className="text-base font-bold text-slate-800 hover:text-brand-700 truncate block"
+            className="block text-base font-bold text-slate-800 hover:text-brand-700 truncate"
+            title={s.caseTitle}
           >
             {s.caseTitle}
           </Link>
           <div className="text-[11px] text-slate-500 mt-0.5 font-mono" dir="ltr">
             {s.caseNumber ? `${s.caseNumber} · ${s.caseCode}` : s.caseCode}
           </div>
-        </div>
 
-        <div className="text-right shrink-0">
-          <div className="text-sm font-bold text-slate-700 flex items-center justify-start gap-1.5">
-            <Calendar className="w-3.5 h-3.5 text-brand-500" />
-            <bdi dir="rtl">{dayLabel}</bdi>
+          {/* Body — info rows */}
+          <div className="mt-3 pt-3 border-t border-slate-100 space-y-1.5">
+            {s.court && (
+              <InfoLine icon={Building2} label="المحكمة" value={s.court} />
+            )}
+            {!isOnline && s.location && (
+              <InfoLine icon={MapPin} label="المكان" value={s.location} />
+            )}
+            {isOnline && s.link && (
+              <InfoLine
+                icon={LinkIcon}
+                label="الرابط"
+                value={s.link}
+                href={s.link}
+              />
+            )}
+            {!s.court && !s.location && !s.link && (
+              <div className="text-[11px] text-slate-400">
+                لا توجد تفاصيل مكان مسجّلة
+              </div>
+            )}
           </div>
-          {s.time && (
-            <div className="text-xs text-slate-500 mt-0.5 flex items-center justify-start gap-1.5">
-              <Clock className="w-3 h-3" />
-              <bdi dir="ltr">{s.time}</bdi>
+
+          {s.details && (
+            <div className="mt-3 pt-3 border-t border-slate-100">
+              <div className="text-[10px] text-slate-400 mb-1 flex items-center gap-1">
+                <Eye className="w-3 h-3" />
+                ملاحظات الجلسة
+              </div>
+              <p className="text-xs text-slate-600 leading-6 whitespace-pre-line">
+                {s.details}
+              </p>
             </div>
           )}
         </div>
-      </div>
 
-      {/* Body */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-3 pt-3 border-t border-white/60 text-sm">
-        {s.court && (
-          <Row icon={Building2} label="المحكمة" value={s.court} />
-        )}
-        {isOnline && s.link ? (
-          <RowLink icon={LinkIcon} label="الرابط" value={s.link} />
-        ) : (
-          !isOnline &&
-          s.location && <Row icon={MapPin} label="المكان" value={s.location} />
-        )}
-      </div>
-
-      {s.details && (
-        <div className="mt-3 pt-3 border-t border-white/60 text-xs text-slate-600 leading-6 text-right whitespace-pre-line">
-          {s.details}
+        {/* === Action buttons (left in RTL = end) === */}
+        <div className="shrink-0 flex flex-col gap-1">
+          <button
+            onClick={onOpenCase}
+            title="فتح القضية"
+            className="p-1.5 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-md transition"
+          >
+            <Eye className="w-4 h-4" />
+          </button>
+          <button
+            onClick={onEdit}
+            title="تعديل"
+            className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition"
+          >
+            <Edit3 className="w-4 h-4" />
+          </button>
+          <button
+            onClick={onDelete}
+            title="حذف"
+            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
         </div>
-      )}
+      </div>
     </li>
   );
 }
 
-function Row({
+function InfoLine({
   icon: Icon,
   label,
   value,
+  href,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   value: string;
+  href?: string;
 }) {
   return (
-    <div className="flex items-start justify-end gap-1.5 text-slate-700">
-      <span className="flex-1 text-right truncate" title={value}>
-        {value}
-      </span>
-      <span className="text-xs text-slate-500 shrink-0 flex items-center gap-1">
-        <Icon className="w-3 h-3" />
-        {label}:
-      </span>
-    </div>
-  );
-}
-
-function RowLink({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="flex items-start justify-end gap-1.5 text-slate-700 min-w-0">
-      <a
-        href={value}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex-1 text-left truncate text-brand-600 hover:text-brand-700 underline"
-        dir="ltr"
-      >
-        {value}
-      </a>
-      <span className="text-xs text-slate-500 shrink-0 flex items-center gap-1">
-        <Icon className="w-3 h-3" />
-        {label}:
-      </span>
+    <div className="flex items-center justify-start gap-2 text-xs">
+      <Icon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+      <span className="text-slate-500 shrink-0">{label}:</span>
+      {href ? (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-bold text-brand-600 hover:text-brand-700 underline truncate text-left"
+          dir="ltr"
+          title={value}
+        >
+          {value}
+        </a>
+      ) : (
+        <span
+          className="font-bold text-slate-700 truncate"
+          title={value}
+        >
+          {value}
+        </span>
+      )}
     </div>
   );
 }
