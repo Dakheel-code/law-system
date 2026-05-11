@@ -235,7 +235,7 @@ function UserMenu({
         <div className="text-xs text-slate-500 mt-0.5">حساب نشط</div>
       </div>
       <ul className="py-2">
-        <MenuLink to="/users/new" icon={User} label="الملف الشخصي" />
+        <MenuLink to="/profile" icon={User} label="الملف الشخصي" />
         <MenuLink to="/admin" icon={Settings} label="إعدادات الحساب" />
         <MenuLink to="/theme" icon={Palette} label="تخصيص الواجهة" />
       </ul>

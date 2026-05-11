@@ -25,6 +25,7 @@ import NewUser from "./pages/users/NewUser";
 import Permissions from "./pages/users/Permissions";
 import Admin from "./pages/Admin";
 import Theme from "./pages/Theme";
+import Profile from "./pages/Profile";
 
 export default function App() {
   return (
@@ -69,6 +70,7 @@ export default function App() {
           <Route path="/users/permissions" element={<Permissions />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/theme" element={<Theme />} />
+          <Route path="/profile" element={<Profile />} />
         </Route>
       </Routes>
     </AuthProvider>
