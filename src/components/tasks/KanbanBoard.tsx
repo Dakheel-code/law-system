@@ -7,6 +7,7 @@ import {
   type TaskStatus,
   type TaskRecord,
 } from "../../lib/taskStore";
+import { useUsers, type UserRecord } from "../../lib/userStore";
 import {
   filterTasks,
   type TasksFiltersState,
@@ -52,6 +53,7 @@ type KanbanProps = {
 
 export default function KanbanBoard({ filters }: KanbanProps = {}) {
   const { tasks, loading } = useTasks();
+  const { users } = useUsers();
   const [drag, setDrag] = useState<DragState>(null);
   const [overColumn, setOverColumn] = useState<TaskStatus | null>(null);
 
@@ -59,6 +61,8 @@ export default function KanbanBoard({ filters }: KanbanProps = {}) {
 
   const tasksByStatus = (status: TaskStatus) =>
     visible.filter((t) => t.status === status);
+
+  const userById = new Map(users.map((u) => [u.id, u]));
 
   const handleDragStart = (taskId: string, from: TaskStatus) => {
     setDrag({ taskId, from });
@@ -135,15 +139,21 @@ export default function KanbanBoard({ filters }: KanbanProps = {}) {
               </div>
             ) : (
               <div className="space-y-2">
-                {items.map((t) => (
-                  <TaskCard
-                    key={t.id}
-                    task={t}
-                    isDragging={drag?.taskId === t.id}
-                    onDragStart={() => handleDragStart(t.id, t.status)}
-                    onDragEnd={handleDragEnd}
-                  />
-                ))}
+                {items.map((t) => {
+                  const taskUsers = (t.assignees ?? [])
+                    .map((id) => userById.get(id))
+                    .filter((u): u is UserRecord => !!u);
+                  return (
+                    <TaskCard
+                      key={t.id}
+                      task={t}
+                      assignees={taskUsers}
+                      isDragging={drag?.taskId === t.id}
+                      onDragStart={() => handleDragStart(t.id, t.status)}
+                      onDragEnd={handleDragEnd}
+                    />
+                  );
+                })}
                 {/* Drop hint when target column is empty of incoming-zone area */}
                 {isOver && drag && !isSource && (
                   <div className="rounded-xl border-2 border-dashed border-brand-300 bg-brand-50/40 text-brand-600 text-xs text-center py-3">
@@ -161,11 +171,13 @@ export default function KanbanBoard({ filters }: KanbanProps = {}) {
 
 function TaskCard({
   task,
+  assignees,
   isDragging,
   onDragStart,
   onDragEnd,
 }: {
   task: TaskRecord;
+  assignees: UserRecord[];
   isDragging: boolean;
   onDragStart: () => void;
   onDragEnd: () => void;
@@ -253,9 +265,49 @@ function TaskCard({
         </div>
       </div>
 
-      <div className="text-[10px] font-mono text-slate-400 mt-1 text-left" dir="ltr">
-        {task.code}
+      <div className="flex items-center justify-between mt-2">
+        <AssigneesStack users={assignees} />
+        <div className="text-[10px] font-mono text-slate-400 text-left" dir="ltr">
+          {task.code}
+        </div>
       </div>
+    </div>
+  );
+}
+
+function AssigneesStack({ users }: { users: UserRecord[] }) {
+  if (users.length === 0) return <span />;
+  const shown = users.slice(0, 3);
+  const extra = users.length - shown.length;
+  return (
+    <div className="flex items-center -space-x-1.5 -space-x-reverse" dir="ltr">
+      {shown.map((u) => (
+        <span
+          key={u.id}
+          title={u.fullName || u.code}
+          className="w-6 h-6 rounded-full ring-2 ring-white overflow-hidden shrink-0"
+        >
+          {u.avatarDataUrl ? (
+            <img
+              src={u.avatarDataUrl}
+              alt={u.fullName}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <span className="w-full h-full bg-brand-100 text-brand-700 text-[10px] font-bold flex items-center justify-center">
+              {(u.firstName?.[0] || u.fullName?.[0] || "؟").toUpperCase()}
+            </span>
+          )}
+        </span>
+      ))}
+      {extra > 0 && (
+        <span
+          title={`+${extra} آخرين`}
+          className="w-6 h-6 rounded-full ring-2 ring-white bg-slate-200 text-slate-600 text-[10px] font-bold flex items-center justify-center shrink-0"
+        >
+          +{extra}
+        </span>
+      )}
     </div>
   );
 }

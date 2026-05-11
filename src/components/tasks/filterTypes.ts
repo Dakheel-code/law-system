@@ -41,7 +41,13 @@ export function filterTasks(
   if (f.dateFrom) list = list.filter((t) => (t.dueDate ?? "") >= f.dateFrom);
   if (f.dateTo) list = list.filter((t) => (t.dueDate ?? "") <= f.dateTo);
 
-  if (f.assignee !== "all") list = list.filter((t) => t.assignedTo === f.assignee);
+  if (f.assignee !== "all") {
+    list = list.filter(
+      (t) =>
+        t.assignedTo === f.assignee ||
+        (Array.isArray(t.assignees) && t.assignees.includes(f.assignee))
+    );
+  }
   if (f.status !== "all") list = list.filter((t) => t.status === f.status);
   if (f.priority !== "all") list = list.filter((t) => t.priority === f.priority);
 

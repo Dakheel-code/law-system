@@ -11,7 +11,8 @@ export type TaskRecord = {
   status: TaskStatus;
   priority: string;
   dueDate: string | null;
-  assignedTo: string | null;
+  assignedTo: string | null;     // primary assignee (single — backward compat)
+  assignees: string[];           // all assignees (multi)
   caseId: string | null;
   clientId: string | null;
   archived: boolean;
@@ -27,6 +28,7 @@ type TaskRow = {
   priority: string | null;
   due_date: string | null;
   assigned_to: string | null;
+  assignees: string[] | null;
   case_id: string | null;
   client_id: string | null;
   archived: boolean | null;
@@ -42,6 +44,7 @@ const fromRow = (r: TaskRow): TaskRecord => ({
   priority: r.priority ?? "medium",
   dueDate: r.due_date,
   assignedTo: r.assigned_to,
+  assignees: Array.isArray(r.assignees) ? r.assignees : [],
   caseId: r.case_id,
   clientId: r.client_id,
   archived: r.archived ?? false,
@@ -58,6 +61,7 @@ export type TaskInput = {
   status?: TaskStatus;
   priority?: string;
   dueDate?: string | null;
+  assignees?: string[];
 };
 
 export async function listTasks(): Promise<TaskRecord[]> {
@@ -75,6 +79,8 @@ export async function listTasks(): Promise<TaskRecord[]> {
 
 export async function addTask(input: TaskInput): Promise<TaskRecord | null> {
   if (!supabase) return null;
+  const assignees = input.assignees ?? [];
+  const primary = assignees[0] ?? null;
   const { data, error } = await supabase
     .from("tasks")
     .insert({
@@ -84,6 +90,8 @@ export async function addTask(input: TaskInput): Promise<TaskRecord | null> {
       status: input.status ?? "todo",
       priority: input.priority ?? "medium",
       due_date: input.dueDate || null,
+      assignees,
+      assigned_to: primary,
     })
     .select()
     .single();
@@ -99,6 +107,22 @@ export async function updateTaskStatus(id: string, status: TaskStatus): Promise<
   const { error } = await supabase.from("tasks").update({ status }).eq("id", id);
   if (error) {
     console.error("updateTaskStatus", error);
+    return false;
+  }
+  return true;
+}
+
+export async function updateTaskAssignees(
+  id: string,
+  assignees: string[]
+): Promise<boolean> {
+  if (!supabase) return false;
+  const { error } = await supabase
+    .from("tasks")
+    .update({ assignees, assigned_to: assignees[0] ?? null })
+    .eq("id", id);
+  if (error) {
+    console.error("updateTaskAssignees", error);
     return false;
   }
   return true;
