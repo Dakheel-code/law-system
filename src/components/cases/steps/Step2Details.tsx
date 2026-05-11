@@ -1,4 +1,5 @@
-import { Plus, Trash2, Users as UsersIcon } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Plus, Trash2, Users as UsersIcon, Check, Edit3, X, User as UserIcon } from "lucide-react";
 import { Field, Input, Textarea } from "../../ui/Field";
 import Select from "../../ui/Select";
 import StepHeader from "../StepHeader";
@@ -25,18 +26,76 @@ export default function Step2Details({ data, update }: Props) {
   const caseTypes = office?.caseTypes ?? [];
   const courtTypes = office?.courtTypes ?? [];
 
+  // Track which parties are in edit mode locally. A party is in edit mode if
+  // it's brand-new (just added) or the user explicitly clicked "edit".
+  const [editingIds, setEditingIds] = useState<Set<string>>(() => {
+    // Start with any incomplete parties (no name) in edit mode
+    return new Set(data.parties.filter((p) => !p.name.trim()).map((p) => p.id));
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // When parties change externally (e.g. on load), open any new empty ones.
+  useEffect(() => {
+    setEditingIds((prev) => {
+      const next = new Set(prev);
+      for (const p of data.parties) {
+        if (!p.name.trim() && !next.has(p.id)) next.add(p.id);
+      }
+      return next;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.parties.length]);
+
   const updateParty = (id: string, patch: Partial<CaseParty>) =>
     update(
       "parties",
       data.parties.map((p) => (p.id === id ? { ...p, ...patch } : p))
     );
 
-  const addParty = () => update("parties", [...data.parties, newParty()]);
-  const removeParty = (id: string) =>
+  const addParty = () => {
+    const p = newParty();
+    update("parties", [...data.parties, p]);
+    setEditingIds((s) => new Set(s).add(p.id));
+  };
+
+  const removeParty = (id: string) => {
+    if (!confirm("هل تريد إزالة هذا الطرف؟")) return;
     update(
       "parties",
       data.parties.filter((p) => p.id !== id)
     );
+    setEditingIds((s) => {
+      const next = new Set(s);
+      next.delete(id);
+      return next;
+    });
+    setErrors((e) => {
+      const { [id]: _, ...rest } = e;
+      return rest;
+    });
+  };
+
+  const saveParty = (id: string) => {
+    const party = data.parties.find((p) => p.id === id);
+    if (!party) return;
+    if (!party.name.trim()) {
+      setErrors((e) => ({ ...e, [id]: "أدخل اسم الطرف على الأقل" }));
+      return;
+    }
+    setErrors((e) => {
+      const { [id]: _, ...rest } = e;
+      return rest;
+    });
+    setEditingIds((s) => {
+      const next = new Set(s);
+      next.delete(id);
+      return next;
+    });
+  };
+
+  const editParty = (id: string) => {
+    setEditingIds((s) => new Set(s).add(id));
+  };
 
   return (
     <div className="space-y-6">
@@ -83,80 +142,27 @@ export default function Step2Details({ data, update }: Props) {
             </button>
           </div>
         ) : (
-          <div className="space-y-4">
-            {data.parties.map((party, i) => (
-              <div
-                key={party.id}
-                className="rounded-xl border border-slate-200 bg-slate-50/40 p-4"
-              >
-                <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => removeParty(party.id)}
-                    className="inline-flex items-center gap-1.5 px-2 py-1 text-xs text-rose-600 hover:bg-rose-50 rounded-md"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    إزالة
-                  </button>
-                  <div className="flex items-center justify-start gap-2">
-                    <RoleButton
-                      label="مدّعي"
-                      active={party.role === "plaintiff"}
-                      onClick={() => updateParty(party.id, { role: "plaintiff" })}
-                    />
-                    <RoleButton
-                      label="مدّعى عليه"
-                      active={party.role === "defendant"}
-                      onClick={() => updateParty(party.id, { role: "defendant" })}
-                    />
-                    <span className="text-xs font-bold text-slate-700 mr-2">
-                      الطرف {i + 1}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <Field label="الاسم">
-                    <Input
-                      placeholder="اسم الطرف"
-                      value={party.name}
-                      onChange={(e) => updateParty(party.id, { name: e.target.value })}
-                    />
-                  </Field>
-                  <Field label="رقم الهوية">
-                    <Input
-                      placeholder="رقم الهوية"
-                      value={party.idNumber}
-                      onChange={(e) =>
-                        updateParty(party.id, { idNumber: e.target.value })
-                      }
-                      dir="ltr"
-                      className="text-left"
-                    />
-                  </Field>
-                  <Field label="رقم الجوال">
-                    <Input
-                      placeholder="05xxxxxxxx"
-                      value={party.phone}
-                      onChange={(e) =>
-                        updateParty(party.id, { phone: e.target.value })
-                      }
-                      dir="ltr"
-                      className="text-left"
-                    />
-                  </Field>
-                  <Field label="العنوان">
-                    <Input
-                      placeholder="العنوان"
-                      value={party.address}
-                      onChange={(e) =>
-                        updateParty(party.id, { address: e.target.value })
-                      }
-                    />
-                  </Field>
-                </div>
-              </div>
-            ))}
+          <div className="space-y-3">
+            {data.parties.map((party, i) =>
+              editingIds.has(party.id) ? (
+                <PartyEditCard
+                  key={party.id}
+                  party={party}
+                  index={i}
+                  error={errors[party.id]}
+                  onChange={(patch) => updateParty(party.id, patch)}
+                  onSave={() => saveParty(party.id)}
+                  onRemove={() => removeParty(party.id)}
+                />
+              ) : (
+                <PartyCompact
+                  key={party.id}
+                  party={party}
+                  onEdit={() => editParty(party.id)}
+                  onRemove={() => removeParty(party.id)}
+                />
+              )
+            )}
           </div>
         )}
       </div>
@@ -258,33 +264,228 @@ export default function Step2Details({ data, update }: Props) {
   );
 }
 
-function RoleButton({
+// ============================================================
+// Per-party — Edit mode card
+// ============================================================
+
+function PartyRoleButton({
   label,
   active,
+  color,
   onClick,
 }: {
   label: string;
   active: boolean;
+  color: "emerald" | "rose";
   onClick: () => void;
 }) {
+  const cls =
+    color === "emerald"
+      ? active
+        ? "bg-emerald-50 border-emerald-500 text-emerald-700"
+        : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+      : active
+      ? "bg-rose-50 border-rose-500 text-rose-700"
+      : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50";
+  const ringCls =
+    color === "emerald"
+      ? active
+        ? "border-emerald-500"
+        : "border-slate-300"
+      : active
+      ? "border-rose-500"
+      : "border-slate-300";
+  const dotCls = color === "emerald" ? "bg-emerald-500" : "bg-rose-500";
+
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg border-2 text-sm font-bold transition ${
-        active
-          ? "bg-rose-50 border-rose-500 text-rose-700"
-          : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
-      }`}
+      className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border-2 text-xs font-bold transition ${cls}`}
     >
       <span
-        className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-          active ? "border-rose-500" : "border-slate-300"
-        }`}
+        className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center ${ringCls}`}
       >
-        {active && <span className="w-2 h-2 rounded-full bg-rose-500" />}
+        {active && <span className={`w-1.5 h-1.5 rounded-full ${dotCls}`} />}
       </span>
       {label}
     </button>
+  );
+}
+
+function PartyEditCard({
+  party,
+  index,
+  error,
+  onChange,
+  onSave,
+  onRemove,
+}: {
+  party: CaseParty;
+  index: number;
+  error?: string;
+  onChange: (patch: Partial<CaseParty>) => void;
+  onSave: () => void;
+  onRemove: () => void;
+}) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-slate-50/40 p-4">
+      <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onSave}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand-500 text-white rounded-md text-xs font-bold shadow hover:bg-brand-600"
+          >
+            <Check className="w-3.5 h-3.5" />
+            حفظ
+          </button>
+          <button
+            type="button"
+            onClick={onRemove}
+            className="inline-flex items-center gap-1.5 px-2 py-1.5 text-xs text-rose-600 hover:bg-rose-50 rounded-md"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            إزالة
+          </button>
+        </div>
+        <div className="flex items-center justify-start gap-2">
+          <PartyRoleButton
+            label="مدّعي"
+            color="emerald"
+            active={party.role === "plaintiff"}
+            onClick={() => onChange({ role: "plaintiff" })}
+          />
+          <PartyRoleButton
+            label="مدّعى عليه"
+            color="rose"
+            active={party.role === "defendant"}
+            onClick={() => onChange({ role: "defendant" })}
+          />
+          <span className="text-xs font-bold text-slate-700 mr-2">
+            الطرف {index + 1}
+          </span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <Field label="الاسم *">
+          <Input
+            placeholder="اسم الطرف"
+            value={party.name}
+            onChange={(e) => onChange({ name: e.target.value })}
+            autoFocus
+          />
+        </Field>
+        <Field label="رقم الهوية">
+          <Input
+            placeholder="رقم الهوية"
+            value={party.idNumber}
+            onChange={(e) => onChange({ idNumber: e.target.value })}
+            dir="ltr"
+            className="text-left"
+          />
+        </Field>
+        <Field label="رقم الجوال">
+          <Input
+            placeholder="05xxxxxxxx"
+            value={party.phone}
+            onChange={(e) => onChange({ phone: e.target.value })}
+            dir="ltr"
+            className="text-left"
+          />
+        </Field>
+        <Field label="العنوان">
+          <Input
+            placeholder="العنوان"
+            value={party.address}
+            onChange={(e) => onChange({ address: e.target.value })}
+          />
+        </Field>
+      </div>
+
+      {error && (
+        <div className="mt-3 text-xs text-rose-700 text-right">{error}</div>
+      )}
+    </div>
+  );
+}
+
+function PartyCompact({
+  party,
+  onEdit,
+  onRemove,
+}: {
+  party: CaseParty;
+  onEdit: () => void;
+  onRemove: () => void;
+}) {
+  const isPlaintiff = party.role === "plaintiff";
+  const wrapperCls = isPlaintiff
+    ? "border-emerald-200 bg-emerald-50/40"
+    : "border-rose-200 bg-rose-50/40";
+  const avatarCls = isPlaintiff
+    ? "bg-emerald-100 text-emerald-700"
+    : "bg-rose-100 text-rose-700";
+  const nameCls = isPlaintiff ? "text-emerald-800" : "text-rose-800";
+  const roleLabel = isPlaintiff ? "مدّعي" : "مدّعى عليه";
+  const roleChipCls = isPlaintiff
+    ? "bg-emerald-500 text-white"
+    : "bg-rose-500 text-white";
+
+  const meta =
+    [party.phone, party.idNumber, party.address]
+      .filter((s) => s && s.trim())
+      .join(" · ");
+
+  return (
+    <div
+      className={`flex items-center gap-3 p-3 rounded-xl border ${wrapperCls}`}
+    >
+      <div className="flex items-center gap-1 shrink-0">
+        <button
+          type="button"
+          onClick={onRemove}
+          title="إزالة"
+          className="p-1.5 text-rose-500 hover:bg-rose-100 rounded-md"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={onEdit}
+          title="تعديل"
+          className="p-1.5 text-blue-500 hover:bg-blue-100 rounded-md"
+        >
+          <Edit3 className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      <span
+        className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold ${roleChipCls}`}
+      >
+        {roleLabel}
+      </span>
+
+      <div className="flex-1 min-w-0 text-right">
+        <div className="flex items-center justify-start gap-2">
+          <div className={`text-sm font-bold truncate ${nameCls}`}>
+            {party.name}
+          </div>
+          <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+        </div>
+        {meta && (
+          <div className="text-[11px] text-slate-500 mt-0.5 truncate" dir="ltr">
+            {meta}
+          </div>
+        )}
+      </div>
+
+      <div
+        className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${avatarCls}`}
+      >
+        <UserIcon className="w-4 h-4" />
+      </div>
+    </div>
   );
 }
