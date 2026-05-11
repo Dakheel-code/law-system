@@ -460,7 +460,10 @@ export async function getOrCreateAnyoneLink(fileId: string): Promise<string> {
 // OAuth flow helper
 // ----------------------------------------------------------------
 
-const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
+// Full Drive scope — required to see files added to the Shared Drive outside
+// the app (e.g. uploaded directly in Google Drive UI). The narrower
+// `drive.file` would only show files the app itself created.
+const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive";
 
 export function buildAuthUrl(): string {
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
