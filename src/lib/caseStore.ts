@@ -6,7 +6,14 @@ export type CaseAttachment = {
   name: string;
   size: number;
   type: string;
-  dataUrl: string;
+  // Google Drive metadata (current path)
+  driveFileId?: string;
+  webViewLink?: string;
+  iconLink?: string;
+  thumbnailLink?: string;
+  uploadedAt?: string;
+  // Legacy base64 (only present on records created before Drive integration)
+  dataUrl?: string;
 };
 
 export type CaseParty = {

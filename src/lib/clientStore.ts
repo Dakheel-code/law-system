@@ -5,7 +5,14 @@ export type AttachmentRecord = {
   name: string;
   size: number;
   type: string;
-  dataUrl: string;
+  // Google Drive metadata (current path)
+  driveFileId?: string;
+  webViewLink?: string;
+  iconLink?: string;
+  thumbnailLink?: string;
+  uploadedAt?: string;
+  // Legacy base64 (only on records created before Drive integration)
+  dataUrl?: string;
 };
 
 export type ClientRecord = {
@@ -182,6 +189,65 @@ export async function updateClient(
     return false;
   }
   return true;
+}
+
+// ============================================================
+// Attachment helpers — bulk append + remove by index
+// ============================================================
+
+export async function addAttachmentsToClient(
+  clientId: string,
+  files: AttachmentRecord[]
+): Promise<boolean> {
+  if (!supabase || files.length === 0) return false;
+  const { data, error } = await supabase
+    .from("clients")
+    .select("attachments")
+    .eq("id", clientId)
+    .maybeSingle();
+  if (error || !data) {
+    alert(`فشل الحفظ: ${error?.message ?? "العميل غير موجود"}`);
+    return false;
+  }
+  const current = Array.isArray(
+    (data as { attachments: AttachmentRecord[] }).attachments
+  )
+    ? (data as { attachments: AttachmentRecord[] }).attachments
+    : [];
+  const next = [...current, ...files];
+  const { error: uerr } = await supabase
+    .from("clients")
+    .update({ attachments: next })
+    .eq("id", clientId);
+  if (uerr) {
+    alert(`فشل الحفظ: ${uerr.message}`);
+    return false;
+  }
+  return true;
+}
+
+export async function removeAttachmentFromClient(
+  clientId: string,
+  index: number
+): Promise<boolean> {
+  if (!supabase) return false;
+  const { data, error } = await supabase
+    .from("clients")
+    .select("attachments")
+    .eq("id", clientId)
+    .maybeSingle();
+  if (error || !data) return false;
+  const list = Array.isArray(
+    (data as { attachments: AttachmentRecord[] }).attachments
+  )
+    ? (data as { attachments: AttachmentRecord[] }).attachments
+    : [];
+  const next = list.filter((_, i) => i !== index);
+  const { error: uerr } = await supabase
+    .from("clients")
+    .update({ attachments: next })
+    .eq("id", clientId);
+  return !uerr;
 }
 
 export async function deleteClient(id: string): Promise<boolean> {

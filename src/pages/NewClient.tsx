@@ -17,7 +17,7 @@ import {
 import RadioGroup from "../components/ui/RadioGroup";
 import { Field, Input, Textarea } from "../components/ui/Field";
 import Select from "../components/ui/Select";
-import AttachmentsUpload from "../components/ui/AttachmentsUpload";
+import { HardDrive, Info } from "lucide-react";
 import {
   addClient,
   getClient,
@@ -262,11 +262,29 @@ export default function NewClient() {
             </Field>
           </div>
 
-          <AttachmentsUpload
-            label="مرفقات العميل"
-            value={attachments}
-            onChange={setAttachments}
-          />
+          <div className="rounded-xl bg-brand-50/50 border border-brand-200 p-4">
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-lg bg-brand-500 text-white flex items-center justify-center shrink-0">
+                <HardDrive className="w-4 h-4" />
+              </div>
+              <div className="text-right flex-1">
+                <h4 className="text-sm font-bold text-slate-800 mb-0.5">
+                  المرفقات تُرفع بعد حفظ العميل
+                </h4>
+                <p className="text-xs text-slate-600 leading-6">
+                  احفظ بيانات العميل أولاً، ثم انتقل إلى ملف العميل لرفع
+                  الوثائق — ستُخزَّن تلقائياً في مجلد العميل على Google Drive.
+                </p>
+                <p className="text-[11px] text-brand-700 mt-1 flex items-center gap-1">
+                  <Info className="w-3 h-3" />
+                  المجلد:{" "}
+                  <span className="font-mono" dir="ltr">
+                    ناصر طريد / عملاء / &lt;كود العميل&gt;
+                  </span>
+                </p>
+              </div>
+            </div>
+          </div>
 
           <Field label="ملاحظات">
             <Textarea

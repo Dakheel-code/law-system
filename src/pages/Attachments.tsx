@@ -103,8 +103,20 @@ export default function Attachments() {
   }, [allAttachments, search, kindFilter]);
 
   const handleDelete = async (a: EnrichedAttachment) => {
-    if (!confirm(`هل تريد حذف الملف "${a.name}" من قضية «${a.caseTitle}»؟`))
+    if (
+      !confirm(
+        `هل تريد حذف الملف "${a.name}" من قضية «${a.caseTitle}»؟ سيُحذف من Google Drive أيضاً.`
+      )
+    )
       return;
+    if (a.driveFileId) {
+      try {
+        const { deleteFile } = await import("../lib/drive");
+        await deleteFile(a.driveFileId);
+      } catch (e) {
+        console.warn("Drive delete failed:", e);
+      }
+    }
     await removeAttachmentFromCase(a.caseId, a.indexInCase);
   };
 
@@ -376,10 +388,12 @@ function AttachmentRow({
           <Trash2 className="w-3.5 h-3.5" />
         </button>
         <a
-          href={att.dataUrl}
-          download={att.name}
+          href={att.webViewLink || att.dataUrl || "#"}
+          download={att.webViewLink ? undefined : att.name}
+          target={att.webViewLink ? "_blank" : undefined}
+          rel={att.webViewLink ? "noopener noreferrer" : undefined}
           className="p-1.5 text-brand-600 hover:bg-brand-50 rounded-md"
-          title="تحميل"
+          title={att.webViewLink ? "فتح في Drive" : "تحميل"}
         >
           <Download className="w-3.5 h-3.5" />
         </a>

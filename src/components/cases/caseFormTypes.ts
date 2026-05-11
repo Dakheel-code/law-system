@@ -9,7 +9,12 @@ export type Attachment = {
   name: string;
   size: number;
   type: string;
-  dataUrl: string;
+  driveFileId?: string;
+  webViewLink?: string;
+  iconLink?: string;
+  thumbnailLink?: string;
+  uploadedAt?: string;
+  dataUrl?: string;
 };
 
 export type PartyRole = "plaintiff" | "defendant";

@@ -19,6 +19,7 @@ import {
   type CaseRecord,
   type CaseAttachment,
 } from "../../lib/caseStore";
+import { uploadEntityFile } from "../../lib/drive";
 
 type Props = {
   initialCaseId?: string;
@@ -29,14 +30,6 @@ type Props = {
 };
 
 const MAX_FILE_MB = 10;
-
-const readAsDataURL = (file: File): Promise<string> =>
-  new Promise((resolve, reject) => {
-    const r = new FileReader();
-    r.onload = () => resolve(r.result as string);
-    r.onerror = () => reject(r.error);
-    r.readAsDataURL(file);
-  });
 
 const fmtSize = (n: number) => {
   if (n < 1024) return `${n} بايت`;
@@ -55,7 +48,9 @@ export default function AttachmentsFormModal({
   const [caseId, setCaseId] = useState<string>(initialCaseId ?? "");
   const [caseSearch, setCaseSearch] = useState("");
   const [caseListOpen, setCaseListOpen] = useState(!initialCaseId);
-  const [staged, setStaged] = useState<CaseAttachment[]>([]);
+  // Stage raw File objects — the actual upload to Drive happens on submit
+  // (we need the selected caseId before we know which folder to use).
+  const [staged, setStaged] = useState<File[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -94,19 +89,13 @@ export default function AttachmentsFormModal({
 
   const handleFiles = async (files: FileList | File[] | null) => {
     if (!files) return;
-    const arr = Array.from(files);
-    const accepted: CaseAttachment[] = [];
-    for (const f of arr) {
+    const accepted: File[] = [];
+    for (const f of Array.from(files)) {
       if (f.size > MAX_FILE_MB * 1024 * 1024) {
         alert(`${f.name} — يتجاوز ${MAX_FILE_MB} ميجابايت`);
         continue;
       }
-      try {
-        const dataUrl = await readAsDataURL(f);
-        accepted.push({ name: f.name, size: f.size, type: f.type, dataUrl });
-      } catch {
-        // skip
-      }
+      accepted.push(f);
     }
     if (accepted.length > 0) setStaged((p) => [...p, ...accepted]);
   };
@@ -120,12 +109,42 @@ export default function AttachmentsFormModal({
     if (!caseId) return setError("اختر القضية أولاً");
     if (staged.length === 0)
       return setError("أضف ملفاً واحداً على الأقل");
+    if (!selectedCase) return setError("القضية المختارة غير متاحة");
+
     setSaving(true);
-    const ok = await addAttachmentsToCase(caseId, staged);
-    setSaving(false);
-    if (ok) {
-      onSaved?.();
-      onClose();
+    try {
+      const folderName =
+        selectedCase.caseNumber || selectedCase.code || selectedCase.id;
+      const uploaded: CaseAttachment[] = [];
+      for (const f of staged) {
+        const driveFile = await uploadEntityFile(
+          "case",
+          selectedCase.id,
+          folderName,
+          f
+        );
+        uploaded.push({
+          name: driveFile.name || f.name,
+          size: f.size,
+          type: f.type,
+          driveFileId: driveFile.id,
+          webViewLink: driveFile.webViewLink,
+          iconLink: driveFile.iconLink,
+          thumbnailLink: driveFile.thumbnailLink,
+          uploadedAt: new Date().toISOString(),
+        });
+      }
+      const ok = await addAttachmentsToCase(caseId, uploaded);
+      if (ok) {
+        onSaved?.();
+        onClose();
+      } else {
+        setError("فشل حفظ المرفقات في قاعدة البيانات");
+      }
+    } catch (err) {
+      setError((err as Error).message || "فشل رفع الملفات إلى Drive");
+    } finally {
+      setSaving(false);
     }
   };
 

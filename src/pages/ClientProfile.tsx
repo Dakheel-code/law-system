@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowRight,
@@ -21,8 +21,19 @@ import {
   CalendarClock,
   Tag,
   CheckCircle2,
+  UploadCloud,
+  Loader2,
+  X,
 } from "lucide-react";
-import { useClients, deleteClient, type ClientRecord } from "../lib/clientStore";
+import {
+  useClients,
+  deleteClient,
+  addAttachmentsToClient,
+  removeAttachmentFromClient,
+  type AttachmentRecord,
+  type ClientRecord,
+} from "../lib/clientStore";
+import { uploadEntityFile, deleteFile as driveDeleteFile } from "../lib/drive";
 import { nationalities } from "../config/nationalities";
 import AttachmentPreview from "../components/ui/AttachmentPreview";
 
@@ -54,6 +65,8 @@ export default function ClientProfile() {
   const { clients, loading } = useClients();
   const navigate = useNavigate();
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const client = useMemo(
     () => clients.find((c) => c.id === id),
@@ -92,6 +105,56 @@ export default function ClientProfile() {
       const ok = await deleteClient(client.id);
       if (ok) navigate("/clients", { replace: true });
     }
+  };
+
+  const handleUpload = async (files: FileList | null) => {
+    if (!files || !client) return;
+    setUploading(true);
+    try {
+      const folderName = client.code || client.fullName || client.id;
+      const accepted: AttachmentRecord[] = [];
+      for (const f of Array.from(files)) {
+        if (f.size > 10 * 1024 * 1024) {
+          alert(`${f.name} — يتجاوز 10 ميجابايت`);
+          continue;
+        }
+        try {
+          const driveFile = await uploadEntityFile("client", client.id, folderName, f);
+          accepted.push({
+            name: driveFile.name || f.name,
+            size: f.size,
+            type: f.type,
+            driveFileId: driveFile.id,
+            webViewLink: driveFile.webViewLink,
+            iconLink: driveFile.iconLink,
+            thumbnailLink: driveFile.thumbnailLink,
+            uploadedAt: new Date().toISOString(),
+          });
+        } catch (e) {
+          alert(`فشل رفع ${f.name}: ${(e as Error).message}`);
+        }
+      }
+      if (accepted.length > 0) {
+        await addAttachmentsToClient(client.id, accepted);
+      }
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  };
+
+  const handleRemoveAttachment = async (idx: number) => {
+    if (!client) return;
+    if (!confirm("هل تريد حذف هذا المرفق؟ سيُحذف من Google Drive أيضاً.")) return;
+    const target = client.attachments[idx];
+    if (target?.driveFileId) {
+      try {
+        await driveDeleteFile(target.driveFileId);
+      } catch (e) {
+        console.warn("Drive delete failed:", e);
+      }
+    }
+    await removeAttachmentFromClient(client.id, idx);
   };
 
   const nationalityLabel =
@@ -269,18 +332,44 @@ export default function ClientProfile() {
         {/* Attachments sidebar */}
         <div>
           <div className="card p-5 lg:sticky lg:top-24">
-            <h2 className="flex items-center justify-start gap-2 text-base font-bold text-slate-800 mb-4 pb-3 border-b border-slate-100">
-              المرفقات
-              <span className="text-xs text-slate-400 font-normal">
-                ({client.attachments.length})
-              </span>
-              <FileText className="w-4 h-4 text-brand-500" />
-            </h2>
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                disabled={uploading}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand-500 text-white rounded-md text-xs font-bold hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed shrink-0"
+              >
+                {uploading ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <UploadCloud className="w-3.5 h-3.5" />
+                )}
+                {uploading ? "جارٍ الرفع..." : "رفع مرفق"}
+              </button>
+              <h2 className="flex items-center justify-start gap-2 text-base font-bold text-slate-800">
+                المرفقات
+                <span className="text-xs text-slate-400 font-normal">
+                  ({client.attachments.length})
+                </span>
+                <FileText className="w-4 h-4 text-brand-500" />
+              </h2>
+            </div>
+            <input
+              ref={fileRef}
+              type="file"
+              multiple
+              accept="image/jpeg,image/png,image/gif,image/webp,application/pdf,.doc,.docx,.xlsx,.xls"
+              className="hidden"
+              onChange={(e) => handleUpload(e.target.files)}
+            />
 
             {client.attachments.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 text-slate-300">
                 <FileText className="w-10 h-10 mb-2" strokeWidth={1.2} />
                 <p className="text-xs text-slate-500">لا توجد مرفقات</p>
+                <p className="text-[10px] text-slate-400 mt-1">
+                  اضغط «رفع مرفق» لإضافة أول ملف
+                </p>
               </div>
             ) : (
               <ul className="space-y-2">
@@ -289,6 +378,7 @@ export default function ClientProfile() {
                     key={i}
                     file={f}
                     onPreview={() => setPreviewIndex(i)}
+                    onDelete={() => handleRemoveAttachment(i)}
                   />
                 ))}
               </ul>
@@ -411,19 +501,36 @@ function InfoItem({
 function AttachmentRow({
   file,
   onPreview,
+  onDelete,
 }: {
   file: ClientRecord["attachments"][number];
   onPreview: () => void;
+  onDelete?: () => void;
 }) {
   const isImage = file.type.startsWith("image/");
+  const link = file.webViewLink || file.dataUrl || "#";
+  const isDrive = !!file.webViewLink;
+  const thumb = file.thumbnailLink || file.dataUrl;
 
   return (
     <li className="group flex items-center gap-2 p-2 rounded-lg border border-slate-200 hover:bg-slate-50 transition">
       <div className="flex items-center gap-1 shrink-0">
+        {onDelete && (
+          <button
+            type="button"
+            onClick={onDelete}
+            title="حذف"
+            className="p-1.5 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-md"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
         <a
-          href={file.dataUrl}
-          download={file.name}
-          title="تنزيل"
+          href={link}
+          download={isDrive ? undefined : file.name}
+          target={isDrive ? "_blank" : undefined}
+          rel={isDrive ? "noopener noreferrer" : undefined}
+          title={isDrive ? "فتح في Drive" : "تنزيل"}
           onClick={(e) => e.stopPropagation()}
           className="p-1.5 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-md"
         >
@@ -443,9 +550,9 @@ function AttachmentRow({
         onClick={onPreview}
         className="flex items-center gap-2 min-w-0 flex-1 text-right"
       >
-        {isImage ? (
+        {isImage && thumb ? (
           <img
-            src={file.dataUrl}
+            src={thumb}
             alt=""
             className="w-9 h-9 rounded-md object-cover shrink-0 border border-slate-200"
           />

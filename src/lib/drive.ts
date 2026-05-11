@@ -366,6 +366,25 @@ export async function uploadFile(
   });
 }
 
+/**
+ * High-level helper: upload a single file to the folder for a given entity
+ * (auto-creating that folder under the office hierarchy if needed).
+ */
+export async function uploadEntityFile(
+  entityType: "case" | "client",
+  entityId: string,
+  entityDisplayName: string,
+  file: File,
+  onProgress?: (loaded: number, total: number) => void
+): Promise<DriveFile> {
+  const folderId = await ensureEntityFolder(
+    entityType,
+    entityId,
+    entityDisplayName
+  );
+  return uploadFile(folderId, file, onProgress);
+}
+
 export async function deleteFile(fileId: string): Promise<void> {
   const params = await withDriveParams();
   await driveFetch(`/files/${encodeURIComponent(fileId)}?${params}`, {

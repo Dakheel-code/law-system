@@ -46,6 +46,7 @@ import {
   urgencyLevels,
 } from "../../config/caseConfig";
 import { initialCase } from "../../components/cases/caseFormTypes";
+import { uploadEntityFile } from "../../lib/drive";
 
 const labelFor = (opts: { value: string; label: string }[], v: string) =>
   opts.find((o) => o.value === v)?.label || v || "—";
@@ -91,14 +92,6 @@ const fmtSize = (n: number) => {
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
   return `${(n / 1024 / 1024).toFixed(1)} MB`;
 };
-
-const readAsDataURL = (file: File): Promise<string> =>
-  new Promise((resolve, reject) => {
-    const r = new FileReader();
-    r.onload = () => resolve(r.result as string);
-    r.onerror = () => reject(r.error);
-    r.readAsDataURL(file);
-  });
 
 export default function CaseDetail() {
   const { id } = useParams<{ id: string }>();
@@ -148,14 +141,28 @@ export default function CaseDetail() {
     if (!files || !caseData) return;
     setUploading(true);
     try {
+      const folderName = caseData.caseNumber || caseData.code || caseData.id;
       const accepted: CaseAttachment[] = [];
       for (const f of Array.from(files)) {
         if (f.size > 10 * 1024 * 1024) {
           alert(`${f.name} — يتجاوز 10 ميجابايت`);
           continue;
         }
-        const dataUrl = await readAsDataURL(f);
-        accepted.push({ name: f.name, size: f.size, type: f.type, dataUrl });
+        try {
+          const driveFile = await uploadEntityFile("case", caseData.id, folderName, f);
+          accepted.push({
+            name: driveFile.name || f.name,
+            size: f.size,
+            type: f.type,
+            driveFileId: driveFile.id,
+            webViewLink: driveFile.webViewLink,
+            iconLink: driveFile.iconLink,
+            thumbnailLink: driveFile.thumbnailLink,
+            uploadedAt: new Date().toISOString(),
+          });
+        } catch (e) {
+          alert(`فشل رفع ${f.name}: ${(e as Error).message}`);
+        }
       }
       if (accepted.length === 0) return;
       const next = [...(caseData.attachments ?? []), ...accepted];
@@ -190,7 +197,18 @@ export default function CaseDetail() {
 
   const handleRemoveAttachment = async (idx: number) => {
     if (!caseData) return;
-    if (!confirm("هل تريد حذف هذا المرفق؟")) return;
+    if (!confirm("هل تريد حذف هذا المرفق؟ سيُحذف من Google Drive أيضاً.")) return;
+    const target = caseData.attachments[idx];
+    if (target?.driveFileId) {
+      try {
+        const { deleteFile } = await import("../../lib/drive");
+        await deleteFile(target.driveFileId);
+      } catch (e) {
+        // Non-fatal: file may be already gone in Drive. Continue removing the
+        // local reference so the UI doesn't end up out of sync.
+        console.warn("Drive delete failed:", e);
+      }
+    }
     const next = caseData.attachments.filter((_, i) => i !== idx);
     await updateCase(caseData.id, {
       ...initialCase,
@@ -553,10 +571,12 @@ export default function CaseDetail() {
                     <X className="w-3.5 h-3.5" />
                   </button>
                   <a
-                    href={a.dataUrl}
-                    download={a.name}
+                    href={a.webViewLink || a.dataUrl}
+                    download={a.dataUrl ? a.name : undefined}
+                    target={a.webViewLink ? "_blank" : undefined}
+                    rel={a.webViewLink ? "noopener noreferrer" : undefined}
                     className="p-1.5 text-brand-600 hover:bg-brand-50 rounded-md shrink-0"
-                    title="تحميل"
+                    title={a.webViewLink ? "فتح في Drive" : "تحميل"}
                   >
                     <Download className="w-3.5 h-3.5" />
                   </a>
