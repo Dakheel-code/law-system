@@ -111,7 +111,10 @@ export default function ClientProfile() {
     if (!files || !client) return;
     setUploading(true);
     try {
-      const folderName = client.code || client.fullName || client.id;
+      const folderName =
+        client.fullName && client.code
+          ? `${client.fullName} - ${client.code}`
+          : client.code || client.fullName || client.id;
       const accepted: AttachmentRecord[] = [];
       for (const f of Array.from(files)) {
         if (f.size > 10 * 1024 * 1024) {

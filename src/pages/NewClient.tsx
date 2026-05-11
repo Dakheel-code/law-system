@@ -279,7 +279,7 @@ export default function NewClient() {
                   <Info className="w-3 h-3" />
                   المجلد:{" "}
                   <span className="font-mono" dir="ltr">
-                    ناصر طريد / عملاء / &lt;كود العميل&gt;
+                    عملاء / &lt;اسم العميل&gt; - &lt;كود العميل&gt;
                   </span>
                 </p>
               </div>

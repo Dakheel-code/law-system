@@ -248,11 +248,17 @@ export async function ensureOfficeFolders(): Promise<{
   }
 
   if (changed) {
-    await supabase.rpc("drive_connection_update_folders", {
+    const { error } = await supabase.rpc("drive_connection_update_folders", {
       p_root_folder_id: rootId,
       p_cases_folder_id: casesId,
       p_clients_folder_id: clientsId,
     });
+    // Surface the error instead of swallowing it — silent failures here were
+    // a real source of confusion (e.g. Supabase's safe-update setting blocks
+    // unfiltered UPDATEs even inside SECURITY DEFINER functions).
+    if (error) {
+      throw new Error(`فشل تحديث مجلدات Drive في DB: ${error.message}`);
+    }
   }
 
   return { rootId: rootId!, casesId: casesId!, clientsId: clientsId! };
