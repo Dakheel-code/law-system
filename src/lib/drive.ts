@@ -39,7 +39,7 @@ export async function getAccessToken(): Promise<string> {
   } = await supabase.auth.getSession();
   if (!session) throw new Error("not_authenticated");
 
-  const res = await fetch("/api/drive/token", {
+  const res = await fetch("/.netlify/functions/drive-token", {
     method: "POST",
     headers: { Authorization: `Bearer ${session.access_token}` },
   });
@@ -389,7 +389,7 @@ export async function exchangeCode(code: string): Promise<{
   expiresIn: number;
 }> {
   const redirectUri = `${window.location.origin}/oauth/drive/callback`;
-  const res = await fetch("/api/drive/oauth-callback", {
+  const res = await fetch("/.netlify/functions/drive-oauth-callback", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ code, redirectUri }),

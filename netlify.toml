@@ -9,18 +9,7 @@
 [functions]
   node_bundler = "esbuild"
 
-# Drive API functions are reached at /api/drive/* for cleaner URLs.
-[[redirects]]
-  from = "/api/drive/oauth-callback"
-  to = "/.netlify/functions/drive-oauth-callback"
-  status = 200
-
-[[redirects]]
-  from = "/api/drive/token"
-  to = "/.netlify/functions/drive-token"
-  status = 200
-
-# SPA fallback — all OTHER routes return index.html so React Router handles them
+# SPA fallback — must come AFTER functions are registered at /.netlify/functions/*
 [[redirects]]
   from = "/*"
   to = "/index.html"
