@@ -9,7 +9,8 @@ export type ThemeKey =
   | "amber"
   | "emerald"
   | "slate"
-  | "indigo";
+  | "indigo"
+  | "khaki";
 
 type Shade =
   | "50"
@@ -32,6 +33,7 @@ export const colorThemes: { key: ThemeKey; name: string; preview: string }[] = [
   { key: "emerald", name: "أخضر", preview: "#10b981" },
   { key: "slate", name: "رمادي", preview: "#475569" },
   { key: "indigo", name: "نيلي", preview: "#6366f1" },
+  { key: "khaki", name: "كاكي", preview: "#d6d59c" },
 ];
 
 export const themes: Record<ThemeKey, Record<Shade, string>> = {
@@ -130,6 +132,18 @@ export const themes: Record<ThemeKey, Record<Shade, string>> = {
     "700": "67 56 202",
     "800": "55 48 163",
     "900": "49 46 129",
+  },
+  khaki: {
+    "50": "250 249 235",
+    "100": "243 240 207",
+    "200": "230 226 173",
+    "300": "214 213 156",
+    "400": "194 189 110",
+    "500": "168 162 78",
+    "600": "138 132 58",
+    "700": "107 102 45",
+    "800": "82 78 36",
+    "900": "61 58 28",
   },
 };
 
