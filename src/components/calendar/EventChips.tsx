@@ -1,8 +1,11 @@
-import { Plus } from "lucide-react";
+import { useState } from "react";
+import { Plus, Briefcase, FileText, ListTodo } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useCalendarEvents } from "../../lib/calendarEvents";
 
 export default function EventChips() {
   const { events } = useCalendarEvents();
+  const [addOpen, setAddOpen] = useState(false);
 
   const counts = {
     task: events.filter((e) => e.type === "task").length,
@@ -22,10 +25,52 @@ export default function EventChips() {
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <button className="inline-flex items-center gap-2 px-4 py-2 bg-brand-500 text-white rounded-lg text-sm font-bold shadow hover:bg-brand-600">
-        <Plus className="w-4 h-4" />
-        إضافة حدث
-      </button>
+      <div className="relative">
+        <button
+          onClick={() => setAddOpen((v) => !v)}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-brand-500 text-white rounded-lg text-sm font-bold shadow hover:bg-brand-600"
+        >
+          <Plus className="w-4 h-4" />
+          إضافة حدث
+        </button>
+        {addOpen && (
+          <>
+            <div
+              className="fixed inset-0 z-10"
+              onClick={() => setAddOpen(false)}
+            />
+            <div
+              data-testid="add-event-menu"
+              className="absolute right-0 mt-2 w-44 bg-white border border-slate-200 rounded-lg shadow-card-hover z-20 overflow-hidden"
+            >
+              <Link
+                to="/tasks"
+                onClick={() => setAddOpen(false)}
+                className="flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 border-b border-slate-100"
+              >
+                <ListTodo className="w-4 h-4 text-violet-500" />
+                مهمة جديدة
+              </Link>
+              <Link
+                to="/cases/new"
+                onClick={() => setAddOpen(false)}
+                className="flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 border-b border-slate-100"
+              >
+                <Briefcase className="w-4 h-4 text-sky-500" />
+                قضية جديدة
+              </Link>
+              <Link
+                to="/contracts/new"
+                onClick={() => setAddOpen(false)}
+                className="flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+              >
+                <FileText className="w-4 h-4 text-emerald-500" />
+                عقد جديد
+              </Link>
+            </div>
+          </>
+        )}
+      </div>
       {chips.map((c) => (
         <span
           key={c.label}
