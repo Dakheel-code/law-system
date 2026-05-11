@@ -80,7 +80,8 @@ export async function listTasks(): Promise<TaskRecord[]> {
 export async function addTask(input: TaskInput): Promise<TaskRecord | null> {
   if (!supabase) return null;
   const assignees = input.assignees ?? [];
-  const primary = assignees[0] ?? null;
+  // Note: we intentionally do NOT write to `assigned_to` (legacy column with a
+  // FK to auth.users). Multi-assignee data lives in `assignees` jsonb.
   const { data, error } = await supabase
     .from("tasks")
     .insert({
@@ -91,7 +92,6 @@ export async function addTask(input: TaskInput): Promise<TaskRecord | null> {
       priority: input.priority ?? "medium",
       due_date: input.dueDate || null,
       assignees,
-      assigned_to: primary,
     })
     .select()
     .single();
@@ -119,7 +119,7 @@ export async function updateTaskAssignees(
   if (!supabase) return false;
   const { error } = await supabase
     .from("tasks")
-    .update({ assignees, assigned_to: assignees[0] ?? null })
+    .update({ assignees })
     .eq("id", id);
   if (error) {
     console.error("updateTaskAssignees", error);

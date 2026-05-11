@@ -2,15 +2,8 @@ import { useMemo, useState } from "react";
 import { X, Save, Users as UsersIcon, Check, Search } from "lucide-react";
 import { Field, Input, Textarea } from "../ui/Field";
 import Select from "../ui/Select";
-import { addTask, type TaskStatus } from "../../lib/taskStore";
+import { addTask } from "../../lib/taskStore";
 import { useUsers } from "../../lib/userStore";
-
-const statusOptions = [
-  { value: "todo", label: "للقيام بها" },
-  { value: "doing", label: "قيد التنفيذ" },
-  { value: "review", label: "قيد المراجعة" },
-  { value: "done", label: "مكتملة" },
-];
 
 const priorityOptions = [
   { value: "low", label: "منخفضة" },
@@ -26,7 +19,6 @@ type Props = {
 export default function NewTaskModal({ onClose }: Props) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [status, setStatus] = useState<TaskStatus>("todo");
   const [priority, setPriority] = useState("medium");
   const [dueDate, setDueDate] = useState("");
   const [assignees, setAssignees] = useState<string[]>([]);
@@ -43,7 +35,7 @@ export default function NewTaskModal({ onClose }: Props) {
     const created = await addTask({
       title,
       description,
-      status,
+      status: "todo",
       priority,
       dueDate: dueDate || null,
       assignees,
@@ -92,22 +84,13 @@ export default function NewTaskModal({ onClose }: Props) {
               />
             </Field>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Field label="الحالة">
-                <Select
-                  options={statusOptions}
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value as TaskStatus)}
-                />
-              </Field>
-              <Field label="الأولوية">
-                <Select
-                  options={priorityOptions}
-                  value={priority}
-                  onChange={(e) => setPriority(e.target.value)}
-                />
-              </Field>
-            </div>
+            <Field label="الأولوية">
+              <Select
+                options={priorityOptions}
+                value={priority}
+                onChange={(e) => setPriority(e.target.value)}
+              />
+            </Field>
 
             <Field label="تاريخ الاستحقاق">
               <Input
