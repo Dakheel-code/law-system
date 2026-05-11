@@ -439,7 +439,7 @@ export default function CaseDetail() {
             {c.sessions.length === 0 ? (
               <Empty text="لا توجد جلسات مسجّلة" />
             ) : (
-              <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <ul className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2.5">
                 {[...c.sessions]
                   .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))
                   .map((s) => (
@@ -888,99 +888,93 @@ function SessionRow({ session: s }: { session: CaseSession }) {
     : "";
 
   return (
-    <li className={`card p-4 transition ${cardCls}`}>
-      <div className="flex items-start gap-4">
-        {/* === Date pill === */}
-        <div className="shrink-0 flex flex-col items-center">
-          <div
-            className={`w-16 rounded-xl flex flex-col items-center py-2 ${dateTone}`}
-          >
-            <div className="text-[10px] font-bold opacity-90">
-              {isToday ? "اليوم" : weekday}
-            </div>
-            <div className="text-2xl font-extrabold leading-none my-1">
-              <bdi dir="ltr">{dayNum}</bdi>
-            </div>
-            <div className="text-[10px] opacity-90">{monthName}</div>
+    <li className={`card p-3 transition ${cardCls}`}>
+      {/* Top row: date pill + badges */}
+      <div className="flex items-start gap-2 mb-2.5">
+        <div
+          className={`shrink-0 w-12 rounded-lg flex flex-col items-center py-1.5 ${dateTone}`}
+        >
+          <div className="text-[9px] font-bold opacity-90">
+            {isToday ? "اليوم" : weekday}
           </div>
-          {s.time && (
-            <div className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-mono text-slate-600">
-              <Clock className="w-3 h-3" />
-              <bdi dir="ltr">{s.time}</bdi>
-            </div>
-          )}
+          <div className="text-lg font-extrabold leading-none my-0.5">
+            <bdi dir="ltr">{dayNum}</bdi>
+          </div>
+          <div className="text-[9px] opacity-90">{monthName}</div>
         </div>
 
-        {/* === Main content === */}
-        <div className="flex-1 min-w-0 text-right">
-          {/* Badges row */}
-          <div className="flex items-center justify-start gap-1.5 flex-wrap mb-2">
+        <div className="flex-1 min-w-0 flex flex-col items-end gap-1">
+          <div className="flex items-center justify-start gap-1 flex-wrap">
             <span
-              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold ${
+              className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold ${
                 isOnline
                   ? "bg-violet-100 text-violet-700"
                   : "bg-sky-100 text-sky-700"
               }`}
             >
-              <ModeIcon className="w-3 h-3" />
+              <ModeIcon className="w-2.5 h-2.5" />
               {isOnline ? "أون لاين" : "حضوري"}
             </span>
             {isToday && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-brand-100 text-brand-700">
-                جلسة اليوم
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-brand-100 text-brand-700">
+                اليوم
               </span>
             )}
             {isPast && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-200 text-slate-600">
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-200 text-slate-600">
                 منتهية
               </span>
             )}
           </div>
-
-          {/* Full date for context */}
-          {d && (
-            <div className="text-xs text-slate-500 mb-2">
-              <bdi dir="rtl">
-                {weekday}، {dayNum} {monthName} {yearShort}
-              </bdi>
-            </div>
-          )}
-
-          {/* Info rows */}
-          <div className="space-y-1.5 pt-2 border-t border-slate-100">
-            {s.court && (
-              <SessionInfoLine icon={Briefcase} label="المحكمة" value={s.court} />
-            )}
-            {!isOnline && s.location && (
-              <SessionInfoLine icon={MapPin} label="المكان" value={s.location} />
-            )}
-            {isOnline && s.link && (
-              <SessionInfoLine
-                icon={LinkIcon}
-                label="الرابط"
-                value={s.link}
-                href={s.link}
-              />
-            )}
-            {!s.court && !s.location && !s.link && (
-              <div className="text-[11px] text-slate-400">
-                لا توجد تفاصيل مكان مسجّلة
-              </div>
-            )}
-          </div>
-
-          {s.details && (
-            <div className="mt-3 pt-3 border-t border-slate-100">
-              <div className="text-[10px] text-slate-400 mb-1">
-                ملاحظات الجلسة
-              </div>
-              <p className="text-xs text-slate-600 leading-6 whitespace-pre-line">
-                {s.details}
-              </p>
+          {s.time && (
+            <div className="inline-flex items-center gap-1 text-[10px] font-mono text-slate-500">
+              <Clock className="w-2.5 h-2.5" />
+              <bdi dir="ltr">{s.time}</bdi>
             </div>
           )}
         </div>
       </div>
+
+      {/* Full date for context */}
+      {d && (
+        <div className="text-[10px] text-slate-500 mb-2 text-right" dir="rtl">
+          {weekday}، {dayNum} {monthName} {yearShort}
+        </div>
+      )}
+
+      {/* Info rows */}
+      <div className="space-y-1 pt-2 border-t border-slate-100">
+        {s.court && (
+          <SessionInfoLine icon={Briefcase} label="المحكمة" value={s.court} />
+        )}
+        {!isOnline && s.location && (
+          <SessionInfoLine icon={MapPin} label="المكان" value={s.location} />
+        )}
+        {isOnline && s.link && (
+          <SessionInfoLine
+            icon={LinkIcon}
+            label="الرابط"
+            value={s.link}
+            href={s.link}
+          />
+        )}
+        {!s.court && !s.location && !s.link && (
+          <div className="text-[10px] text-slate-400 text-right">
+            لا توجد تفاصيل
+          </div>
+        )}
+      </div>
+
+      {s.details && (
+        <div className="mt-2 pt-2 border-t border-slate-100 text-right">
+          <p
+            className="text-[11px] text-slate-600 leading-5 line-clamp-2 whitespace-pre-line"
+            title={s.details}
+          >
+            {s.details}
+          </p>
+        </div>
+      )}
     </li>
   );
 }
