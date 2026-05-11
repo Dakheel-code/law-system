@@ -268,76 +268,76 @@ export default function CaseDetail() {
           </Link>
         </div>
 
-        {/* Title row */}
-        <div className="p-5 md:p-6">
-          <div className="flex items-start justify-between gap-4 flex-wrap">
-            {/* Right side — title + identifiers */}
-            <div className="text-right min-w-0 flex-1">
-              <div className="flex items-center justify-end gap-2 flex-wrap mb-2">
-                <span
-                  className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold ${
-                    statusChip[c.status] ?? "bg-slate-100 text-slate-700"
-                  }`}
-                >
-                  {statusLabel[c.status] ?? c.status}
-                </span>
-                <span
-                  className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold ${
-                    priorityChip[c.priority] ?? priorityChip.medium
-                  }`}
-                >
-                  {labelFor(priorities, c.priority)}
-                </span>
-                {(c.urgency === "high" || c.urgency === "critical") && (
-                  <span
-                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold ${
-                      urgencyChip[c.urgency] ?? urgencyChip.normal
-                    }`}
-                  >
-                    <AlertOctagon className="w-3 h-3" />
-                    {labelFor(urgencyLevels, c.urgency)}
-                  </span>
-                )}
-                <span
-                  className="inline-flex items-center text-[11px] text-slate-500 font-mono bg-slate-100 px-2 py-1 rounded-md"
-                  dir="ltr"
-                >
-                  {c.code}
-                </span>
-              </div>
-              <h1 className="text-2xl font-extrabold text-slate-800 leading-snug">
-                {c.requestTitle || "—"}
-              </h1>
-              <div className="flex items-center justify-end gap-3 mt-3 text-xs text-slate-500 flex-wrap">
-                {c.caseNumber && (
-                  <span className="inline-flex items-center gap-1.5">
-                    <Hash className="w-3.5 h-3.5" />
-                    <bdi dir="ltr" className="font-mono font-bold text-slate-700">
-                      {c.caseNumber}
-                    </bdi>
-                  </span>
-                )}
-                <span className="inline-flex items-center gap-1.5">
-                  <CalendarDays className="w-3.5 h-3.5" />
-                  أُنشئت{" "}
-                  <bdi dir="ltr">
-                    {new Date(c.createdAt).toLocaleDateString(
-                      "ar-EG-u-nu-latn",
-                      { dateStyle: "medium" }
-                    )}
-                  </bdi>
-                </span>
-              </div>
-            </div>
+        {/* Title block — fully right-aligned, icon sits inline next to the title */}
+        <div className="p-5 md:p-6 text-right">
+          {/* Badges row */}
+          <div className="flex items-center justify-end gap-2 flex-wrap mb-3">
+            <span
+              className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold ${
+                statusChip[c.status] ?? "bg-slate-100 text-slate-700"
+              }`}
+            >
+              {statusLabel[c.status] ?? c.status}
+            </span>
+            <span
+              className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold ${
+                priorityChip[c.priority] ?? priorityChip.medium
+              }`}
+            >
+              {labelFor(priorities, c.priority)}
+            </span>
+            {(c.urgency === "high" || c.urgency === "critical") && (
+              <span
+                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold ${
+                  urgencyChip[c.urgency] ?? urgencyChip.normal
+                }`}
+              >
+                <AlertOctagon className="w-3 h-3" />
+                {labelFor(urgencyLevels, c.urgency)}
+              </span>
+            )}
+            <span
+              className="inline-flex items-center text-[11px] text-slate-500 font-mono bg-slate-100 px-2 py-1 rounded-md"
+              dir="ltr"
+            >
+              {c.code}
+            </span>
+          </div>
 
-            {/* Left side — large icon */}
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-100 to-brand-200 flex items-center justify-center shrink-0 border border-brand-200">
-              <Briefcase className="w-8 h-8 text-brand-600" strokeWidth={1.5} />
+          {/* Title with inline icon on the right */}
+          <div className="flex items-center justify-end gap-3 mb-3">
+            <h1 className="text-2xl font-extrabold text-slate-800 leading-snug">
+              {c.requestTitle || "—"}
+            </h1>
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand-100 to-brand-200 flex items-center justify-center shrink-0 border border-brand-200">
+              <Briefcase className="w-6 h-6 text-brand-600" strokeWidth={1.5} />
             </div>
           </div>
 
+          {/* Meta row — case number, creation date */}
+          <div className="flex items-center justify-end gap-3 text-xs text-slate-500 flex-wrap">
+            {c.caseNumber && (
+              <span className="inline-flex items-center gap-1.5">
+                <Hash className="w-3.5 h-3.5" />
+                <bdi dir="ltr" className="font-mono font-bold text-slate-700">
+                  {c.caseNumber}
+                </bdi>
+              </span>
+            )}
+            <span className="inline-flex items-center gap-1.5">
+              <CalendarDays className="w-3.5 h-3.5" />
+              أُنشئت{" "}
+              <bdi dir="ltr">
+                {new Date(c.createdAt).toLocaleDateString(
+                  "ar-EG-u-nu-latn",
+                  { dateStyle: "medium" }
+                )}
+              </bdi>
+            </span>
+          </div>
+
           {c.description && (
-            <p className="mt-4 pt-4 border-t border-slate-100 text-sm text-slate-700 leading-7 text-right whitespace-pre-line">
+            <p className="mt-4 pt-4 border-t border-slate-100 text-sm text-slate-700 leading-7 whitespace-pre-line">
               {c.description}
             </p>
           )}
