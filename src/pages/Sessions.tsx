@@ -280,7 +280,7 @@ export default function Sessions() {
           )}
         </div>
       ) : (
-        <ul className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+        <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
           {filtered.map((s) => (
             <SessionRow
               key={`${s.caseId}-${s.id}`}
@@ -388,128 +388,125 @@ function SessionRow({
     : "";
 
   return (
-    <li className={`card p-4 transition ${cardCls}`}>
-      <div className="flex items-start gap-4">
-        {/* === Date pill (right in RTL = start) === */}
-        <div className="shrink-0 flex flex-col items-center">
-          <div
-            className={`w-16 rounded-xl flex flex-col items-center py-2 ${dateTone}`}
-          >
-            <div className="text-[10px] font-bold uppercase tracking-wide opacity-90">
-              {isToday ? "اليوم" : weekday}
-            </div>
-            <div className="text-2xl font-extrabold leading-none my-1">
-              <bdi dir="ltr">{dayNum}</bdi>
-            </div>
-            <div className="text-[10px] opacity-90">{monthName}</div>
+    <li className={`card p-3 transition ${cardCls}`}>
+      {/* Top row: date pill + badges + actions */}
+      <div className="flex items-start gap-2 mb-3">
+        {/* Date pill */}
+        <div
+          className={`shrink-0 w-14 rounded-lg flex flex-col items-center py-1.5 ${dateTone}`}
+        >
+          <div className="text-[9px] font-bold opacity-90">
+            {isToday ? "اليوم" : weekday}
           </div>
-          {s.time && (
-            <div className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-mono text-slate-600">
-              <Clock className="w-3 h-3" />
-              <bdi dir="ltr">{s.time}</bdi>
-            </div>
-          )}
+          <div className="text-xl font-extrabold leading-none my-0.5">
+            <bdi dir="ltr">{dayNum}</bdi>
+          </div>
+          <div className="text-[9px] opacity-90">{monthName}</div>
         </div>
 
-        {/* === Main content === */}
-        <div className="flex-1 min-w-0 text-right">
-          {/* Top row — badges */}
-          <div className="flex items-center justify-start gap-1.5 flex-wrap mb-2">
+        {/* Badges */}
+        <div className="flex-1 min-w-0 flex flex-col items-end gap-1.5">
+          <div className="flex items-center justify-start gap-1 flex-wrap">
             <span
-              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold ${
+              className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold ${
                 isOnline
                   ? "bg-violet-100 text-violet-700"
                   : "bg-sky-100 text-sky-700"
               }`}
             >
-              <ModeIcon className="w-3 h-3" />
+              <ModeIcon className="w-2.5 h-2.5" />
               {isOnline ? "أون لاين" : "حضوري"}
             </span>
             {isToday && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-brand-100 text-brand-700">
-                جلسة اليوم
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-brand-100 text-brand-700">
+                اليوم
               </span>
             )}
             {isPast && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-200 text-slate-600">
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-200 text-slate-600">
                 منتهية
               </span>
             )}
           </div>
-
-          {/* Title + case meta */}
-          <Link
-            to={`/cases/${s.caseId}`}
-            className="block text-base font-bold text-slate-800 hover:text-brand-700 truncate"
-            title={s.caseTitle}
-          >
-            {s.caseTitle}
-          </Link>
-          <div className="text-[11px] text-slate-500 mt-0.5 font-mono" dir="ltr">
-            {s.caseNumber ? `${s.caseNumber} · ${s.caseCode}` : s.caseCode}
-          </div>
-
-          {/* Body — info rows */}
-          <div className="mt-3 pt-3 border-t border-slate-100 space-y-1.5">
-            {s.court && (
-              <InfoLine icon={Building2} label="المحكمة" value={s.court} />
-            )}
-            {!isOnline && s.location && (
-              <InfoLine icon={MapPin} label="المكان" value={s.location} />
-            )}
-            {isOnline && s.link && (
-              <InfoLine
-                icon={LinkIcon}
-                label="الرابط"
-                value={s.link}
-                href={s.link}
-              />
-            )}
-            {!s.court && !s.location && !s.link && (
-              <div className="text-[11px] text-slate-400">
-                لا توجد تفاصيل مكان مسجّلة
-              </div>
-            )}
-          </div>
-
-          {s.details && (
-            <div className="mt-3 pt-3 border-t border-slate-100">
-              <div className="text-[10px] text-slate-400 mb-1 flex items-center gap-1">
-                <Eye className="w-3 h-3" />
-                ملاحظات الجلسة
-              </div>
-              <p className="text-xs text-slate-600 leading-6 whitespace-pre-line">
-                {s.details}
-              </p>
+          {s.time && (
+            <div className="inline-flex items-center gap-1 text-[10px] font-mono text-slate-500">
+              <Clock className="w-2.5 h-2.5" />
+              <bdi dir="ltr">{s.time}</bdi>
             </div>
           )}
         </div>
 
-        {/* === Action buttons (left in RTL = end) === */}
-        <div className="shrink-0 flex flex-col gap-1">
+        {/* Actions (compact, horizontal) */}
+        <div className="shrink-0 flex items-center gap-0.5">
           <button
             onClick={onOpenCase}
             title="فتح القضية"
-            className="p-1.5 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-md transition"
+            className="p-1 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded transition"
           >
-            <Eye className="w-4 h-4" />
+            <Eye className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={onEdit}
             title="تعديل"
-            className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition"
+            className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition"
           >
-            <Edit3 className="w-4 h-4" />
+            <Edit3 className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={onDelete}
             title="حذف"
-            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition"
+            className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition"
           >
-            <Trash2 className="w-4 h-4" />
+            <Trash2 className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
+
+      {/* Title + case meta */}
+      <Link
+        to={`/cases/${s.caseId}`}
+        className="block text-sm font-bold text-slate-800 hover:text-brand-700 truncate text-right"
+        title={s.caseTitle}
+      >
+        {s.caseTitle}
+      </Link>
+      <div className="text-[10px] text-slate-500 mt-0.5 font-mono text-right" dir="ltr">
+        {s.caseNumber ? `${s.caseNumber} · ${s.caseCode}` : s.caseCode}
+      </div>
+
+      {/* Info rows */}
+      <div className="mt-2.5 pt-2.5 border-t border-slate-100 space-y-1">
+        {s.court && (
+          <InfoLine icon={Building2} label="المحكمة" value={s.court} />
+        )}
+        {!isOnline && s.location && (
+          <InfoLine icon={MapPin} label="المكان" value={s.location} />
+        )}
+        {isOnline && s.link && (
+          <InfoLine
+            icon={LinkIcon}
+            label="الرابط"
+            value={s.link}
+            href={s.link}
+          />
+        )}
+        {!s.court && !s.location && !s.link && (
+          <div className="text-[10px] text-slate-400 text-right">
+            لا توجد تفاصيل مكان
+          </div>
+        )}
+      </div>
+
+      {s.details && (
+        <div className="mt-2.5 pt-2.5 border-t border-slate-100 text-right">
+          <p
+            className="text-[11px] text-slate-600 leading-5 line-clamp-2 whitespace-pre-line"
+            title={s.details}
+          >
+            {s.details}
+          </p>
+        </div>
+      )}
     </li>
   );
 }
