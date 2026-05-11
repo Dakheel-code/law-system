@@ -23,6 +23,19 @@ export type CaseParty = {
   address: string;
 };
 
+export type SessionMode = "in-person" | "online";
+
+export type CaseSession = {
+  id: string;
+  mode: SessionMode;
+  date: string;        // YYYY-MM-DD
+  time: string;        // HH:MM (24h)
+  court: string;
+  location: string;    // for in-person
+  link: string;        // for online
+  details: string;
+};
+
 export type AssignmentRole = "primary" | "assistant" | "supervisor" | "custom";
 
 export type CaseAssignment = {
@@ -89,6 +102,7 @@ export type CaseFormState = {
   assignedLawyer: string;            // primary (kept for backward compat)
   assignedLawyers: string[];         // multi-lawyer (kept for backward compat)
   assignments: CaseAssignment[];     // per-lawyer roles
+  sessions: CaseSession[];           // hearings/meetings
   linkedContract: string;
 
   // Step 6 - Attachments & notes
@@ -141,6 +155,7 @@ export const initialCase: CaseFormState = {
   assignedLawyer: "",
   assignedLawyers: [],
   assignments: [],
+  sessions: [],
   linkedContract: "",
 
   attachments: [],

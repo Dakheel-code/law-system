@@ -21,6 +21,11 @@ import {
   FileText,
   Image as ImageIcon,
   FileType,
+  Gavel,
+  Video,
+  MapPin,
+  Clock,
+  Link as LinkIcon,
 } from "lucide-react";
 import {
   getCase,
@@ -28,6 +33,7 @@ import {
   updateCase,
   type CaseRecord,
   type CaseAttachment,
+  type CaseSession,
 } from "../../lib/caseStore";
 import { getClient, type ClientRecord } from "../../lib/clientStore";
 import { useUsers, type UserRecord } from "../../lib/userStore";
@@ -485,6 +491,21 @@ export default function CaseDetail() {
         )}
       </Section>
 
+      {/* Sessions */}
+      <Section title={`الجلسات (${c.sessions.length})`} icon={Gavel}>
+        {c.sessions.length === 0 ? (
+          <Empty text="لا توجد جلسات مسجّلة" />
+        ) : (
+          <ul className="space-y-2">
+            {[...c.sessions]
+              .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))
+              .map((s) => (
+                <SessionRow key={s.id} session={s} />
+              ))}
+          </ul>
+        )}
+      </Section>
+
       {/* Attachments */}
       <Section
         title={`المرفقات (${c.attachments.length})`}
@@ -728,6 +749,89 @@ function AssignmentChip({
         </div>
       )}
     </div>
+  );
+}
+
+function SessionRow({ session: s }: { session: CaseSession }) {
+  const isOnline = s.mode === "online";
+  const wrapperCls = isOnline
+    ? "border-violet-200 bg-violet-50/40"
+    : "border-sky-200 bg-sky-50/40";
+  const modeChipCls = isOnline
+    ? "bg-violet-500 text-white"
+    : "bg-sky-500 text-white";
+  const ModeIcon = isOnline ? Video : MapPin;
+
+  const dateLabel = s.date
+    ? new Date(s.date).toLocaleDateString("ar-EG-u-nu-latn", {
+        weekday: "short",
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      })
+    : "—";
+
+  return (
+    <li className={`rounded-xl border p-3 ${wrapperCls}`}>
+      <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
+        <span
+          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold ${modeChipCls}`}
+        >
+          <ModeIcon className="w-3 h-3" />
+          {isOnline ? "أون لاين" : "حضوري"}
+        </span>
+        <div className="flex items-center justify-start gap-2 text-sm">
+          {s.time && (
+            <span className="inline-flex items-center gap-1 text-slate-600 font-bold">
+              <Clock className="w-3.5 h-3.5" />
+              <bdi dir="ltr">{s.time}</bdi>
+            </span>
+          )}
+          <span className="inline-flex items-center gap-1 text-slate-700 font-bold">
+            <CalendarDays className="w-3.5 h-3.5" />
+            <bdi dir="rtl">{dateLabel}</bdi>
+          </span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+        {s.court && (
+          <div className="flex items-start justify-end gap-1.5 text-slate-700">
+            <span className="flex-1 text-right">{s.court}</span>
+            <span className="text-xs text-slate-500 shrink-0">المحكمة:</span>
+          </div>
+        )}
+        {isOnline && s.link ? (
+          <div className="flex items-start justify-end gap-1.5 text-slate-700 min-w-0">
+            <a
+              href={s.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 text-left truncate text-brand-600 hover:text-brand-700 underline inline-flex items-center gap-1 justify-end"
+              dir="ltr"
+            >
+              <LinkIcon className="w-3 h-3 shrink-0" />
+              {s.link}
+            </a>
+            <span className="text-xs text-slate-500 shrink-0">الرابط:</span>
+          </div>
+        ) : (
+          !isOnline &&
+          s.location && (
+            <div className="flex items-start justify-end gap-1.5 text-slate-700">
+              <span className="flex-1 text-right">{s.location}</span>
+              <span className="text-xs text-slate-500 shrink-0">المكان:</span>
+            </div>
+          )
+        )}
+      </div>
+
+      {s.details && (
+        <div className="mt-2 pt-2 border-t border-white/50 text-xs text-slate-600 leading-6 text-right whitespace-pre-line">
+          {s.details}
+        </div>
+      )}
+    </li>
   );
 }
 

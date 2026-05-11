@@ -16,6 +16,7 @@ const iconMap: Record<CalendarEventType, React.ComponentType<{ className?: strin
   task: ListTodo,
   "case-start": Briefcase,
   "case-end": CheckCircle2,
+  session: Briefcase,
   "contract-start": FileText,
   "contract-end": X,
 };
@@ -30,6 +31,7 @@ const labelMap: Record<CalendarEventType, string> = {
   task: "مهمة",
   "case-start": "بداية قضية",
   "case-end": "انتهاء قضية",
+  session: "جلسة",
   "contract-start": "بداية عقد",
   "contract-end": "انتهاء عقد",
 };

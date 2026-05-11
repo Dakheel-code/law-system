@@ -24,6 +24,17 @@ export type CaseAssignment = {
   customTitle?: string;
 };
 
+export type CaseSession = {
+  id: string;
+  mode: "in-person" | "online";
+  date: string;
+  time: string;
+  court: string;
+  location: string;
+  link: string;
+  details: string;
+};
+
 export type CaseRecord = {
   id: string;            // UUID
   code: string;          // CSE-XXXXX
@@ -59,6 +70,7 @@ export type CaseRecord = {
   assignedLawyer: string | null;
   assignedLawyers: string[];
   assignments: CaseAssignment[];
+  sessions: CaseSession[];
   linkedContract: string;
   attachments: CaseAttachment[];
   finalNotes: string;
@@ -101,6 +113,7 @@ type CaseRow = {
   assigned_lawyer: string | null;
   assigned_lawyers: string[] | null;
   assignments: CaseAssignment[] | null;
+  sessions: CaseSession[] | null;
   linked_contract: string | null;
   attachments: CaseAttachment[] | null;
   final_notes: string | null;
@@ -143,6 +156,7 @@ const fromRow = (r: CaseRow): CaseRecord => ({
   assignedLawyer: r.assigned_lawyer,
   assignedLawyers: Array.isArray(r.assigned_lawyers) ? r.assigned_lawyers : [],
   assignments: Array.isArray(r.assignments) ? r.assignments : [],
+  sessions: Array.isArray(r.sessions) ? r.sessions : [],
   linkedContract: r.linked_contract ?? "",
   attachments: Array.isArray(r.attachments) ? r.attachments : [],
   finalNotes: r.final_notes ?? "",
@@ -195,6 +209,7 @@ const buildInsert = (form: CaseFormState): Record<string, unknown> => ({
       ? form.assignments.map((a) => a.userId)
       : form.assignedLawyers ?? [],
   assignments: form.assignments ?? [],
+  sessions: form.sessions ?? [],
   linked_contract: form.linkedContract,
   attachments: form.attachments ?? [],
   final_notes: form.finalNotes,

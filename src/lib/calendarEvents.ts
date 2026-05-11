@@ -7,6 +7,7 @@ export type CalendarEventType =
   | "task"
   | "case-start"
   | "case-end"
+  | "session"
   | "contract-start"
   | "contract-end";
 
@@ -23,6 +24,7 @@ const colorMap: Record<CalendarEventType, string> = {
   task: "violet",
   "case-start": "sky",
   "case-end": "amber",
+  session: "emerald",
   "contract-start": "emerald",
   "contract-end": "rose",
 };
@@ -31,6 +33,7 @@ const labelMap: Record<CalendarEventType, string> = {
   task: "مهمة",
   "case-start": "بداية قضية",
   "case-end": "انتهاء قضية",
+  session: "جلسة",
   "contract-start": "بداية عقد",
   "contract-end": "انتهاء عقد",
 };
@@ -80,6 +83,20 @@ export function useCalendarEvents() {
           meta: c.code,
         });
       }
+      // Sessions — each one becomes a calendar event
+      (c.sessions ?? []).forEach((s) => {
+        if (!s.date) return;
+        const timePrefix = s.time ? `${s.time} · ` : "";
+        const modeLabel = s.mode === "online" ? "أون لاين" : "حضوري";
+        events.push({
+          id: `session-${c.id}-${s.id}`,
+          type: "session",
+          title: `${timePrefix}جلسة (${modeLabel}): ${c.requestTitle || c.code}`,
+          date: s.date,
+          color: colorMap.session,
+          meta: c.code,
+        });
+      });
     });
 
     contracts.forEach((c) => {

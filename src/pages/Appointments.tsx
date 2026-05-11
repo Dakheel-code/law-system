@@ -5,6 +5,7 @@ import {
   AlertOctagon,
   Briefcase,
   ListTodo,
+  Gavel,
   ChevronRight,
   ChevronLeft,
 } from "lucide-react";
@@ -26,7 +27,8 @@ type Appointment = {
   title: string;
   description: string;
   date: string;
-  type: "task" | "case";
+  time?: string;
+  type: "task" | "case" | "session";
   priority: string;
   status: string;
   code: string;
@@ -144,8 +146,30 @@ export default function Appointments() {
     });
     cases.forEach((c) => {
       if (c.startDate) list.push(caseToAppointment(c));
+      // Each case session is also an appointment
+      (c.sessions ?? []).forEach((s) => {
+        if (!s.date) return;
+        list.push({
+          key: `session-${c.id}-${s.id}`,
+          title: `جلسة: ${c.requestTitle || c.code}`,
+          description: s.details || `${s.court ? s.court + " · " : ""}${
+            s.mode === "online" ? "أون لاين" : "حضوري"
+          }${s.location ? " · " + s.location : ""}`,
+          date: s.date,
+          time: s.time,
+          type: "session",
+          priority: c.priority,
+          status: c.status,
+          code: c.code,
+          assignedTo: c.assignedLawyer,
+        });
+      });
     });
-    return list.sort((a, b) => a.date.localeCompare(b.date));
+    return list.sort((a, b) => {
+      const ad = a.date + (a.time ?? "");
+      const bd = b.date + (b.time ?? "");
+      return ad.localeCompare(bd);
+    });
   }, [tasks, cases]);
 
   const filtered = useMemo(() => {
@@ -275,9 +299,12 @@ function TableView({ items }: { items: Appointment[] }) {
                 month: "short",
                 year: "numeric",
               });
-              const TypeIcon = a.type === "case" ? Briefcase : ListTodo;
+              const TypeIcon =
+                a.type === "session" ? Gavel : a.type === "case" ? Briefcase : ListTodo;
               const typeColor =
-                a.type === "case"
+                a.type === "session"
+                  ? "bg-emerald-100 text-emerald-700"
+                  : a.type === "case"
                   ? "bg-sky-100 text-sky-700"
                   : "bg-violet-100 text-violet-700";
               const isPastDue =
@@ -347,9 +374,12 @@ function CardsView({ items }: { items: Appointment[] }) {
           day: "2-digit",
           month: "short",
         });
-        const TypeIcon = a.type === "case" ? Briefcase : ListTodo;
+        const TypeIcon =
+          a.type === "session" ? Gavel : a.type === "case" ? Briefcase : ListTodo;
         const typeColor =
-          a.type === "case"
+          a.type === "session"
+            ? "bg-emerald-100 text-emerald-700"
+            : a.type === "case"
             ? "bg-sky-100 text-sky-700"
             : "bg-violet-100 text-violet-700";
         const isPastDue =
