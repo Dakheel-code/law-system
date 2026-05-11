@@ -6,8 +6,6 @@ import {
   LayoutGrid,
   BarChart3,
   Briefcase,
-  FolderCog,
-  FileSignature,
   FileText,
   UserCog,
   Building2,
@@ -57,14 +55,7 @@ export const menu: MenuGroup[] = [
       { label: "إدارة القضايا", icon: Briefcase, to: "/cases" },
       { label: "الجلسات", icon: Gavel, to: "/sessions" },
       { label: "المرفقات", icon: Paperclip, to: "/attachments" },
-      {
-        label: "التعاقدات",
-        icon: FileText,
-        children: [
-          { label: "عقد جديد", icon: FileSignature, to: "/contracts/new" },
-          { label: "إدارة التعاقدات", icon: FolderCog, to: "/contracts" },
-        ],
-      },
+      { label: "إدارة التعاقدات", icon: FileText, to: "/contracts" },
     ],
   },
   {
