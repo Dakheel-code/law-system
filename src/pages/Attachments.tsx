@@ -17,6 +17,7 @@ import {
   X,
   Home,
   RefreshCw,
+  Download,
 } from "lucide-react";
 import {
   listFiles,
@@ -56,6 +57,8 @@ export default function Attachments() {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null);
   const [dragOverCrumbIdx, setDragOverCrumbIdx] = useState<number | null>(null);
+  // Preview state — current file being previewed, plus index for prev/next
+  const [previewIdx, setPreviewIdx] = useState<number | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const currentFolder = path[path.length - 1];
@@ -396,18 +399,19 @@ export default function Attachments() {
           )}
           {files.length > 0 && (
             <Section title="الملفات" count={files.length}>
-              <ul className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                {files.map((f) => (
-                  <FileRow
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+                {files.map((f, i) => (
+                  <FileCard
                     key={f.id}
                     file={f}
                     isDragging={draggingId === f.id}
+                    onPreview={() => setPreviewIdx(i)}
                     onDelete={() => handleDeleteItem(f)}
                     onDragStart={() => setDraggingId(f.id)}
                     onDragEnd={() => setDraggingId(null)}
                   />
                 ))}
-              </ul>
+              </div>
             </Section>
           )}
         </div>
@@ -424,6 +428,22 @@ export default function Attachments() {
           }}
           onConfirm={handleCreateFolder}
           parentName={currentFolder?.name ?? ""}
+        />
+      )}
+
+      {/* File preview */}
+      {previewIdx !== null && files[previewIdx] && (
+        <FilePreview
+          file={files[previewIdx]}
+          hasPrev={previewIdx > 0}
+          hasNext={previewIdx < files.length - 1}
+          onPrev={() => setPreviewIdx((i) => (i !== null && i > 0 ? i - 1 : i))}
+          onNext={() =>
+            setPreviewIdx((i) =>
+              i !== null && i < files.length - 1 ? i + 1 : i
+            )
+          }
+          onClose={() => setPreviewIdx(null)}
         />
       )}
     </div>
@@ -626,21 +646,29 @@ function FolderCard({
   );
 }
 
-function FileRow({
+function FileCard({
   file,
   isDragging,
+  onPreview,
   onDelete,
   onDragStart,
   onDragEnd,
 }: {
   file: DriveFile;
   isDragging: boolean;
+  onPreview: () => void;
   onDelete: () => void;
   onDragStart: () => void;
   onDragEnd: () => void;
 }) {
+  const isImage = file.mimeType.startsWith("image/");
+  // Drive thumbnails come with a small `=s220` size token — bump it up for a
+  // crisper card.
+  const thumb =
+    file.thumbnailLink?.replace(/=s\d+$/, "=s400") ?? file.thumbnailLink;
+
   return (
-    <li
+    <div
       draggable
       onDragStart={(e) => {
         e.dataTransfer.effectAllowed = "move";
@@ -651,14 +679,19 @@ function FileRow({
         onDragStart();
       }}
       onDragEnd={onDragEnd}
-      className={`card p-3 flex items-center gap-3 group hover:border-brand-300 transition cursor-grab active:cursor-grabbing ${
+      onClick={onPreview}
+      className={`group relative card overflow-hidden cursor-pointer transition hover:border-brand-300 hover:shadow-md flex flex-col ${
         isDragging ? "opacity-40" : ""
       }`}
     >
-      <div className="flex items-center gap-1 shrink-0">
+      {/* Hover actions */}
+      <div className="absolute top-1.5 left-1.5 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition z-10">
         <button
-          onClick={onDelete}
-          className="p-1.5 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-md"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          className="p-1.5 bg-white/95 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-md shadow-sm"
           title="حذف"
         >
           <Trash2 className="w-3.5 h-3.5" />
@@ -668,30 +701,162 @@ function FileRow({
             href={file.webViewLink}
             target="_blank"
             rel="noopener noreferrer"
-            className="p-1.5 text-brand-500 hover:text-brand-700 hover:bg-brand-50 rounded-md"
+            onClick={(e) => e.stopPropagation()}
+            className="p-1.5 bg-white/95 text-brand-600 hover:text-brand-700 hover:bg-brand-50 rounded-md shadow-sm"
             title="فتح في Drive"
           >
             <ExternalLink className="w-3.5 h-3.5" />
           </a>
         )}
       </div>
-      <a
-        href={file.webViewLink || "#"}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex-1 min-w-0 text-right flex items-center gap-2"
+
+      {/* Thumbnail or type icon */}
+      <div className="aspect-[4/3] bg-slate-50 flex items-center justify-center overflow-hidden border-b border-slate-100">
+        {isImage && thumb ? (
+          <img
+            src={thumb}
+            alt={file.name}
+            loading="lazy"
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).style.display = "none";
+            }}
+          />
+        ) : (
+          <BigFileIcon mimeType={file.mimeType} />
+        )}
+      </div>
+
+      {/* Footer */}
+      <div className="p-2.5 text-right">
+        <div
+          className="text-xs font-bold text-slate-700 truncate group-hover:text-brand-700"
+          title={file.name}
+        >
+          {file.name}
+        </div>
+        <div className="text-[10px] text-slate-400 mt-0.5 flex items-center justify-end gap-1">
+          {file.size && <span>{fmtSize(Number(file.size))}</span>}
+          {file.size && file.modifiedTime && (
+            <span className="text-slate-300">·</span>
+          )}
+          {file.modifiedTime && (
+            <span>
+              {new Date(file.modifiedTime).toLocaleDateString("ar-EG-u-nu-latn")}
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BigFileIcon({ mimeType }: { mimeType: string }) {
+  if (mimeType === "application/pdf") {
+    return (
+      <div className="w-16 h-16 rounded-2xl bg-rose-100 flex items-center justify-center">
+        <FileText className="w-8 h-8 text-rose-600" strokeWidth={1.5} />
+      </div>
+    );
+  }
+  if (mimeType.startsWith("image/")) {
+    return (
+      <div className="w-16 h-16 rounded-2xl bg-violet-100 flex items-center justify-center">
+        <ImageIcon className="w-8 h-8 text-violet-600" strokeWidth={1.5} />
+      </div>
+    );
+  }
+  return (
+    <div className="w-16 h-16 rounded-2xl bg-brand-50 flex items-center justify-center">
+      <FileType className="w-8 h-8 text-brand-600" strokeWidth={1.5} />
+    </div>
+  );
+}
+
+// ============================================================
+// File preview modal — uses Drive's /preview iframe for documents and
+// the thumbnail (or direct image content) for images.
+// ============================================================
+function FilePreview({
+  file,
+  hasPrev,
+  hasNext,
+  onPrev,
+  onNext,
+  onClose,
+}: {
+  file: DriveFile;
+  hasPrev: boolean;
+  hasNext: boolean;
+  onPrev: () => void;
+  onNext: () => void;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      else if (e.key === "ArrowLeft" && hasNext) onNext();
+      else if (e.key === "ArrowRight" && hasPrev) onPrev();
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [hasPrev, hasNext, onPrev, onNext, onClose]);
+
+  const isImage = file.mimeType.startsWith("image/");
+  // Drive embed URL — works for PDFs, Office docs, images, and most file types
+  const previewUrl = `https://drive.google.com/file/d/${encodeURIComponent(
+    file.id
+  )}/preview`;
+  // Direct image URL (faster than iframe for plain images)
+  const imageUrl = `https://drive.google.com/thumbnail?id=${encodeURIComponent(
+    file.id
+  )}&sz=w2000`;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-slate-900/95 flex flex-col"
+      onClick={onClose}
+    >
+      {/* Top bar */}
+      <div
+        className="flex items-center justify-between p-3 border-b border-white/10"
+        onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex-1 min-w-0">
-          <div
-            className="text-sm font-bold text-slate-700 truncate group-hover:text-brand-700"
-            title={file.name}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onClose}
+            className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-md"
+            title="إغلاق (Esc)"
           >
+            <X className="w-5 h-5" />
+          </button>
+          {file.webViewLink && (
+            <a
+              href={file.webViewLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/10 text-white hover:bg-white/20 rounded-md text-xs font-bold"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              فتح في Drive
+            </a>
+          )}
+          <a
+            href={`https://drive.google.com/uc?id=${encodeURIComponent(file.id)}&export=download`}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/10 text-white hover:bg-white/20 rounded-md text-xs font-bold"
+          >
+            <Download className="w-3.5 h-3.5" />
+            تحميل
+          </a>
+        </div>
+        <div className="text-right min-w-0 flex-1 mr-4">
+          <div className="text-sm font-bold text-white truncate" title={file.name}>
             {file.name}
           </div>
-          <div className="text-[11px] text-slate-500 mt-0.5 flex items-center justify-end gap-1.5">
+          <div className="text-[11px] text-white/50 mt-0.5 flex items-center justify-end gap-1.5">
             {file.size && <span>{fmtSize(Number(file.size))}</span>}
             {file.size && file.modifiedTime && (
-              <span className="text-slate-300">·</span>
+              <span className="text-white/30">·</span>
             )}
             {file.modifiedTime && (
               <span>
@@ -700,30 +865,64 @@ function FileRow({
             )}
           </div>
         </div>
-        <FileBadge mimeType={file.mimeType} />
-      </a>
-    </li>
-  );
-}
+      </div>
 
-function FileBadge({ mimeType }: { mimeType: string }) {
-  if (mimeType.startsWith("image/")) {
-    return (
-      <div className="w-10 h-10 rounded-lg bg-violet-100 flex items-center justify-center shrink-0">
-        <ImageIcon className="w-5 h-5 text-violet-600" />
+      {/* Body */}
+      <div
+        className="flex-1 flex items-center justify-center p-4 relative overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Prev arrow */}
+        {hasPrev && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onPrev();
+            }}
+            className="absolute right-4 top-1/2 -translate-y-1/2 z-10 p-2 bg-white/10 text-white hover:bg-white/20 rounded-full"
+            title="السابق"
+          >
+            <ChevronLeft className="w-6 h-6 rotate-180" />
+          </button>
+        )}
+
+        {isImage ? (
+          <img
+            src={imageUrl}
+            alt={file.name}
+            className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+            onError={(e) => {
+              // Fall back to iframe if direct image fails
+              const img = e.currentTarget as HTMLImageElement;
+              img.style.display = "none";
+              const iframe = img.parentElement?.querySelector("iframe");
+              if (iframe) (iframe as HTMLIFrameElement).style.display = "block";
+            }}
+          />
+        ) : null}
+        <iframe
+          src={previewUrl}
+          title={file.name}
+          allow="autoplay"
+          className={`bg-white rounded-lg shadow-2xl ${
+            isImage ? "hidden" : "w-full h-full max-w-5xl"
+          }`}
+        />
+
+        {/* Next arrow */}
+        {hasNext && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onNext();
+            }}
+            className="absolute left-4 top-1/2 -translate-y-1/2 z-10 p-2 bg-white/10 text-white hover:bg-white/20 rounded-full"
+            title="التالي"
+          >
+            <ChevronLeft className="w-6 h-6" />
+          </button>
+        )}
       </div>
-    );
-  }
-  if (mimeType === "application/pdf") {
-    return (
-      <div className="w-10 h-10 rounded-lg bg-rose-100 flex items-center justify-center shrink-0">
-        <FileText className="w-5 h-5 text-rose-600" />
-      </div>
-    );
-  }
-  return (
-    <div className="w-10 h-10 rounded-lg bg-brand-50 flex items-center justify-center shrink-0">
-      <FileType className="w-5 h-5 text-brand-600" />
     </div>
   );
 }
