@@ -255,8 +255,8 @@ export default function Attachments() {
         onChange={(e) => handleUpload(e.target.files)}
       />
 
-      {/* Breadcrumb + search bar */}
-      <div className="card p-3 flex items-center gap-3 flex-wrap">
+      {/* Breadcrumb + inline actions + search bar */}
+      <div className="card p-3 flex items-center gap-2 flex-wrap">
         <button
           onClick={refresh}
           title="تحديث"
@@ -266,7 +266,34 @@ export default function Attachments() {
           <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
         </button>
         <Breadcrumb path={path} onJump={jumpTo} onHome={goHome} />
-        <div className="relative flex-1 min-w-[200px]">
+
+        {/* Inline action buttons — always visible next to the current path */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          <button
+            onClick={() => setShowCreate(true)}
+            disabled={!currentFolder}
+            title="مجلد جديد في الموقع الحالي"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border-2 border-brand-300 text-brand-700 rounded-md text-xs font-bold hover:bg-brand-50 disabled:opacity-50"
+          >
+            <FolderPlus className="w-3.5 h-3.5" />
+            مجلد جديد
+          </button>
+          <button
+            onClick={() => fileRef.current?.click()}
+            disabled={!currentFolder || uploading}
+            title="رفع ملف للموقع الحالي"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand-500 text-white rounded-md text-xs font-bold shadow-sm hover:bg-brand-600 disabled:opacity-50"
+          >
+            {uploading ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <UploadCloud className="w-3.5 h-3.5" />
+            )}
+            رفع
+          </button>
+        </div>
+
+        <div className="relative flex-1 min-w-[180px]">
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             value={search}
