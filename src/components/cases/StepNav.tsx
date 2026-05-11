@@ -6,9 +6,17 @@ type Props = {
   onPrev: () => void;
   onNext: () => void;
   onSubmit?: () => void;
+  submitLabel?: string;
 };
 
-export default function StepNav({ current, total, onPrev, onNext, onSubmit }: Props) {
+export default function StepNav({
+  current,
+  total,
+  onPrev,
+  onNext,
+  onSubmit,
+  submitLabel,
+}: Props) {
   const isLast = current === total - 1;
   const isFirst = current === 0;
 
@@ -21,7 +29,7 @@ export default function StepNav({ current, total, onPrev, onNext, onSubmit }: Pr
       >
         {isLast ? (
           <>
-            إنشاء الطلب
+            {submitLabel ?? "إنشاء الطلب"}
             <Send className="w-4 h-4" />
           </>
         ) : (

@@ -189,6 +189,26 @@ export async function addCase(form: CaseFormState): Promise<CaseRecord | null> {
   return fromRow(data as CaseRow);
 }
 
+export async function updateCase(
+  id: string,
+  form: CaseFormState
+): Promise<boolean> {
+  if (!supabase) return false;
+  const payload = buildInsert(form);
+  // Drop fields we don't want to overwrite on update
+  delete (payload as Record<string, unknown>).case_code;
+  delete (payload as Record<string, unknown>).status;
+  const { error } = await supabase
+    .from("cases")
+    .update(payload)
+    .eq("id", id);
+  if (error) {
+    alert(`فشل التحديث: ${error.message}`);
+    return false;
+  }
+  return true;
+}
+
 export async function deleteCase(id: string): Promise<boolean> {
   if (!supabase) return false;
   const { error } = await supabase.from("cases").delete().eq("id", id);
