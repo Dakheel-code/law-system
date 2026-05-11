@@ -19,7 +19,8 @@ import CasesPageShell from "../../components/cases/CasesPageShell";
 import CasesKpiStrip from "../../components/cases/CasesKpiStrip";
 import { useCases, deleteCase } from "../../lib/caseStore";
 import { useClients } from "../../lib/clientStore";
-import { caseTypes, courtTypes, priorities } from "../../config/caseConfig";
+import { useOffice } from "../../lib/officeStore";
+import { priorities } from "../../config/caseConfig";
 
 const columns = [
   "رقم القضية",
@@ -58,7 +59,11 @@ const statusLabel: Record<string, string> = {
 export default function CasesList() {
   const { cases, loading } = useCases();
   const { clients } = useClients();
+  const { office } = useOffice();
   const navigate = useNavigate();
+
+  const caseTypes = office?.caseTypes ?? [];
+  const courtTypes = office?.courtTypes ?? [];
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");

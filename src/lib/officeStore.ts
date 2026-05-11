@@ -27,6 +27,8 @@ export const defaultNotifications: NotificationPrefs = {
   weekly: false,
 };
 
+export type CaseOption = { value: string; label: string };
+
 export type OfficeInfo = {
   id: string;
   // contact
@@ -49,6 +51,9 @@ export type OfficeInfo = {
   // backup
   backupAuto: boolean;
   lastBackupAt: string | null;
+  // form customization
+  caseTypes: CaseOption[];
+  courtTypes: CaseOption[];
 };
 
 type OfficeRow = {
@@ -69,7 +74,34 @@ type OfficeRow = {
   notifications: Partial<NotificationPrefs> | null;
   backup_auto: boolean | null;
   last_backup_at: string | null;
+  case_types: CaseOption[] | null;
+  court_types: CaseOption[] | null;
 };
+
+const DEFAULT_CASE_TYPES: CaseOption[] = [
+  { value: "commercial", label: "تجارية" },
+  { value: "labor", label: "عمالية" },
+  { value: "real-estate", label: "عقارية" },
+  { value: "personal-status", label: "أحوال شخصية" },
+  { value: "criminal", label: "جزائية" },
+  { value: "administrative", label: "إدارية" },
+  { value: "execution", label: "تنفيذية" },
+  { value: "civil", label: "حقوقية" },
+];
+
+const DEFAULT_COURT_TYPES: CaseOption[] = [
+  { value: "general", label: "المحكمة العامة" },
+  { value: "commercial", label: "المحكمة التجارية" },
+  { value: "labor", label: "المحكمة العمالية" },
+  { value: "personal-status", label: "محكمة الأحوال الشخصية" },
+  { value: "criminal", label: "المحكمة الجزائية" },
+  { value: "administrative", label: "ديوان المظالم" },
+  { value: "execution", label: "محكمة التنفيذ" },
+  { value: "appeal", label: "محكمة الاستئناف" },
+  { value: "supreme", label: "المحكمة العليا" },
+];
+
+export { DEFAULT_CASE_TYPES, DEFAULT_COURT_TYPES };
 
 const fromRow = (row: OfficeRow): OfficeInfo => ({
   id: row.id,
@@ -89,6 +121,8 @@ const fromRow = (row: OfficeRow): OfficeInfo => ({
   notifications: { ...defaultNotifications, ...(row.notifications ?? {}) },
   backupAuto: row.backup_auto ?? true,
   lastBackupAt: row.last_backup_at,
+  caseTypes: Array.isArray(row.case_types) && row.case_types.length > 0 ? row.case_types : DEFAULT_CASE_TYPES,
+  courtTypes: Array.isArray(row.court_types) && row.court_types.length > 0 ? row.court_types : DEFAULT_COURT_TYPES,
 });
 
 const toUpdate = (patch: Partial<OfficeInfo>): Record<string, unknown> => {
@@ -109,6 +143,8 @@ const toUpdate = (patch: Partial<OfficeInfo>): Record<string, unknown> => {
   if (patch.notifications !== undefined) out.notifications = patch.notifications;
   if (patch.backupAuto !== undefined) out.backup_auto = patch.backupAuto;
   if (patch.lastBackupAt !== undefined) out.last_backup_at = patch.lastBackupAt;
+  if (patch.caseTypes !== undefined) out.case_types = patch.caseTypes;
+  if (patch.courtTypes !== undefined) out.court_types = patch.courtTypes;
   return out;
 };
 
@@ -134,6 +170,8 @@ export const defaultOffice: OfficeInfo = {
   notifications: { ...defaultNotifications },
   backupAuto: true,
   lastBackupAt: null,
+  caseTypes: DEFAULT_CASE_TYPES,
+  courtTypes: DEFAULT_COURT_TYPES,
 };
 
 export async function getOffice(): Promise<OfficeInfo | null> {

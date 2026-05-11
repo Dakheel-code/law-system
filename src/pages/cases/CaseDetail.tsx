@@ -21,9 +21,8 @@ import {
 import { getCase, deleteCase, type CaseRecord } from "../../lib/caseStore";
 import { getClient, type ClientRecord } from "../../lib/clientStore";
 import { useUsers } from "../../lib/userStore";
+import { useOffice } from "../../lib/officeStore";
 import {
-  caseTypes,
-  courtTypes,
   claimTypes,
   paymentStatus,
   paymentMethods,
@@ -75,6 +74,9 @@ export default function CaseDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { users } = useUsers();
+  const { office } = useOffice();
+  const caseTypes = office?.caseTypes ?? [];
+  const courtTypes = office?.courtTypes ?? [];
   const [caseData, setCaseData] = useState<CaseRecord | null>(null);
   const [client, setClient] = useState<ClientRecord | null>(null);
   const [loading, setLoading] = useState(true);

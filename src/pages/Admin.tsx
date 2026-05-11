@@ -23,6 +23,12 @@ import {
   Check,
   Trash2,
   User as UserIcon,
+  Sliders,
+  Plus,
+  Edit3,
+  X,
+  Briefcase,
+  Gavel,
 } from "lucide-react";
 import { Field, Input } from "../components/ui/Field";
 import Select from "../components/ui/Select";
@@ -33,6 +39,7 @@ import {
   defaultNotifications,
   type OfficeInfo,
   type NotificationPrefs,
+  type CaseOption,
   createBackup,
   downloadBackup,
   restoreBackup,
@@ -45,6 +52,7 @@ import {
 const tabs = [
   { key: "office", label: "بيانات المكتب", icon: Building },
   { key: "general", label: "الإعدادات العامة", icon: Settings },
+  { key: "forms", label: "تخصيص النماذج", icon: Sliders },
   { key: "notifications", label: "الإشعارات", icon: Bell },
   { key: "backup", label: "النسخ الاحتياطي", icon: Database },
   { key: "activity", label: "سجل النشاطات", icon: Activity },
@@ -186,6 +194,7 @@ export default function Admin() {
         <div className="p-6">
           {tab === "office" && <OfficeSection draft={draft} update={update} />}
           {tab === "general" && <GeneralSection draft={draft} update={update} />}
+          {tab === "forms" && <FormsSection draft={draft} update={update} />}
           {tab === "notifications" && (
             <NotificationsSection draft={draft} update={update} />
           )}
@@ -647,6 +656,206 @@ function BackupSection({ draft, update }: SectionProps) {
 // ============================================================
 // Activity Section
 // ============================================================
+
+// ============================================================
+// Forms Customization Section
+// ============================================================
+
+function FormsSection({ draft, update }: SectionProps) {
+  return (
+    <div className="space-y-6">
+      <div className="rounded-xl border border-brand-200 bg-brand-50/40 p-3 text-xs text-brand-800 flex items-start gap-2">
+        <Sliders className="w-4 h-4 shrink-0 mt-0.5" />
+        <p className="text-right flex-1 leading-6">
+          خصّص قوائم القضايا والمحاكم المستخدمة في صفحات إنشاء/تعديل القضية.
+          التغييرات تنعكس فوراً في كل النظام بعد الحفظ.
+        </p>
+      </div>
+
+      <OptionsEditor
+        title="أنواع القضايا"
+        icon={Briefcase}
+        value={draft.caseTypes}
+        onChange={(v) => update("caseTypes", v)}
+      />
+
+      <OptionsEditor
+        title="أنواع المحاكم"
+        icon={Gavel}
+        value={draft.courtTypes}
+        onChange={(v) => update("courtTypes", v)}
+      />
+    </div>
+  );
+}
+
+function OptionsEditor({
+  title,
+  icon: Icon,
+  value,
+  onChange,
+}: {
+  title: string;
+  icon: React.ComponentType<{ className?: string }>;
+  value: CaseOption[];
+  onChange: (v: CaseOption[]) => void;
+}) {
+  const [newLabel, setNewLabel] = useState("");
+  const [editingValue, setEditingValue] = useState<string | null>(null);
+  const [editingLabel, setEditingLabel] = useState("");
+
+  const slug = () =>
+    "opt-" +
+    Math.random().toString(36).slice(2, 6) +
+    "-" +
+    Date.now().toString(36);
+
+  const add = () => {
+    const label = newLabel.trim();
+    if (!label) return;
+    onChange([...value, { value: slug(), label }]);
+    setNewLabel("");
+  };
+
+  const remove = (v: string) => {
+    if (!confirm("هل تريد حذف هذا الخيار؟")) return;
+    onChange(value.filter((o) => o.value !== v));
+  };
+
+  const startEdit = (o: CaseOption) => {
+    setEditingValue(o.value);
+    setEditingLabel(o.label);
+  };
+
+  const saveEdit = () => {
+    if (!editingValue) return;
+    const label = editingLabel.trim();
+    if (!label) {
+      setEditingValue(null);
+      return;
+    }
+    onChange(
+      value.map((o) =>
+        o.value === editingValue ? { ...o, label } : o
+      )
+    );
+    setEditingValue(null);
+    setEditingLabel("");
+  };
+
+  const cancelEdit = () => {
+    setEditingValue(null);
+    setEditingLabel("");
+  };
+
+  return (
+    <div className="rounded-xl border border-slate-200 p-4">
+      <div className="flex items-center justify-between mb-3 pb-3 border-b border-slate-100">
+        <span className="text-xs text-slate-500">
+          {value.length} خيار
+        </span>
+        <h3 className="flex items-center justify-start gap-2 text-base font-bold text-slate-800">
+          {title}
+          <Icon className="w-4 h-4 text-brand-500" />
+        </h3>
+      </div>
+
+      <div className="flex items-center gap-2 mb-3">
+        <button
+          type="button"
+          onClick={add}
+          disabled={!newLabel.trim()}
+          className="inline-flex items-center gap-1.5 px-3 py-2 bg-brand-500 text-white rounded-lg text-xs font-bold shadow hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          إضافة
+        </button>
+        <input
+          value={newLabel}
+          onChange={(e) => setNewLabel(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), add())}
+          placeholder="اسم الخيار الجديد..."
+          className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-right focus:outline-none focus:ring-2 focus:ring-brand-200"
+        />
+      </div>
+
+      <ul className="space-y-2">
+        {value.length === 0 ? (
+          <li className="text-xs text-slate-400 text-center py-4">
+            لا توجد خيارات — أضف الأول
+          </li>
+        ) : (
+          value.map((o) => (
+            <li
+              key={o.value}
+              className="flex items-center gap-2 p-2 rounded-lg border border-slate-200 hover:bg-slate-50"
+            >
+              {editingValue === o.value ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={cancelEdit}
+                    className="p-1.5 text-slate-500 hover:bg-slate-100 rounded-md"
+                    title="إلغاء"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={saveEdit}
+                    className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-md"
+                    title="حفظ"
+                  >
+                    <Check className="w-3.5 h-3.5" />
+                  </button>
+                  <input
+                    value={editingLabel}
+                    onChange={(e) => setEditingLabel(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        saveEdit();
+                      } else if (e.key === "Escape") {
+                        cancelEdit();
+                      }
+                    }}
+                    className="flex-1 px-2 py-1.5 bg-white border border-brand-300 rounded-md text-sm text-right focus:outline-none focus:ring-2 focus:ring-brand-200"
+                    autoFocus
+                  />
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => remove(o.value)}
+                    className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-md"
+                    title="حذف"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => startEdit(o)}
+                    className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-md"
+                    title="تعديل"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                  </button>
+                  <div className="flex-1 text-right">
+                    <span className="text-sm text-slate-700">{o.label}</span>
+                    <span className="text-[10px] text-slate-400 font-mono mr-2" dir="ltr">
+                      {o.value}
+                    </span>
+                  </div>
+                </>
+              )}
+            </li>
+          ))
+        )}
+      </ul>
+    </div>
+  );
+}
 
 function ActivitySection() {
   const { items, loading } = useActivities(200);

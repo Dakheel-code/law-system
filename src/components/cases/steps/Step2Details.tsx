@@ -2,7 +2,8 @@ import { Field, Input, Textarea } from "../../ui/Field";
 import Select from "../../ui/Select";
 import StepHeader from "../StepHeader";
 import type { CaseFormState } from "../caseFormTypes";
-import { caseTypes, courtTypes, urgencyLevels } from "../../../config/caseConfig";
+import { urgencyLevels } from "../../../config/caseConfig";
+import { useOffice } from "../../../lib/officeStore";
 
 type Props = {
   data: CaseFormState;
@@ -10,6 +11,10 @@ type Props = {
 };
 
 export default function Step2Details({ data, update }: Props) {
+  const { office } = useOffice();
+  const caseTypes = office?.caseTypes ?? [];
+  const courtTypes = office?.courtTypes ?? [];
+
   return (
     <div className="space-y-6">
       <StepHeader
