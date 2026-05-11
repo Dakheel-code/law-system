@@ -60,14 +60,8 @@ export const menu: MenuGroup[] = [
   {
     title: "الإعدادات والإدارة",
     items: [
-      {
-        label: "المستخدمون",
-        icon: UserCog,
-        children: [
-          { label: "المستخدمين", icon: Users, to: "/users" },
-          { label: "إدارة الصلاحيات", icon: ShieldCheck, to: "/users/permissions" },
-        ],
-      },
+      { label: "المستخدمين", icon: UserCog, to: "/users" },
+      { label: "إدارة الصلاحيات", icon: ShieldCheck, to: "/users/permissions" },
       { label: "الإدارة", icon: Building2, to: "/admin" },
       { label: "تخصيص الواجهة", icon: Palette, to: "/theme" },
     ],
