@@ -231,4 +231,25 @@ export function applyTheme(settings: ThemeSettings) {
 
   // Document title
   document.title = settings.officeName;
+
+  // Favicon — use the uploaded logo if any, otherwise default
+  applyFavicon(settings.logoDataUrl);
+}
+
+function applyFavicon(logoDataUrl: string | null) {
+  const href = logoDataUrl ?? "/favicon.svg";
+  const type = logoDataUrl
+    ? logoDataUrl.split(";")[0].replace("data:", "") || "image/png"
+    : "image/svg+xml";
+
+  // Remove any existing favicon links so we don't pile them up
+  document
+    .querySelectorAll('link[rel="icon"], link[rel="shortcut icon"]')
+    .forEach((el) => el.remove());
+
+  const link = document.createElement("link");
+  link.rel = "icon";
+  link.type = type;
+  link.href = href;
+  document.head.appendChild(link);
 }
