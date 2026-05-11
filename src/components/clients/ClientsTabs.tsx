@@ -1,16 +1,23 @@
-import { useState } from "react";
 import { Users, ShieldCheck, UserPlus } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
-const tabs: { key: string; label: string; count: number; icon: LucideIcon }[] = [
-  { key: "all", label: "الكل", count: 0, icon: Users },
-  { key: "with", label: "عندهم حساب", count: 0, icon: ShieldCheck },
-  { key: "without", label: "بدون حساب", count: 0, icon: UserPlus },
+export type ClientsTab = "all" | "with" | "without";
+
+type TabItem = { key: ClientsTab; label: string; icon: LucideIcon };
+
+const tabs: TabItem[] = [
+  { key: "all", label: "الكل", icon: Users },
+  { key: "with", label: "عندهم حساب", icon: ShieldCheck },
+  { key: "without", label: "بدون حساب", icon: UserPlus },
 ];
 
-export default function ClientsTabs() {
-  const [active, setActive] = useState("all");
+type Props = {
+  active: ClientsTab;
+  onChange: (key: ClientsTab) => void;
+  counts: Record<ClientsTab, number>;
+};
 
+export default function ClientsTabs({ active, onChange, counts }: Props) {
   return (
     <div className="flex flex-wrap gap-2 justify-start">
       {tabs.map((t) => {
@@ -19,7 +26,7 @@ export default function ClientsTabs() {
         return (
           <button
             key={t.key}
-            onClick={() => setActive(t.key)}
+            onClick={() => onChange(t.key)}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition border ${
               isActive
                 ? "bg-blue-500 text-white border-blue-500 shadow"
@@ -31,7 +38,7 @@ export default function ClientsTabs() {
                 isActive ? "bg-white/20" : "bg-slate-100 text-slate-500"
               }`}
             >
-              {t.count}
+              {counts[t.key]}
             </span>
             {t.label}
             <Icon className="w-4 h-4" />
