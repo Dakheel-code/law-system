@@ -28,11 +28,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const userRef = useRef<User | null>(null);
-
   // Keep a ref of the current user so the periodic check below can read
   // the latest value without re-binding the interval on every render.
-  userRef.current = user;
+  const userRef = useRef<User | null>(null);
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
 
   useEffect(() => {
     if (!supabase) {

@@ -139,7 +139,7 @@ export default function Admin() {
       await logActivity({
         action: "update_office",
         category: "office",
-        description: getActivityDescription(tab, changedKeys),
+        description: getActivityDescription(tab),
         meta: { tab, changed: changedKeys.map(String) },
       });
       await refresh();
@@ -252,7 +252,7 @@ export default function Admin() {
   );
 }
 
-function getActivityDescription(tab: TabKey, _keys: (keyof OfficeInfo)[]): string {
+function getActivityDescription(tab: TabKey): string {
   switch (tab) {
     case "office":
       return "تحديث بيانات المكتب";

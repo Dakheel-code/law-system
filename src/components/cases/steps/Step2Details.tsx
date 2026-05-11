@@ -70,7 +70,8 @@ export default function Step2Details({ data, update }: Props) {
       return next;
     });
     setErrors((e) => {
-      const { [id]: _, ...rest } = e;
+      const { [id]: _omit, ...rest } = e;
+      void _omit;
       return rest;
     });
   };
@@ -83,7 +84,8 @@ export default function Step2Details({ data, update }: Props) {
       return;
     }
     setErrors((e) => {
-      const { [id]: _, ...rest } = e;
+      const { [id]: _omit, ...rest } = e;
+      void _omit;
       return rest;
     });
     setEditingIds((s) => {
