@@ -80,6 +80,7 @@ export default function CasesList() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
+  const [lawyerFilter, setLawyerFilter] = useState("all");
 
   const clientById = useMemo(
     () => new Map(clients.map((c) => [c.id, c])),
@@ -96,6 +97,13 @@ export default function CasesList() {
       if (statusFilter !== "all" && c.status !== statusFilter) return false;
       if (typeFilter !== "all" && c.caseType !== typeFilter) return false;
       if (priorityFilter !== "all" && c.priority !== priorityFilter) return false;
+      if (lawyerFilter !== "all") {
+        const ids = new Set<string>();
+        c.assignments?.forEach((a) => ids.add(a.userId));
+        c.assignedLawyers?.forEach((u) => ids.add(u));
+        if (c.assignedLawyer) ids.add(c.assignedLawyer);
+        if (!ids.has(lawyerFilter)) return false;
+      }
       if (q) {
         const client = c.clientId ? clientById.get(c.clientId) : null;
         const hay = [
@@ -116,7 +124,7 @@ export default function CasesList() {
       }
       return true;
     });
-  }, [cases, search, statusFilter, typeFilter, priorityFilter, clientById]);
+  }, [cases, search, statusFilter, typeFilter, priorityFilter, lawyerFilter, clientById]);
 
   const total = cases.length;
   const active = cases.filter((c) => c.status === "active").length;
@@ -168,13 +176,15 @@ export default function CasesList() {
     setStatusFilter("all");
     setTypeFilter("all");
     setPriorityFilter("all");
+    setLawyerFilter("all");
   };
 
   const hasActiveFilters =
     search !== "" ||
     statusFilter !== "all" ||
     typeFilter !== "all" ||
-    priorityFilter !== "all";
+    priorityFilter !== "all" ||
+    lawyerFilter !== "all";
 
   return (
     <CasesPageShell
@@ -224,6 +234,19 @@ export default function CasesList() {
           {caseTypes.map((t) => (
             <option key={t.value} value={t.value}>
               {t.label}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={lawyerFilter}
+          onChange={(e) => setLawyerFilter(e.target.value)}
+          className="px-3 py-2.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-600 text-right focus:outline-none focus:ring-2 focus:ring-brand-200"
+        >
+          <option value="all">كل المحامين</option>
+          {users.map((u) => (
+            <option key={u.id} value={u.id}>
+              {u.fullName || u.code}
             </option>
           ))}
         </select>

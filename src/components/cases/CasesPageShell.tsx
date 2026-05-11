@@ -7,6 +7,11 @@ type Props = {
   icon: LucideIcon;
   primaryAction?: ReactNode;
   kpis?: ReactNode;
+  /**
+   * Optional inline filter controls rendered alongside the reset+search.
+   * If omitted, the shell skips the toolbar entirely so consumers that
+   * render their own toolbar (e.g. CasesList) don't get a duplicate.
+   */
   filters?: ReactNode;
   searchPlaceholder?: string;
   children: ReactNode;
@@ -34,20 +39,22 @@ export default function CasesPageShell({
       {kpis}
 
       <div className="card">
-        <div className="p-5 border-b border-slate-100 flex flex-wrap items-center gap-3">
-          <button className="inline-flex items-center gap-2 px-3 py-2.5 bg-rose-50 text-rose-500 rounded-lg text-sm font-bold hover:bg-rose-100 shrink-0">
-            <RotateCcw className="w-4 h-4" />
-            إعادة تعيين
-          </button>
-          {filters}
-          <div className="relative flex-1 min-w-[220px]">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              placeholder={searchPlaceholder}
-              className="w-full pr-9 pl-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-200"
-            />
+        {filters && (
+          <div className="p-5 border-b border-slate-100 flex flex-wrap items-center gap-3">
+            <button className="inline-flex items-center gap-2 px-3 py-2.5 bg-rose-50 text-rose-500 rounded-lg text-sm font-bold hover:bg-rose-100 shrink-0">
+              <RotateCcw className="w-4 h-4" />
+              إعادة تعيين
+            </button>
+            {filters}
+            <div className="relative flex-1 min-w-[220px]">
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                placeholder={searchPlaceholder}
+                className="w-full pr-9 pl-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-200"
+              />
+            </div>
           </div>
-        </div>
+        )}
         {children}
       </div>
     </div>
