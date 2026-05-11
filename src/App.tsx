@@ -12,6 +12,7 @@ import NewCase from "./pages/cases/NewCase";
 import CasesList from "./pages/cases/CasesList";
 import CaseDetail from "./pages/cases/CaseDetail";
 import Sessions from "./pages/Sessions";
+import Attachments from "./pages/Attachments";
 import Requests from "./pages/cases/Requests";
 import AvailableRequests from "./pages/cases/AvailableRequests";
 import MyRequests from "./pages/cases/MyRequests";
@@ -55,6 +56,9 @@ export default function App() {
 
           {/* Sessions */}
           <Route path="/sessions" element={<Sessions />} />
+
+          {/* Attachments */}
+          <Route path="/attachments" element={<Attachments />} />
 
           {/* Cases */}
           <Route path="/cases" element={<CasesList />} />

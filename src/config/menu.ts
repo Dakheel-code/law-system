@@ -15,6 +15,7 @@ import {
   UserPlus,
   ShieldCheck,
   Gavel,
+  Paperclip,
   type LucideIcon,
 } from "lucide-react";
 
@@ -55,6 +56,7 @@ export const menu: MenuGroup[] = [
     items: [
       { label: "إدارة القضايا", icon: Briefcase, to: "/cases" },
       { label: "الجلسات", icon: Gavel, to: "/sessions" },
+      { label: "المرفقات", icon: Paperclip, to: "/attachments" },
       {
         label: "التعاقدات",
         icon: FileText,

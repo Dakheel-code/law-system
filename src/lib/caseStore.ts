@@ -326,6 +326,66 @@ export async function updateSessionOnCase(
   return true;
 }
 
+// ============================================================
+// Attachment helpers — bulk append + remove by index
+// ============================================================
+
+export async function addAttachmentsToCase(
+  caseId: string,
+  files: CaseAttachment[]
+): Promise<boolean> {
+  if (!supabase || files.length === 0) return false;
+  const { data, error } = await supabase
+    .from("cases")
+    .select("attachments")
+    .eq("id", caseId)
+    .maybeSingle();
+  if (error || !data) {
+    alert(`فشل الحفظ: ${error?.message ?? "القضية غير موجودة"}`);
+    return false;
+  }
+  const current = Array.isArray(
+    (data as { attachments: CaseAttachment[] }).attachments
+  )
+    ? (data as { attachments: CaseAttachment[] }).attachments
+    : [];
+  const next = [...current, ...files];
+  const { error: uerr } = await supabase
+    .from("cases")
+    .update({ attachments: next })
+    .eq("id", caseId);
+  if (uerr) {
+    alert(`فشل الحفظ: ${uerr.message}`);
+    return false;
+  }
+  return true;
+}
+
+export async function removeAttachmentFromCase(
+  caseId: string,
+  index: number
+): Promise<boolean> {
+  if (!supabase) return false;
+  const { data, error } = await supabase
+    .from("cases")
+    .select("attachments")
+    .eq("id", caseId)
+    .maybeSingle();
+  if (error || !data) return false;
+  const current = Array.isArray(
+    (data as { attachments: CaseAttachment[] }).attachments
+  )
+    ? (data as { attachments: CaseAttachment[] }).attachments
+    : [];
+  const next = current.filter((_, i) => i !== index);
+  const { error: uerr } = await supabase
+    .from("cases")
+    .update({ attachments: next })
+    .eq("id", caseId);
+  if (uerr) return false;
+  return true;
+}
+
 export async function removeSession(
   caseId: string,
   sessionId: string
