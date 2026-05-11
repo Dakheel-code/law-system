@@ -56,6 +56,21 @@ export default function NewCase() {
         otherPartyId: c.otherPartyId,
         otherPartyPhone: c.otherPartyPhone,
         otherPartyAddress: c.otherPartyAddress,
+        parties:
+          c.parties && c.parties.length > 0
+            ? (c.parties as CaseFormState["parties"])
+            : c.otherPartyName
+            ? [
+                {
+                  id: "legacy-1",
+                  name: c.otherPartyName,
+                  role: (c.opponentRole as "plaintiff" | "defendant") || "defendant",
+                  idNumber: c.otherPartyId,
+                  phone: c.otherPartyPhone,
+                  address: c.otherPartyAddress,
+                },
+              ]
+            : [],
         caseType: c.caseType,
         courtType: c.courtType,
         requestTitle: c.requestTitle,

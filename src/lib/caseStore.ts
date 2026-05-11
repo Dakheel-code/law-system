@@ -9,6 +9,15 @@ export type CaseAttachment = {
   dataUrl: string;
 };
 
+export type CaseParty = {
+  id: string;
+  name: string;
+  role: "plaintiff" | "defendant";
+  idNumber: string;
+  phone: string;
+  address: string;
+};
+
 export type CaseRecord = {
   id: string;            // UUID
   code: string;          // CSE-XXXXX
@@ -25,6 +34,7 @@ export type CaseRecord = {
   otherPartyId: string;
   otherPartyPhone: string;
   otherPartyAddress: string;
+  parties: CaseParty[];
   caseNumber: string;
   claimSubject: string;
   circuitName: string;
@@ -65,6 +75,7 @@ type CaseRow = {
   other_party_id: string | null;
   other_party_phone: string | null;
   other_party_address: string | null;
+  parties: CaseParty[] | null;
   case_number: string | null;
   claim_subject: string | null;
   circuit_name: string | null;
@@ -105,6 +116,7 @@ const fromRow = (r: CaseRow): CaseRecord => ({
   otherPartyId: r.other_party_id ?? "",
   otherPartyPhone: r.other_party_phone ?? "",
   otherPartyAddress: r.other_party_address ?? "",
+  parties: Array.isArray(r.parties) ? r.parties : [],
   caseNumber: r.case_number ?? "",
   claimSubject: r.claim_subject ?? "",
   circuitName: r.circuit_name ?? "",
@@ -148,6 +160,7 @@ const buildInsert = (form: CaseFormState): Record<string, unknown> => ({
   other_party_id: form.otherPartyId,
   other_party_phone: form.otherPartyPhone,
   other_party_address: form.otherPartyAddress,
+  parties: form.parties ?? [],
   case_number: form.caseNumber || null,
   claim_subject: form.claimSubject || null,
   circuit_name: form.circuitName || null,

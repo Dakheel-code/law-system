@@ -14,6 +14,15 @@ export type Attachment = {
 
 export type PartyRole = "plaintiff" | "defendant";
 
+export type CaseParty = {
+  id: string;
+  name: string;
+  role: PartyRole;
+  idNumber: string;
+  phone: string;
+  address: string;
+};
+
 export type CaseFormState = {
   // Step 1 - Client
   clientId: string | null;       // links to an existing client row (set via search/create)
@@ -27,8 +36,9 @@ export type CaseFormState = {
   city: string;
   address: string;
 
-  // Step 2 - Other party + case
-  opponentRole: PartyRole;       // الخصم: مدعي / مدعى عليه
+  // Step 2 - Parties + case
+  parties: CaseParty[];          // أطراف القضية (multi)
+  opponentRole: PartyRole;       // legacy single opponent (kept for back-compat)
   otherPartyName: string;
   otherPartyId: string;
   otherPartyPhone: string;
@@ -82,6 +92,7 @@ export const initialCase: CaseFormState = {
   city: "",
   address: "",
 
+  parties: [],
   opponentRole: "defendant",
   otherPartyName: "",
   otherPartyId: "",

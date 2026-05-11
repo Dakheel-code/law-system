@@ -253,12 +253,23 @@ export default function CaseDetail() {
       ].filter(([, v]) => v) as [string, string, boolean][]
     : [];
 
-  const opponentEntries = [
-    ["الاسم", c.otherPartyName, false],
-    ["رقم الهوية", c.otherPartyId, true],
-    ["رقم الجوال", c.otherPartyPhone, true],
-    ["العنوان", c.otherPartyAddress, false],
-  ].filter(([, v]) => v) as [string, string, boolean][];
+  // Build parties list — prefer new `parties` array; fall back to legacy
+  // `other_party_*` fields if it's empty.
+  const parties =
+    c.parties && c.parties.length > 0
+      ? c.parties
+      : c.otherPartyName
+      ? [
+          {
+            id: "legacy-1",
+            name: c.otherPartyName,
+            role: (c.opponentRole as "plaintiff" | "defendant") || "defendant",
+            idNumber: c.otherPartyId,
+            phone: c.otherPartyPhone,
+            address: c.otherPartyAddress,
+          },
+        ]
+      : [];
 
   const caseEntries = [
     ["رقم القضية", c.caseNumber, true],
@@ -383,15 +394,44 @@ export default function CaseDetail() {
         </Section>
 
         <Section
-          title="الطرف الآخر"
+          title={`أطراف القضية (${parties.length})`}
           icon={UserX}
-          badge={c.opponentRole === "plaintiff" ? "مدّعي" : "مدّعى عليه"}
-          badgeColor={c.opponentRole === "plaintiff" ? "brand" : "rose"}
         >
-          {opponentEntries.length > 0 ? (
-            <KV entries={opponentEntries} />
+          {parties.length === 0 ? (
+            <Empty text="لم يتم إضافة أي طرف" />
           ) : (
-            <Empty text="لا توجد بيانات للطرف الآخر" />
+            <div className="space-y-3">
+              {parties.map((p, i) => {
+                const entries = [
+                  ["رقم الهوية", p.idNumber, true],
+                  ["رقم الجوال", p.phone, true],
+                  ["العنوان", p.address, false],
+                ].filter(([, v]) => v) as [string, string, boolean][];
+                const roleLabel = p.role === "plaintiff" ? "مدّعي" : "مدّعى عليه";
+                const roleClass =
+                  p.role === "plaintiff"
+                    ? "bg-brand-100 text-brand-700"
+                    : "bg-rose-100 text-rose-700";
+                return (
+                  <div
+                    key={p.id || i}
+                    className="rounded-lg border border-slate-200 bg-slate-50/40 p-3"
+                  >
+                    <div className="flex items-center justify-between mb-2 pb-2 border-b border-slate-100">
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold ${roleClass}`}
+                      >
+                        {roleLabel}
+                      </span>
+                      <div className="text-sm font-bold text-slate-700">
+                        {p.name || `الطرف ${i + 1}`}
+                      </div>
+                    </div>
+                    {entries.length > 0 && <KV entries={entries} />}
+                  </div>
+                );
+              })}
+            </div>
           )}
         </Section>
       </div>
