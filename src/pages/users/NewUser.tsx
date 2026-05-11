@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { Save, X, Edit3, UserPlus } from "lucide-react";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Save, X, Edit3, UserPlus, Link as LinkIcon } from "lucide-react";
 import AvatarUpload from "../../components/users/AvatarUpload";
 import { Field, Input } from "../../components/ui/Field";
 import Select from "../../components/ui/Select";
@@ -8,11 +8,15 @@ import Toggle from "../../components/ui/Toggle";
 import FileUpload from "../../components/ui/FileUpload";
 import { userTypes } from "../../config/userConfig";
 import { addUser, generateUserCode, getUser, updateUser } from "../../lib/userStore";
+import { useAuth } from "../../context/AuthContext";
 
 export default function NewUser() {
   const navigate = useNavigate();
   const { id: editId } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const isEditMode = Boolean(editId);
+  const isProfileMode = searchParams.get("profile") === "1" && !isEditMode;
+  const { user: authUser } = useAuth();
 
   const generatedCode = useMemo(generateUserCode, []);
   const [userCode, setUserCode] = useState(generatedCode);
@@ -66,6 +70,20 @@ export default function NewUser() {
     };
   }, [editId]);
 
+  // Prefill from auth user when creating a self-profile
+  useEffect(() => {
+    if (!isProfileMode || !authUser) return;
+    const fullName =
+      (authUser.user_metadata?.full_name as string | undefined) ??
+      (authUser.user_metadata?.name as string | undefined) ??
+      "";
+    setData((p) => ({
+      ...p,
+      email: p.email || authUser.email || "",
+      name: p.name || fullName,
+    }));
+  }, [isProfileMode, authUser]);
+
   const update = <K extends keyof typeof data>(key: K, value: (typeof data)[K]) =>
     setData((p) => ({ ...p, [key]: value }));
 
@@ -97,9 +115,13 @@ export default function NewUser() {
       setSaving(false);
       if (ok) navigate("/users");
     } else {
-      const created = await addUser({ code: userCode, ...payload });
+      const created = await addUser({
+        code: userCode,
+        ...payload,
+        authId: isProfileMode ? authUser?.id ?? null : null,
+      });
       setSaving(false);
-      if (created) navigate("/users");
+      if (created) navigate(isProfileMode ? "/profile" : "/users");
     }
   };
 
@@ -125,7 +147,11 @@ export default function NewUser() {
       {/* Header */}
       <div className="flex items-center justify-start">
         <h2 className="flex items-center gap-2 text-xl font-extrabold text-slate-800">
-          {isEditMode ? "تعديل مستخدم" : "إضافة مستخدم جديد"}
+          {isEditMode
+            ? "تعديل مستخدم"
+            : isProfileMode
+            ? "إنشاء ملفي الشخصي"
+            : "إضافة مستخدم جديد"}
           {isEditMode ? (
             <Edit3 className="w-5 h-5 text-brand-500" />
           ) : (
@@ -133,6 +159,15 @@ export default function NewUser() {
           )}
         </h2>
       </div>
+
+      {isProfileMode && (
+        <div className="rounded-xl border border-brand-200 bg-brand-50/60 p-3 text-xs text-brand-800 flex items-start gap-2">
+          <LinkIcon className="w-4 h-4 shrink-0 mt-0.5" />
+          <p className="text-right flex-1 leading-6">
+            سيتم ربط هذا الملف بحسابك (<bdi dir="ltr">{authUser?.email ?? "—"}</bdi>) تلقائياً عند الحفظ، ليظهر كملفك الشخصي.
+          </p>
+        </div>
+      )}
 
       <div className="card p-6 space-y-6">
         <AvatarUpload value={avatar} onChange={setAvatar} />

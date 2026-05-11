@@ -59,22 +59,27 @@ const toInsert = (
   u: Omit<UserRecord, "id" | "code" | "createdAt" | "status"> & {
     code?: string;
     status?: UserRecord["status"];
+    authId?: string | null;
   }
-): Record<string, unknown> => ({
-  user_code: u.code ?? generateUserCode(),
-  type: u.type,
-  full_name: u.fullName,
-  first_name: u.firstName,
-  middle_name: u.middleName,
-  third_name: u.thirdName,
-  last_name: u.lastName,
-  email: u.email,
-  phone: u.phone,
-  id_number: u.idNumber,
-  nationality: u.nationality,
-  avatar_data_url: u.avatarDataUrl,
-  status: u.status ?? "active",
-});
+): Record<string, unknown> => {
+  const out: Record<string, unknown> = {
+    user_code: u.code ?? generateUserCode(),
+    type: u.type,
+    full_name: u.fullName,
+    first_name: u.firstName,
+    middle_name: u.middleName,
+    third_name: u.thirdName,
+    last_name: u.lastName,
+    email: u.email,
+    phone: u.phone,
+    id_number: u.idNumber,
+    nationality: u.nationality,
+    avatar_data_url: u.avatarDataUrl,
+    status: u.status ?? "active",
+  };
+  if (u.authId) out.auth_id = u.authId;
+  return out;
+};
 
 const toUpdate = (
   u: Partial<Omit<UserRecord, "id" | "code" | "createdAt">>
@@ -129,6 +134,7 @@ export async function addUser(
   input: Omit<UserRecord, "id" | "code" | "createdAt" | "status"> & {
     code?: string;
     status?: UserRecord["status"];
+    authId?: string | null;
   }
 ): Promise<UserRecord | null> {
   if (!supabase) return null;

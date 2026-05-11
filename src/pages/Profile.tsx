@@ -70,8 +70,8 @@ export default function Profile() {
           ? `حسابك (${user.email}) غير مرتبط بأي ملف موظف في النظام. تواصل مع مدير المكتب لإضافة ملفك أو أنشئه الآن.`
           : "حسابك غير مرتبط بأي ملف موظف في النظام."
       }
-      actionTo="/users/new"
-      actionLabel="إنشاء ملف موظف"
+      actionTo="/users/new?profile=1"
+      actionLabel="إنشاء ملف موظف وربطه بحسابي"
       actionIcon={UserPlus}
     />
   );
