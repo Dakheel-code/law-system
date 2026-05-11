@@ -157,7 +157,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   };
 
   const update = <K extends keyof ThemeSettings>(key: K, value: ThemeSettings[K]) => {
-    setTheme({ ...theme, [key]: value });
+    setThemeState((prev) => ({ ...prev, [key]: value }));
   };
 
   const reset = () => setTheme(defaultTheme);
