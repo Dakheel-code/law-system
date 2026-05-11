@@ -73,14 +73,46 @@ function toUpdatePayload(t: ThemeSettings): Record<string, unknown> {
   };
 }
 
+const THEME_CACHE_KEY = "theme-cache-v1";
+
+function loadCachedTheme(): ThemeSettings {
+  try {
+    const raw = localStorage.getItem(THEME_CACHE_KEY);
+    if (!raw) return defaultTheme;
+    const parsed = JSON.parse(raw) as Partial<ThemeSettings>;
+    // Merge with defaults so any newly-added fields still get a value.
+    return { ...defaultTheme, ...parsed };
+  } catch {
+    return defaultTheme;
+  }
+}
+
+// Apply the cached theme synchronously at module import time, BEFORE React
+// renders. This is what kills the FOUC — when the very first paint happens,
+// the CSS variables already hold the user's chosen brand color.
+if (typeof window !== "undefined") {
+  try {
+    applyTheme(loadCachedTheme());
+  } catch {
+    /* non-fatal */
+  }
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<ThemeSettings>(defaultTheme);
+  // Initialize state from the cache too so React's first render matches.
+  const [theme, setThemeState] = useState<ThemeSettings>(() => loadCachedTheme());
   const settingsRowId = useRef<string | null>(null);
   const skipNextSave = useRef(true);
 
-  // Apply theme on mount and on every change
+  // Apply theme + persist to cache on every change. The cache is what we
+  // read on the next page load to avoid the green-then-gold flash.
   useEffect(() => {
     applyTheme(theme);
+    try {
+      localStorage.setItem(THEME_CACHE_KEY, JSON.stringify(theme));
+    } catch {
+      /* localStorage may be full or disabled — non-fatal */
+    }
   }, [theme]);
 
   // Load settings from Supabase on mount + subscribe to changes
