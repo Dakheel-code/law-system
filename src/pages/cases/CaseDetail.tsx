@@ -271,7 +271,7 @@ export default function CaseDetail() {
         {/* Title block — fully right-aligned, icon sits inline next to the title */}
         <div className="p-5 md:p-6 text-right">
           {/* Badges row */}
-          <div className="flex items-center justify-end gap-2 flex-wrap mb-3">
+          <div className="flex items-center justify-start gap-2 flex-wrap mb-3">
             <span
               className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold ${
                 statusChip[c.status] ?? "bg-slate-100 text-slate-700"
@@ -305,7 +305,7 @@ export default function CaseDetail() {
           </div>
 
           {/* Title with inline icon on the right */}
-          <div className="flex items-center justify-end gap-3 mb-3">
+          <div className="flex items-center justify-start gap-3 mb-3">
             <h1 className="text-2xl font-extrabold text-slate-800 leading-snug">
               {c.requestTitle || "—"}
             </h1>
@@ -315,7 +315,7 @@ export default function CaseDetail() {
           </div>
 
           {/* Meta row — case number, creation date */}
-          <div className="flex items-center justify-end gap-3 text-xs text-slate-500 flex-wrap">
+          <div className="flex items-center justify-start gap-3 text-xs text-slate-500 flex-wrap">
             {c.caseNumber && (
               <span className="inline-flex items-center gap-1.5">
                 <Hash className="w-3.5 h-3.5" />
