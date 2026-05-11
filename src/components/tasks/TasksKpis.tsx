@@ -1,8 +1,6 @@
 import {
   CheckCircle2,
   AlertCircle,
-  Loader,
-  CircleDashed,
   CalendarClock,
   LayoutGrid,
   Archive,
@@ -26,15 +24,13 @@ export default function TasksKpis() {
 
   const total = tasks.filter((t) => !t.archived).length;
   const dueToday = tasks.filter((t) => t.dueDate === today && !t.archived).length;
-  const todo = tasks.filter((t) => t.status === "todo" && !t.archived).length;
-  const doing = tasks.filter((t) => t.status === "doing" && !t.archived).length;
   const overdue = tasks.filter(
     (t) => t.dueDate && t.dueDate < today && t.status !== "done" && !t.archived
   ).length;
   const done = tasks.filter((t) => t.status === "done" && !t.archived).length;
   const archived = tasks.filter((t) => t.archived).length;
 
-  const top: Stat[] = [
+  const items: Stat[] = [
     {
       title: "إجمالي المهام",
       value: total,
@@ -54,24 +50,6 @@ export default function TasksKpis() {
       text: "text-violet-700",
     },
     {
-      title: "للقيام بها",
-      value: todo,
-      icon: CircleDashed,
-      bg: "bg-slate-50",
-      iconBg: "bg-slate-400",
-      iconColor: "text-white",
-      text: "text-slate-700",
-    },
-    {
-      title: "قيد التنفيذ",
-      value: doing,
-      icon: Loader,
-      bg: "bg-amber-50",
-      iconBg: "bg-amber-400",
-      iconColor: "text-white",
-      text: "text-amber-700",
-    },
-    {
       title: "متأخرة",
       value: overdue,
       icon: AlertCircle,
@@ -89,24 +67,22 @@ export default function TasksKpis() {
       iconColor: "text-white",
       text: "text-sky-700",
     },
+    {
+      title: "مؤرشفة",
+      value: archived,
+      icon: Archive,
+      bg: "bg-slate-100",
+      iconBg: "bg-slate-700",
+      iconColor: "text-white",
+      text: "text-slate-700",
+    },
   ];
 
-  const archive: Stat = {
-    title: "مؤرشفة",
-    value: archived,
-    icon: Archive,
-    bg: "bg-slate-100",
-    iconBg: "bg-slate-700",
-    iconColor: "text-white",
-    text: "text-slate-700",
-  };
-
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
-      {top.map((s) => (
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      {items.map((s) => (
         <Card key={s.title} stat={s} />
       ))}
-      <Card stat={archive} />
     </div>
   );
 }
@@ -114,8 +90,12 @@ export default function TasksKpis() {
 function Card({ stat }: { stat: Stat }) {
   const Icon = stat.icon;
   return (
-    <div className={`rounded-2xl ${stat.bg} p-4 shadow-card flex items-center justify-between`}>
-      <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${stat.iconBg}`}>
+    <div
+      className={`rounded-2xl ${stat.bg} p-4 shadow-card flex items-center justify-between`}
+    >
+      <div
+        className={`w-12 h-12 rounded-xl flex items-center justify-center ${stat.iconBg}`}
+      >
         <Icon className={`w-5 h-5 ${stat.iconColor}`} />
       </div>
       <div className="text-right">

@@ -7,6 +7,10 @@ import {
   type TaskStatus,
   type TaskRecord,
 } from "../../lib/taskStore";
+import {
+  filterTasks,
+  type TasksFiltersState,
+} from "./filterTypes";
 
 const columns: { key: TaskStatus; title: string; color: string; ringColor: string }[] = [
   { key: "todo", title: "للقيام بها", color: "bg-slate-300 text-slate-700", ringColor: "ring-slate-400" },
@@ -42,13 +46,19 @@ type DragState = {
   from: TaskStatus;
 } | null;
 
-export default function KanbanBoard() {
+type KanbanProps = {
+  filters?: TasksFiltersState;
+};
+
+export default function KanbanBoard({ filters }: KanbanProps = {}) {
   const { tasks, loading } = useTasks();
   const [drag, setDrag] = useState<DragState>(null);
   const [overColumn, setOverColumn] = useState<TaskStatus | null>(null);
 
+  const visible = filters ? filterTasks(tasks, filters) : tasks.filter((t) => !t.archived);
+
   const tasksByStatus = (status: TaskStatus) =>
-    tasks.filter((t) => t.status === status && !t.archived);
+    visible.filter((t) => t.status === status);
 
   const handleDragStart = (taskId: string, from: TaskStatus) => {
     setDrag({ taskId, from });

@@ -5,9 +5,20 @@ import TasksKpis from "../components/tasks/TasksKpis";
 import TasksFilters from "../components/tasks/TasksFilters";
 import KanbanBoard from "../components/tasks/KanbanBoard";
 import NewTaskModal from "../components/tasks/NewTaskModal";
+import {
+  defaultTasksFilters,
+  hasActiveTasksFilters,
+  type TasksFiltersState,
+} from "../components/tasks/filterTypes";
 
 export default function Tasks() {
   const [showNewTask, setShowNewTask] = useState(false);
+  const [filters, setFilters] = useState<TasksFiltersState>(defaultTasksFilters);
+
+  const onChange = (patch: Partial<TasksFiltersState>) =>
+    setFilters((p) => ({ ...p, ...patch }));
+  const onReset = () => setFilters(defaultTasksFilters);
+  const active = hasActiveTasksFilters(filters);
 
   return (
     <div className="space-y-5">
@@ -30,8 +41,13 @@ export default function Tasks() {
             مهمة جديدة
           </button>
         </div>
-        <TasksFilters />
-        <KanbanBoard />
+        <TasksFilters filters={filters} onChange={onChange} onReset={onReset} />
+        {active && (
+          <div className="text-xs text-amber-600 text-right">
+            ✓ فلاتر مطبّقة — اضغط «إعادة تعيين» لمسحها
+          </div>
+        )}
+        <KanbanBoard filters={filters} />
       </div>
 
       {showNewTask && <NewTaskModal onClose={() => setShowNewTask(false)} />}
