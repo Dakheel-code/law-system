@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useCases, removeSession, type CaseSession } from "../lib/caseStore";
 import SessionFormModal from "../components/sessions/SessionFormModal";
+import { toLocalISO } from "../lib/hijri";
 
 type EnrichedSession = CaseSession & {
   caseId: string;
@@ -28,7 +29,7 @@ type EnrichedSession = CaseSession & {
   caseTitle: string;
 };
 
-const todayStr = () => new Date().toISOString().slice(0, 10);
+const todayStr = () => toLocalISO(new Date());
 
 const fmtDate = (iso: string) => {
   if (!iso) return "—";

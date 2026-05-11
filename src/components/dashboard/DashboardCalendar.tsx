@@ -15,6 +15,7 @@ import {
   hijriDay,
   hijriMonthYear,
   gregMonthYear,
+  toLocalISO,
 } from "../../lib/hijri";
 import {
   useCalendarEvents,
@@ -52,7 +53,7 @@ const eventIcon: Record<
   "contract-end": X,
 };
 
-const isoOf = (d: Date) => d.toISOString().slice(0, 10);
+const isoOf = (d: Date) => toLocalISO(d);
 
 const formatSelectedDate = (iso: string) => {
   const d = new Date(iso);

@@ -9,8 +9,9 @@ import {
   X,
 } from "lucide-react";
 import { useCalendarEvents, type CalendarEventType } from "../../lib/calendarEvents";
+import { toLocalISO } from "../../lib/hijri";
 
-const todayStr = () => new Date().toISOString().slice(0, 10);
+const todayStr = () => toLocalISO(new Date());
 
 const iconMap: Record<CalendarEventType, React.ComponentType<{ className?: string }>> = {
   task: ListTodo,

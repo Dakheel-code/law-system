@@ -2,6 +2,7 @@ import { Calendar, CalendarDays, AlertTriangle, CheckCircle2 } from "lucide-reac
 import type { LucideIcon } from "lucide-react";
 import { useTasks } from "../../lib/taskStore";
 import { useCases } from "../../lib/caseStore";
+import { toLocalISO } from "../../lib/hijri";
 
 type KPI = {
   title: string;
@@ -12,7 +13,7 @@ type KPI = {
   bg: string;
 };
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => toLocalISO(new Date());
 
 const startOfWeek = () => {
   const d = new Date();
@@ -20,12 +21,12 @@ const startOfWeek = () => {
   const day = d.getDay();
   const diff = day === 6 ? 0 : day + 1; // Sat=6 in JS, want offset 0; Sun=0 → 1; Mon=1 → 2…
   d.setDate(d.getDate() - diff);
-  return d.toISOString().slice(0, 10);
+  return toLocalISO(d);
 };
 const endOfWeek = () => {
   const d = new Date(startOfWeek());
   d.setDate(d.getDate() + 6);
-  return d.toISOString().slice(0, 10);
+  return toLocalISO(d);
 };
 
 export default function AppointmentsKpis() {

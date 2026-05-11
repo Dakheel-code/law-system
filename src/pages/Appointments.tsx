@@ -21,6 +21,7 @@ import {
   defaultFilters,
   type AppointmentFilters,
 } from "../components/appointments/filtersTypes";
+import { toLocalISO } from "../lib/hijri";
 
 type Appointment = {
   key: string;
@@ -84,14 +85,14 @@ const caseToAppointment = (c: CaseRecord): Appointment => ({
   assignedTo: c.assignedLawyer,
 });
 
-const todayStr = () => new Date().toISOString().slice(0, 10);
+const todayStr = () => toLocalISO(new Date());
 
 const periodRange = (period: string): { from: string; to: string } | null => {
   const now = new Date();
   const y = now.getFullYear();
   const m = now.getMonth();
   const d = now.getDate();
-  const iso = (dt: Date) => dt.toISOString().slice(0, 10);
+  const iso = (dt: Date) => toLocalISO(dt);
 
   if (period === "today") {
     const today = new Date(y, m, d);
@@ -616,7 +617,7 @@ function CalendarView({ items }: { items: Appointment[] }) {
           const dayNum = i - startOffset + 1;
           const inMonth = dayNum >= 1 && dayNum <= lastDay.getDate();
           const cellDate = new Date(year, month, dayNum);
-          const iso = inMonth ? cellDate.toISOString().slice(0, 10) : null;
+          const iso = inMonth ? toLocalISO(cellDate) : null;
           const events = iso ? byDate.get(iso) ?? [] : [];
           const isTodayCell = iso === tStr;
           return (

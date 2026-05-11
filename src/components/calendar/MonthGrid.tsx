@@ -15,6 +15,7 @@ import {
   hijriMonth,
   hijriMonthYear,
   isSameDay,
+  toLocalISO,
 } from "../../lib/hijri";
 import {
   eventTypeLabel,
@@ -69,7 +70,7 @@ type Props = {
   onSelectDate: (iso: string) => void;
 };
 
-const isoOf = (d: Date) => d.toISOString().slice(0, 10);
+const isoOf = (d: Date) => toLocalISO(d);
 
 const startOfWeek = (d: Date) => {
   const out = new Date(d);
@@ -422,7 +423,7 @@ function DayView({ ref_, byDate }: { ref_: Date; byDate: Map<string, CalendarEve
 // ============================================================
 
 function ListView({ events }: { events: CalendarEvent[] }) {
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = toLocalISO(new Date());
   const sorted = useMemo(
     () => [...events].sort((a, b) => a.date.localeCompare(b.date)),
     [events]

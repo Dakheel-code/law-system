@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useTasks } from "../../lib/taskStore";
+import { toLocalISO } from "../../lib/hijri";
 
 type Stat = {
   title: string;
@@ -20,7 +21,7 @@ type Stat = {
 
 export default function TasksKpis() {
   const { tasks } = useTasks();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = toLocalISO(new Date());
 
   const total = tasks.filter((t) => !t.archived).length;
   const dueToday = tasks.filter((t) => t.dueDate === today && !t.archived).length;

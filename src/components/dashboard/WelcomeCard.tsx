@@ -3,8 +3,9 @@ import { useAuth } from "../../context/AuthContext";
 import { useCases } from "../../lib/caseStore";
 import { useTasks } from "../../lib/taskStore";
 import { useCurrentStaff } from "../../lib/userStore";
+import { toLocalISO } from "../../lib/hijri";
 
-const todayStr = () => new Date().toISOString().slice(0, 10);
+const todayStr = () => toLocalISO(new Date());
 
 export default function WelcomeCard() {
   const { user } = useAuth();

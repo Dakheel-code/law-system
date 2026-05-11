@@ -53,3 +53,17 @@ export const isSameDay = (a: Date, b: Date) =>
   a.getFullYear() === b.getFullYear() &&
   a.getMonth() === b.getMonth() &&
   a.getDate() === b.getDate();
+
+/**
+ * Format a Date as `YYYY-MM-DD` using the LOCAL timezone.
+ *
+ * `Date.prototype.toISOString()` is in UTC, which shifts midnight by the
+ * user's timezone offset (e.g. GMT+3 ⇒ local midnight is 21:00 UTC the
+ * previous day) and causes calendar cells to mismatch the selected date.
+ */
+export const toLocalISO = (d: Date): string => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};

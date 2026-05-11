@@ -5,10 +5,11 @@ import TodayHeader from "../components/calendar/TodayHeader";
 import EventChips from "../components/calendar/EventChips";
 import MonthGrid from "../components/calendar/MonthGrid";
 import SelectedDayEvents from "../components/calendar/SelectedDayEvents";
+import { toLocalISO } from "../lib/hijri";
 
 export default function CalendarPage() {
   const [selectedDate, setSelectedDate] = useState<string | null>(
-    new Date().toISOString().slice(0, 10)
+    toLocalISO(new Date())
   );
 
   return (
