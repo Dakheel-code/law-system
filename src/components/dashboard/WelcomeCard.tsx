@@ -1,14 +1,20 @@
 import { Sun, Moon, Sunset, Sparkles } from "lucide-react";
-import { useTheme } from "../../context/ThemeContext";
+import { useAuth } from "../../context/AuthContext";
 import { useCases } from "../../lib/caseStore";
 import { useTasks } from "../../lib/taskStore";
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
 
 export default function WelcomeCard() {
-  const { theme } = useTheme();
+  const { user } = useAuth();
   const { cases } = useCases();
   const { tasks } = useTasks();
+
+  const displayName =
+    (user?.user_metadata?.full_name as string | undefined) ??
+    (user?.user_metadata?.name as string | undefined) ??
+    user?.email?.split("@")[0] ??
+    "مرحباً";
 
   const hour = new Date().getHours();
   const greeting =
@@ -49,7 +55,7 @@ export default function WelcomeCard() {
         <div className="text-right">
           <div className="flex items-center justify-start gap-3 mb-2">
             <h1 className="text-2xl sm:text-3xl font-extrabold">
-              {greeting}، {theme.shortName || "مرحباً"}
+              {greeting}، {displayName}
             </h1>
             <GreetIcon className="w-7 h-7" />
           </div>
