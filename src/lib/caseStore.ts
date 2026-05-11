@@ -18,6 +18,12 @@ export type CaseParty = {
   address: string;
 };
 
+export type CaseAssignment = {
+  userId: string;
+  role: "primary" | "assistant" | "supervisor" | "custom";
+  customTitle?: string;
+};
+
 export type CaseRecord = {
   id: string;            // UUID
   code: string;          // CSE-XXXXX
@@ -52,6 +58,7 @@ export type CaseRecord = {
   expectedEndDate: string | null;
   assignedLawyer: string | null;
   assignedLawyers: string[];
+  assignments: CaseAssignment[];
   linkedContract: string;
   attachments: CaseAttachment[];
   finalNotes: string;
@@ -93,6 +100,7 @@ type CaseRow = {
   expected_end_date: string | null;
   assigned_lawyer: string | null;
   assigned_lawyers: string[] | null;
+  assignments: CaseAssignment[] | null;
   linked_contract: string | null;
   attachments: CaseAttachment[] | null;
   final_notes: string | null;
@@ -134,6 +142,7 @@ const fromRow = (r: CaseRow): CaseRecord => ({
   expectedEndDate: r.expected_end_date,
   assignedLawyer: r.assigned_lawyer,
   assignedLawyers: Array.isArray(r.assigned_lawyers) ? r.assigned_lawyers : [],
+  assignments: Array.isArray(r.assignments) ? r.assignments : [],
   linkedContract: r.linked_contract ?? "",
   attachments: Array.isArray(r.attachments) ? r.attachments : [],
   finalNotes: r.final_notes ?? "",
@@ -176,8 +185,16 @@ const buildInsert = (form: CaseFormState): Record<string, unknown> => ({
   fees_notes: form.feesNotes,
   start_date: form.startDate || null,
   expected_end_date: form.expectedEndDate || null,
-  assigned_lawyer: form.assignedLawyer || form.assignedLawyers[0] || null,
-  assigned_lawyers: form.assignedLawyers ?? [],
+  assigned_lawyer:
+    form.assignments.find((a) => a.role === "primary")?.userId ||
+    form.assignedLawyer ||
+    form.assignedLawyers[0] ||
+    null,
+  assigned_lawyers:
+    form.assignments.length > 0
+      ? form.assignments.map((a) => a.userId)
+      : form.assignedLawyers ?? [],
+  assignments: form.assignments ?? [],
   linked_contract: form.linkedContract,
   attachments: form.attachments ?? [],
   final_notes: form.finalNotes,

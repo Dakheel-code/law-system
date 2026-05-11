@@ -23,6 +23,21 @@ export type CaseParty = {
   address: string;
 };
 
+export type AssignmentRole = "primary" | "assistant" | "supervisor" | "custom";
+
+export type CaseAssignment = {
+  userId: string;
+  role: AssignmentRole;
+  customTitle?: string;
+};
+
+export const assignmentRoleLabels: Record<AssignmentRole, string> = {
+  primary: "المحامي الأساسي",
+  assistant: "المحامي المساعد",
+  supervisor: "المشرف القانوني",
+  custom: "مخصص",
+};
+
 export type CaseFormState = {
   // Step 1 - Client
   clientId: string | null;       // links to an existing client row (set via search/create)
@@ -72,7 +87,8 @@ export type CaseFormState = {
   startDate: string;
   expectedEndDate: string;
   assignedLawyer: string;            // primary (kept for backward compat)
-  assignedLawyers: string[];         // multi-lawyer assignment
+  assignedLawyers: string[];         // multi-lawyer (kept for backward compat)
+  assignments: CaseAssignment[];     // per-lawyer roles
   linkedContract: string;
 
   // Step 6 - Attachments & notes
@@ -124,6 +140,7 @@ export const initialCase: CaseFormState = {
   expectedEndDate: "",
   assignedLawyer: "",
   assignedLawyers: [],
+  assignments: [],
   linkedContract: "",
 
   attachments: [],

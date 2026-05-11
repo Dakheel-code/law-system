@@ -7,9 +7,18 @@ import {
   Scale,
   User as UserIcon,
   Edit3,
+  Crown,
+  HelpingHand,
+  ShieldCheck,
+  Sparkles,
 } from "lucide-react";
 import StepHeader from "../StepHeader";
-import type { CaseFormState } from "../caseFormTypes";
+import {
+  assignmentRoleLabels,
+  type CaseFormState,
+  type CaseAssignment,
+  type AssignmentRole,
+} from "../caseFormTypes";
 import { useUsers, type UserRecord } from "../../../lib/userStore";
 
 type Props = {
@@ -17,17 +26,42 @@ type Props = {
   update: <K extends keyof CaseFormState>(key: K, value: CaseFormState[K]) => void;
 };
 
+const roleMeta: Record<
+  AssignmentRole,
+  { icon: React.ComponentType<{ className?: string }>; color: string; bg: string; ring: string }
+> = {
+  primary: {
+    icon: Crown,
+    color: "text-amber-700",
+    bg: "bg-amber-50 border-amber-200",
+    ring: "ring-amber-300",
+  },
+  assistant: {
+    icon: HelpingHand,
+    color: "text-sky-700",
+    bg: "bg-sky-50 border-sky-200",
+    ring: "ring-sky-300",
+  },
+  supervisor: {
+    icon: ShieldCheck,
+    color: "text-violet-700",
+    bg: "bg-violet-50 border-violet-200",
+    ring: "ring-violet-300",
+  },
+  custom: {
+    icon: Sparkles,
+    color: "text-slate-700",
+    bg: "bg-slate-50 border-slate-200",
+    ring: "ring-slate-300",
+  },
+};
+
 export default function Step3Assignment({ data, update }: Props) {
   const { users, loading } = useUsers();
   const [open, setOpen] = useState(true);
   const [search, setSearch] = useState("");
 
-  const candidates = users.filter(
-    (u) =>
-      u.status === "active" &&
-      (u.type === "lawyer" || u.type === "manager" || u.type === "supervisor")
-  );
-
+  const candidates = users.filter((u) => u.status === "active");
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return candidates;
@@ -39,29 +73,68 @@ export default function Step3Assignment({ data, update }: Props) {
     );
   }, [candidates, search]);
 
-  const selectedUsers = users.filter((u) => data.assignedLawyers.includes(u.id));
+  const selectedIds = new Set(data.assignments.map((a) => a.userId));
 
-  const toggle = (id: string) => {
-    const next = data.assignedLawyers.includes(id)
-      ? data.assignedLawyers.filter((x) => x !== id)
-      : [...data.assignedLawyers, id];
-    update("assignedLawyers", next);
-    update("assignedLawyer", next[0] ?? "");
+  const addAssignment = (userId: string) => {
+    if (selectedIds.has(userId)) return;
+    // Auto-pick role: first becomes primary if none exists, else assistant
+    const hasPrimary = data.assignments.some((a) => a.role === "primary");
+    const role: AssignmentRole =
+      data.assignments.length === 0 || !hasPrimary ? "primary" : "assistant";
+    const next: CaseAssignment[] = [...data.assignments, { userId, role }];
+    update("assignments", next);
+    // sync legacy fields
+    update("assignedLawyers", next.map((a) => a.userId));
+    update("assignedLawyer", next.find((a) => a.role === "primary")?.userId ?? next[0]?.userId ?? "");
   };
-  const remove = (id: string) => {
-    const next = data.assignedLawyers.filter((x) => x !== id);
-    update("assignedLawyers", next);
-    update("assignedLawyer", next[0] ?? "");
+
+  const removeAssignment = (userId: string) => {
+    const next = data.assignments.filter((a) => a.userId !== userId);
+    update("assignments", next);
+    update("assignedLawyers", next.map((a) => a.userId));
+    update("assignedLawyer", next.find((a) => a.role === "primary")?.userId ?? next[0]?.userId ?? "");
+  };
+
+  const setRole = (userId: string, role: AssignmentRole) => {
+    let next = data.assignments.map((a) =>
+      a.userId === userId
+        ? { ...a, role, customTitle: role === "custom" ? a.customTitle ?? "" : undefined }
+        : a
+    );
+    // Only one primary at a time
+    if (role === "primary") {
+      next = next.map((a) =>
+        a.userId === userId
+          ? a
+          : a.role === "primary"
+          ? { ...a, role: "assistant" as AssignmentRole }
+          : a
+      );
+    }
+    update("assignments", next);
+    update("assignedLawyer", next.find((a) => a.role === "primary")?.userId ?? next[0]?.userId ?? "");
+  };
+
+  const setCustomTitle = (userId: string, customTitle: string) => {
+    const next = data.assignments.map((a) =>
+      a.userId === userId ? { ...a, customTitle } : a
+    );
+    update("assignments", next);
+  };
+
+  const toggle = (userId: string) => {
+    if (selectedIds.has(userId)) removeAssignment(userId);
+    else addAssignment(userId);
   };
 
   return (
     <div className="space-y-6">
       <StepHeader
         title="إسناد القضية"
-        subtitle="عيِّن محامياً واحداً أو أكثر للعمل على هذه القضية"
+        subtitle="عيِّن محامياً واحداً أو أكثر، وحدّد دور كل واحد منهم"
       />
 
-      {/* Selected lawyers */}
+      {/* Assigned list */}
       <div>
         <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
           <button
@@ -70,84 +143,70 @@ export default function Step3Assignment({ data, update }: Props) {
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-brand-600 hover:bg-brand-50 rounded-md"
           >
             <Edit3 className="w-3.5 h-3.5" />
-            {open ? "إخفاء" : selectedUsers.length > 0 ? "تعديل" : "اختيار محامين"}
+            {open ? "إخفاء القائمة" : "إضافة مستخدمين"}
           </button>
           <h3 className="flex items-center justify-start gap-2 text-base font-bold text-slate-700">
-            المحامون المعيَّنون
+            المُسنَدون
             <span className="text-slate-400 font-normal text-sm">
-              ({selectedUsers.length})
+              ({data.assignments.length})
             </span>
             <Scale className="w-4 h-4 text-brand-500" />
           </h3>
         </div>
 
-        {selectedUsers.length === 0 ? (
+        {data.assignments.length === 0 ? (
           <div className="rounded-xl border-2 border-dashed border-slate-200 p-6 text-center">
             <Scale
               className="w-10 h-10 text-slate-300 mx-auto mb-2"
               strokeWidth={1.4}
             />
             <p className="text-sm text-slate-500">
-              لم يتم تعيين محامي للقضية بعد — اختر من القائمة أدناه
+              لم يتم إسناد القضية لأحد بعد — اختر من القائمة أدناه
             </p>
           </div>
         ) : (
-          <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            {selectedUsers.map((u, i) => (
-              <li
-                key={u.id}
-                className="flex items-center gap-3 p-3 rounded-xl border border-brand-200 bg-brand-50/40"
-              >
-                <button
-                  type="button"
-                  onClick={() => remove(u.id)}
-                  className="p-1.5 text-rose-500 hover:bg-rose-100 rounded-md shrink-0"
-                  title="إزالة"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-                {i === 0 && (
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded shrink-0">
-                    أساسي
-                  </span>
-                )}
-                <div className="flex-1 min-w-0 text-right">
-                  <div className="text-sm font-bold text-slate-800 truncate">
-                    {u.fullName || u.code}
-                  </div>
-                  <div className="text-[10px] text-slate-500 truncate">
-                    {u.type === "lawyer"
-                      ? "محامي"
-                      : u.type === "manager"
-                      ? "مدير"
-                      : u.type === "supervisor"
-                      ? "مشرف"
-                      : u.type}
-                    {u.email && <> · <bdi dir="ltr">{u.email}</bdi></>}
-                  </div>
-                </div>
-                {u.avatarDataUrl ? (
-                  <img
-                    src={u.avatarDataUrl}
-                    alt={u.fullName}
-                    className="w-9 h-9 rounded-full object-cover ring-2 ring-white shrink-0"
-                  />
-                ) : (
-                  <div className="w-9 h-9 rounded-full bg-brand-500 text-white flex items-center justify-center font-bold text-xs ring-2 ring-white shrink-0">
-                    {(u.firstName?.[0] || u.fullName?.[0] || "؟").toUpperCase()}
-                  </div>
-                )}
-              </li>
-            ))}
+          <ul className="space-y-3">
+            {data.assignments.map((a) => {
+              const user = users.find((u) => u.id === a.userId);
+              if (!user) {
+                return (
+                  <li
+                    key={a.userId}
+                    className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 bg-slate-50"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => removeAssignment(a.userId)}
+                      className="p-1.5 text-rose-500 hover:bg-rose-100 rounded-md"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                    <span className="text-xs text-slate-500">
+                      مستخدم غير معروف ({a.userId})
+                    </span>
+                  </li>
+                );
+              }
+              return (
+                <AssignmentCard
+                  key={a.userId}
+                  user={user}
+                  assignment={a}
+                  onRemove={() => removeAssignment(a.userId)}
+                  onSetRole={(r) => setRole(a.userId, r)}
+                  onSetCustomTitle={(t) => setCustomTitle(a.userId, t)}
+                />
+              );
+            })}
           </ul>
         )}
       </div>
 
-      {/* Picker list */}
+      {/* Picker */}
       {open && (
         <div className="border-t border-dashed border-slate-200 pt-5">
           <h4 className="text-sm font-bold text-slate-700 text-right mb-3">
-            اختر من قائمة المحامين
+            اختر من قائمة المستخدمين
           </h4>
           <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
             <div className="p-2 border-b border-slate-100 relative">
@@ -166,11 +225,11 @@ export default function Step3Assignment({ data, update }: Props) {
                 </div>
               ) : filtered.length === 0 ? (
                 <div className="text-center text-xs text-slate-400 py-8">
-                  لا يوجد محامون مطابقون
+                  لا يوجد مستخدمون مطابقون
                 </div>
               ) : (
                 filtered.map((u) => {
-                  const sel = data.assignedLawyers.includes(u.id);
+                  const sel = selectedIds.has(u.id);
                   return (
                     <button
                       type="button"
@@ -220,16 +279,16 @@ export default function Step3Assignment({ data, update }: Props) {
             </div>
             <div className="p-2 border-t border-slate-100 flex items-center justify-between text-xs bg-slate-50">
               <span className="text-slate-500">
-                {data.assignedLawyers.length} مختار من{" "}
-                <bdi dir="ltr">{candidates.length}</bdi>
+                {selectedIds.size} مختار من <bdi dir="ltr">{candidates.length}</bdi>
               </span>
               <button
                 type="button"
                 onClick={() => {
+                  update("assignments", []);
                   update("assignedLawyers", []);
                   update("assignedLawyer", "");
                 }}
-                disabled={data.assignedLawyers.length === 0}
+                disabled={data.assignments.length === 0}
                 className="text-rose-500 hover:text-rose-600 font-bold disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 مسح الكل
@@ -243,11 +302,158 @@ export default function Step3Assignment({ data, update }: Props) {
       <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-3 text-xs text-amber-800 flex items-start gap-2">
         <UsersIcon className="w-4 h-4 shrink-0 mt-0.5" />
         <p className="text-right flex-1 leading-6">
-          المحامي الأول في القائمة يُعدّ <strong>المحامي الأساسي</strong>{" "}
-          للقضية. يمكنك إعادة الترتيب لاحقاً بإزالة المحامي وإضافته من جديد.
+          اختر لكل مستخدم دوره في القضية. الأدوار المتاحة:{" "}
+          <strong>المحامي الأساسي</strong> /{" "}
+          <strong>المحامي المساعد</strong> /{" "}
+          <strong>المشرف القانوني</strong>. أو اختر «مخصص» لإضافة مسمى خاص بالقضية.
         </p>
       </div>
     </div>
+  );
+}
+
+// ============================================================
+// Assignment card — shows user + role selector + custom title
+// ============================================================
+
+function AssignmentCard({
+  user,
+  assignment,
+  onRemove,
+  onSetRole,
+  onSetCustomTitle,
+}: {
+  user: UserRecord;
+  assignment: CaseAssignment;
+  onRemove: () => void;
+  onSetRole: (r: AssignmentRole) => void;
+  onSetCustomTitle: (t: string) => void;
+}) {
+  const meta = roleMeta[assignment.role];
+  const Icon = meta.icon;
+  const roleLabel =
+    assignment.role === "custom"
+      ? assignment.customTitle?.trim() || "مخصص"
+      : assignmentRoleLabels[assignment.role];
+
+  return (
+    <li className={`rounded-xl border p-3 ${meta.bg}`}>
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            type="button"
+            onClick={onRemove}
+            className="p-1.5 text-rose-500 hover:bg-rose-100 rounded-md"
+            title="إزالة"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+        <span
+          className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-bold bg-white border ${meta.ring} ${meta.color}`}
+        >
+          <Icon className="w-3.5 h-3.5" />
+          {roleLabel}
+        </span>
+        <div className="flex-1 min-w-0 flex items-center gap-2 justify-end">
+          <div className="text-right min-w-0">
+            <div className="text-sm font-bold text-slate-800 truncate">
+              {user.fullName || user.code}
+            </div>
+            <div className="text-[10px] text-slate-500 truncate">
+              {user.email || user.code}
+            </div>
+          </div>
+          {user.avatarDataUrl ? (
+            <img
+              src={user.avatarDataUrl}
+              alt={user.fullName}
+              className="w-9 h-9 rounded-full object-cover ring-2 ring-white shrink-0"
+            />
+          ) : (
+            <div className="w-9 h-9 rounded-full bg-brand-500 text-white flex items-center justify-center font-bold text-xs ring-2 ring-white shrink-0">
+              {(user.firstName?.[0] || user.fullName?.[0] || "؟").toUpperCase()}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Role selector */}
+      <div className="mt-3 pt-3 border-t border-white/50 flex flex-wrap items-center justify-end gap-1.5">
+        <RolePill
+          icon={Crown}
+          label="المحامي الأساسي"
+          active={assignment.role === "primary"}
+          onClick={() => onSetRole("primary")}
+          activeColor="bg-amber-500"
+        />
+        <RolePill
+          icon={HelpingHand}
+          label="المحامي المساعد"
+          active={assignment.role === "assistant"}
+          onClick={() => onSetRole("assistant")}
+          activeColor="bg-sky-500"
+        />
+        <RolePill
+          icon={ShieldCheck}
+          label="المشرف القانوني"
+          active={assignment.role === "supervisor"}
+          onClick={() => onSetRole("supervisor")}
+          activeColor="bg-violet-500"
+        />
+        <RolePill
+          icon={Sparkles}
+          label="مخصص"
+          active={assignment.role === "custom"}
+          onClick={() => onSetRole("custom")}
+          activeColor="bg-slate-700"
+        />
+      </div>
+
+      {/* Custom title input */}
+      {assignment.role === "custom" && (
+        <div className="mt-3">
+          <label className="block text-xs font-bold text-slate-500 mb-1.5 text-right">
+            المسمى المخصص داخل القضية *
+          </label>
+          <input
+            value={assignment.customTitle ?? ""}
+            onChange={(e) => onSetCustomTitle(e.target.value)}
+            placeholder="مثال: مستشار قانوني، محامي ثانوي، خبير شرعي..."
+            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-md text-sm text-right focus:outline-none focus:ring-2 focus:ring-brand-200"
+          />
+        </div>
+      )}
+    </li>
+  );
+}
+
+function RolePill({
+  icon: Icon,
+  label,
+  active,
+  onClick,
+  activeColor,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  active: boolean;
+  onClick: () => void;
+  activeColor: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition border ${
+        active
+          ? `${activeColor} text-white border-transparent shadow-sm`
+          : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+      }`}
+    >
+      <Icon className="w-3.5 h-3.5" />
+      {label}
+    </button>
   );
 }
 

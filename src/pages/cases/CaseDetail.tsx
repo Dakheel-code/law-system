@@ -235,12 +235,29 @@ export default function CaseDetail() {
   }
 
   const c = caseData;
-  const lawyerIds = c.assignedLawyers && c.assignedLawyers.length > 0
-    ? c.assignedLawyers
-    : c.assignedLawyer
-    ? [c.assignedLawyer]
-    : [];
-  const lawyers = users.filter((u) => lawyerIds.includes(u.id));
+  // Build a list of { user, role, customTitle } — prefer new `assignments`,
+  // fall back to legacy `assignedLawyers`.
+  const assignmentsList =
+    c.assignments && c.assignments.length > 0
+      ? c.assignments
+      : (c.assignedLawyers ?? []).map((uid, i) => ({
+          userId: uid,
+          role: (i === 0 ? "primary" : "assistant") as
+            | "primary"
+            | "assistant",
+          customTitle: undefined as string | undefined,
+        }));
+  const enrichedAssignments = assignmentsList
+    .map((a) => {
+      const user = users.find((u) => u.id === a.userId);
+      return user ? { ...a, user } : null;
+    })
+    .filter(Boolean) as Array<{
+    userId: string;
+    role: "primary" | "assistant" | "supervisor" | "custom";
+    customTitle?: string;
+    user: UserRecord;
+  }>;
 
   // Build maps of non-empty entries for compact rendering
   const clientEntries = client
@@ -455,14 +472,14 @@ export default function CaseDetail() {
         </Section>
       </div>
 
-      {/* Lawyers */}
-      <Section title="المحامون المعيّنون" icon={Scale}>
-        {lawyers.length === 0 ? (
-          <Empty text="لم يتم تعيين محامي لهذه القضية" />
+      {/* Assignments */}
+      <Section title={`الإسناد (${enrichedAssignments.length})`} icon={Scale}>
+        {enrichedAssignments.length === 0 ? (
+          <Empty text="لم يتم إسناد القضية لأحد" />
         ) : (
-          <div className="flex flex-wrap items-center gap-2">
-            {lawyers.map((u) => (
-              <LawyerChip key={u.id} user={u} />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {enrichedAssignments.map((a) => (
+              <AssignmentChip key={a.userId} item={a} />
             ))}
           </div>
         )}
@@ -640,23 +657,76 @@ function Empty({ text }: { text: string }) {
   );
 }
 
-function LawyerChip({ user }: { user: UserRecord }) {
+const assignmentRoleStyles: Record<
+  "primary" | "assistant" | "supervisor" | "custom",
+  { bg: string; chip: string; iconColor: string; label: string }
+> = {
+  primary: {
+    bg: "border-amber-200 bg-amber-50/60",
+    chip: "bg-amber-100 text-amber-700",
+    iconColor: "text-amber-600",
+    label: "المحامي الأساسي",
+  },
+  assistant: {
+    bg: "border-sky-200 bg-sky-50/60",
+    chip: "bg-sky-100 text-sky-700",
+    iconColor: "text-sky-600",
+    label: "المحامي المساعد",
+  },
+  supervisor: {
+    bg: "border-violet-200 bg-violet-50/60",
+    chip: "bg-violet-100 text-violet-700",
+    iconColor: "text-violet-600",
+    label: "المشرف القانوني",
+  },
+  custom: {
+    bg: "border-slate-200 bg-slate-50/60",
+    chip: "bg-slate-200 text-slate-700",
+    iconColor: "text-slate-600",
+    label: "مخصص",
+  },
+};
+
+function AssignmentChip({
+  item,
+}: {
+  item: {
+    role: "primary" | "assistant" | "supervisor" | "custom";
+    customTitle?: string;
+    user: UserRecord;
+  };
+}) {
+  const styles = assignmentRoleStyles[item.role];
+  const roleLabel =
+    item.role === "custom"
+      ? item.customTitle?.trim() || "مخصص"
+      : styles.label;
   return (
-    <div className="inline-flex items-center gap-2 pl-3 pr-1 py-1 bg-brand-50 border border-brand-200 rounded-full">
-      {user.avatarDataUrl ? (
+    <div className={`flex items-center gap-2 p-2.5 rounded-xl border ${styles.bg}`}>
+      <span
+        className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold ${styles.chip}`}
+      >
+        {roleLabel}
+      </span>
+      <div className="flex-1 min-w-0 text-right">
+        <div className="text-sm font-bold text-slate-800 truncate">
+          {item.user.fullName || item.user.code}
+        </div>
+        <div className="text-[10px] text-slate-500 truncate">
+          {item.user.email || item.user.code}
+        </div>
+      </div>
+      {item.user.avatarDataUrl ? (
         <img
-          src={user.avatarDataUrl}
-          alt={user.fullName}
-          className="w-7 h-7 rounded-full object-cover ring-2 ring-white"
+          src={item.user.avatarDataUrl}
+          alt={item.user.fullName}
+          className="w-8 h-8 rounded-full object-cover ring-2 ring-white shrink-0"
         />
       ) : (
-        <div className="w-7 h-7 rounded-full bg-brand-500 text-white flex items-center justify-center text-xs font-bold ring-2 ring-white">
-          {(user.firstName?.[0] || user.fullName?.[0] || "؟").toUpperCase()}
+        <div className="w-8 h-8 rounded-full bg-brand-500 text-white flex items-center justify-center text-xs font-bold ring-2 ring-white shrink-0">
+          {(item.user.firstName?.[0] || item.user.fullName?.[0] || "؟").toUpperCase()}
         </div>
       )}
-      <span className="text-sm font-bold text-brand-700">
-        {user.fullName || user.code}
-      </span>
     </div>
   );
 }

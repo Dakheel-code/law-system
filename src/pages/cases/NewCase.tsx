@@ -94,6 +94,15 @@ export default function NewCase() {
         expectedEndDate: c.expectedEndDate ?? "",
         assignedLawyer: c.assignedLawyer ?? "",
         assignedLawyers: c.assignedLawyers ?? [],
+        assignments:
+          c.assignments && c.assignments.length > 0
+            ? (c.assignments as CaseFormState["assignments"])
+            : (c.assignedLawyers ?? []).map((uid, i) => ({
+                userId: uid,
+                role: (i === 0 ? "primary" : "assistant") as
+                  | "primary"
+                  | "assistant",
+              })),
         linkedContract: c.linkedContract,
         attachments: c.attachments ?? [],
         finalNotes: c.finalNotes,
