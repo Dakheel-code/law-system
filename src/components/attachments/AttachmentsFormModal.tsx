@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   X,
   Save,
@@ -22,6 +22,7 @@ import {
 
 type Props = {
   initialCaseId?: string;
+  initialFiles?: File[];          // pre-load these files (e.g. from a drag-drop)
   lockCase?: boolean;
   onClose: () => void;
   onSaved?: () => void;
@@ -45,6 +46,7 @@ const fmtSize = (n: number) => {
 
 export default function AttachmentsFormModal({
   initialCaseId,
+  initialFiles,
   lockCase = false,
   onClose,
   onSaved,
@@ -58,6 +60,18 @@ export default function AttachmentsFormModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Load any files passed in on first mount (e.g. from page-level drag-drop).
+  // Guard with a ref so StrictMode's double-effect doesn't import them twice.
+  const loadedInitialRef = useRef(false);
+  useEffect(() => {
+    if (loadedInitialRef.current) return;
+    if (initialFiles && initialFiles.length > 0) {
+      loadedInitialRef.current = true;
+      void handleFiles(initialFiles);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const selectedCase = useMemo(
     () => cases.find((c) => c.id === caseId) ?? null,

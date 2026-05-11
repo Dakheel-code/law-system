@@ -60,6 +60,7 @@ export default function Attachments() {
   const [search, setSearch] = useState("");
   const [kindFilter, setKindFilter] = useState<FileFilter>("all");
   const [openModal, setOpenModal] = useState(false);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [dropOver, setDropOver] = useState(false);
 
   const allAttachments = useMemo<EnrichedAttachment[]>(() => {
@@ -127,13 +128,21 @@ export default function Attachments() {
   const onPageDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDropOver(false);
-    if (e.dataTransfer.files.length === 0) return;
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length === 0) return;
+    setPendingFiles(files);
     setOpenModal(true);
   };
 
   // Quick upload via button (no case selected) — just opens modal
   const quickAdd = () => {
+    setPendingFiles([]);
     setOpenModal(true);
+  };
+
+  const closeModal = () => {
+    setOpenModal(false);
+    setPendingFiles([]);
   };
 
   return (
@@ -307,7 +316,8 @@ export default function Attachments() {
 
       {openModal && (
         <AttachmentsFormModal
-          onClose={() => setOpenModal(false)}
+          initialFiles={pendingFiles}
+          onClose={closeModal}
         />
       )}
     </div>
