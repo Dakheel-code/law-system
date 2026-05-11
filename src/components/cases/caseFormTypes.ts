@@ -5,9 +5,12 @@ export type FeeItem = {
   amount: number;
 };
 
+export type PartyRole = "plaintiff" | "defendant";
+
 export type CaseFormState = {
   // Step 1 - Client
   clientId: string | null;       // links to an existing client row (set via search/create)
+  clientRole: PartyRole;         // العميل: مدعي / مدعى عليه
   clientType: string;
   clientName: string;
   idType: string;
@@ -18,6 +21,7 @@ export type CaseFormState = {
   address: string;
 
   // Step 2 - Other party + case
+  opponentRole: PartyRole;       // الخصم: مدعي / مدعى عليه
   otherPartyName: string;
   otherPartyId: string;
   otherPartyPhone: string;
@@ -27,6 +31,12 @@ export type CaseFormState = {
   requestTitle: string;
   urgency: string;
   description: string;
+  // Extended case details
+  caseNumber: string;            // رقم القضية
+  claimSubject: string;          // نوع المطالبة (نصي)
+  circuitName: string;           // اسم الدائرة
+  assignmentDate: string;        // تاريخ تكليف القضية
+  caseDate: string;              // تاريخ القضية
 
   // Step 3 - Financial
   claimType: string;
@@ -53,6 +63,7 @@ export type CaseFormState = {
 
 export const initialCase: CaseFormState = {
   clientId: null,
+  clientRole: "plaintiff",
   clientType: "individual",
   clientName: "",
   idType: "national",
@@ -62,6 +73,7 @@ export const initialCase: CaseFormState = {
   city: "",
   address: "",
 
+  opponentRole: "defendant",
   otherPartyName: "",
   otherPartyId: "",
   otherPartyPhone: "",
@@ -71,6 +83,11 @@ export const initialCase: CaseFormState = {
   requestTitle: "",
   urgency: "normal",
   description: "",
+  caseNumber: "",
+  claimSubject: "",
+  circuitName: "",
+  assignmentDate: "",
+  caseDate: "",
 
   claimType: "financial",
   estimatedFees: 0,

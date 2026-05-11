@@ -80,6 +80,25 @@ export default function Step1Client({ data, update }: Props) {
         subtitle="أدخل بيانات العميل المتقدم بالطلب"
       />
 
+      {/* Client role */}
+      <div>
+        <label className="block text-xs font-bold text-slate-500 mb-2 text-right">
+          صفة العميل في القضية
+        </label>
+        <div className="flex items-center justify-start gap-2">
+          <RoleButton
+            label="مدّعي"
+            active={data.clientRole === "plaintiff"}
+            onClick={() => update("clientRole", "plaintiff")}
+          />
+          <RoleButton
+            label="مدّعى عليه"
+            active={data.clientRole === "defendant"}
+            onClick={() => update("clientRole", "defendant")}
+          />
+        </div>
+      </div>
+
       {/* Search / create card */}
       <div className="rounded-xl border-2 border-dashed border-violet-200 bg-violet-50/40 p-4 space-y-3">
         <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -309,6 +328,37 @@ export default function Step1Client({ data, update }: Props) {
         />
       </Field>
     </div>
+  );
+}
+
+function RoleButton({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg border-2 text-sm font-bold transition ${
+        active
+          ? "bg-brand-50 border-brand-500 text-brand-700"
+          : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+      }`}
+    >
+      <span
+        className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+          active ? "border-brand-500" : "border-slate-300"
+        }`}
+      >
+        {active && <span className="w-2 h-2 rounded-full bg-brand-500" />}
+      </span>
+      {label}
+    </button>
   );
 }
 

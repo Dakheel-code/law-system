@@ -6,6 +6,8 @@ export type CaseRecord = {
   id: string;            // UUID
   code: string;          // CSE-XXXXX
   clientId: string | null;
+  clientRole: string;
+  opponentRole: string;
   caseType: string;
   courtType: string;
   requestTitle: string;
@@ -16,6 +18,11 @@ export type CaseRecord = {
   otherPartyId: string;
   otherPartyPhone: string;
   otherPartyAddress: string;
+  caseNumber: string;
+  claimSubject: string;
+  circuitName: string;
+  assignmentDate: string | null;
+  caseDate: string | null;
   claimType: string;
   estimatedFees: number;
   consultationFees: number;
@@ -37,6 +44,8 @@ type CaseRow = {
   id: string;
   case_code: string;
   client_id: string | null;
+  client_role: string | null;
+  opponent_role: string | null;
   case_type: string | null;
   court_type: string | null;
   request_title: string | null;
@@ -47,6 +56,11 @@ type CaseRow = {
   other_party_id: string | null;
   other_party_phone: string | null;
   other_party_address: string | null;
+  case_number: string | null;
+  claim_subject: string | null;
+  circuit_name: string | null;
+  assignment_date: string | null;
+  case_date: string | null;
   claim_type: string | null;
   estimated_fees: number | null;
   consultation_fees: number | null;
@@ -68,6 +82,8 @@ const fromRow = (r: CaseRow): CaseRecord => ({
   id: r.id,
   code: r.case_code,
   clientId: r.client_id,
+  clientRole: r.client_role ?? "plaintiff",
+  opponentRole: r.opponent_role ?? "defendant",
   caseType: r.case_type ?? "",
   courtType: r.court_type ?? "",
   requestTitle: r.request_title ?? "",
@@ -78,6 +94,11 @@ const fromRow = (r: CaseRow): CaseRecord => ({
   otherPartyId: r.other_party_id ?? "",
   otherPartyPhone: r.other_party_phone ?? "",
   otherPartyAddress: r.other_party_address ?? "",
+  caseNumber: r.case_number ?? "",
+  claimSubject: r.claim_subject ?? "",
+  circuitName: r.circuit_name ?? "",
+  assignmentDate: r.assignment_date,
+  caseDate: r.case_date,
   claimType: r.claim_type ?? "financial",
   estimatedFees: r.estimated_fees ?? 0,
   consultationFees: r.consultation_fees ?? 0,
@@ -102,6 +123,8 @@ export function generateCaseCode(): string {
 const buildInsert = (form: CaseFormState): Record<string, unknown> => ({
   case_code: generateCaseCode(),
   client_id: form.clientId || null,
+  client_role: form.clientRole,
+  opponent_role: form.opponentRole,
   case_type: form.caseType,
   court_type: form.courtType,
   request_title: form.requestTitle,
@@ -112,6 +135,11 @@ const buildInsert = (form: CaseFormState): Record<string, unknown> => ({
   other_party_id: form.otherPartyId,
   other_party_phone: form.otherPartyPhone,
   other_party_address: form.otherPartyAddress,
+  case_number: form.caseNumber || null,
+  claim_subject: form.claimSubject || null,
+  circuit_name: form.circuitName || null,
+  assignment_date: form.assignmentDate || null,
+  case_date: form.caseDate || null,
   claim_type: form.claimType,
   estimated_fees: form.estimatedFees,
   consultation_fees: form.consultationFees,
