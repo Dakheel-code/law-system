@@ -1,8 +1,15 @@
 // Google Drive client wrapper.
 //
 // All Drive API calls go through here. Access tokens are obtained from
-// our Netlify function `/api/drive/token` (which holds the refresh_token
-// server-side) and cached in memory for the duration of their lifetime.
+// our Netlify function `/.netlify/functions/drive-token` (which holds the
+// refresh_token server-side) and cached in memory.
+//
+// Supports both modes:
+//   1) "My Drive"     — files live under a "ناصر طريد" folder in the
+//      connected user's personal Drive.
+//   2) Shared Drive   — files live directly inside an organization-owned
+//      Shared Drive (Workspace feature). The Shared Drive ID is stored
+//      on `drive_connection.shared_drive_id`.
 
 import { supabase } from "./supabase";
 
@@ -25,10 +32,12 @@ export type DriveFile = {
   parents?: string[];
 };
 
-// In-memory access token cache.
+// ----------------------------------------------------------------
+// Token
+// ----------------------------------------------------------------
+
 let cachedToken: { value: string; expiresAt: number } | null = null;
 
-/** Get a fresh access token (refreshes via Netlify function when needed). */
 export async function getAccessToken(): Promise<string> {
   if (cachedToken && cachedToken.expiresAt > Date.now() + 30_000) {
     return cachedToken.value;
@@ -77,7 +86,37 @@ export class DriveDisconnectedError extends Error {
   }
 }
 
-/** Authenticated fetch against the Drive REST API. */
+// ----------------------------------------------------------------
+// Shared Drive state — cached after the first read
+// ----------------------------------------------------------------
+
+let sharedDriveCache: { id: string | null; loadedAt: number } | null = null;
+const SHARED_DRIVE_CACHE_TTL = 60_000; // 1 minute
+
+async function getSharedDriveId(): Promise<string | null> {
+  if (
+    sharedDriveCache &&
+    Date.now() - sharedDriveCache.loadedAt < SHARED_DRIVE_CACHE_TTL
+  ) {
+    return sharedDriveCache.id;
+  }
+  if (!supabase) return null;
+  const { data } = await supabase.rpc("drive_connection_status");
+  const row = Array.isArray(data) ? data[0] : data;
+  const id = row?.shared_drive_id ?? null;
+  sharedDriveCache = { id, loadedAt: Date.now() };
+  return id;
+}
+
+/** Force a re-read of Shared Drive config (e.g. after the user updates it). */
+export function invalidateSharedDriveCache() {
+  sharedDriveCache = null;
+}
+
+// ----------------------------------------------------------------
+// Authenticated fetch with Shared-Drive aware params
+// ----------------------------------------------------------------
+
 async function driveFetch(
   path: string,
   init: RequestInit = {}
@@ -93,57 +132,69 @@ async function driveFetch(
   return res;
 }
 
+/** Add Shared Drive search params (or `supportsAllDrives` for non-shared ops). */
+async function withDriveParams(extra: Record<string, string> = {}, forList = false) {
+  const sharedId = await getSharedDriveId();
+  const params = new URLSearchParams(extra);
+  params.set("supportsAllDrives", "true");
+  if (sharedId && forList) {
+    params.set("includeItemsFromAllDrives", "true");
+    params.set("corpora", "drive");
+    params.set("driveId", sharedId);
+  }
+  return params;
+}
+
 // ----------------------------------------------------------------
 // Folders
 // ----------------------------------------------------------------
 
-/** Look up a folder by name under a given parent. Returns id or null. */
-async function findFolder(name: string, parentId?: string): Promise<string | null> {
+async function findFolder(
+  name: string,
+  parentId: string
+): Promise<string | null> {
   const q = [
     `mimeType='${FOLDER_MIME}'`,
     `name='${escapeQ(name)}'`,
     "trashed=false",
-    parentId ? `'${parentId}' in parents` : "",
-  ]
-    .filter(Boolean)
-    .join(" and ");
-  const params = new URLSearchParams({
-    q,
-    fields: "files(id,name)",
-    pageSize: "1",
-    // With drive.file scope we can only see files our app created.
-    spaces: "drive",
-  });
+    `'${parentId}' in parents`,
+  ].join(" and ");
+  const params = await withDriveParams(
+    { q, fields: "files(id,name)", pageSize: "1", spaces: "drive" },
+    /* forList */ true
+  );
   const res = await driveFetch(`/files?${params}`);
   const { files } = (await res.json()) as { files: { id: string; name: string }[] };
   return files?.[0]?.id ?? null;
 }
 
-/** Create a folder under parent (or My Drive if no parent). Returns id. */
-async function createFolder(name: string, parentId?: string): Promise<string> {
-  const res = await driveFetch("/files?fields=id", {
+async function createFolder(name: string, parentId: string): Promise<string> {
+  const params = await withDriveParams({ fields: "id" });
+  const res = await driveFetch(`/files?${params}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       name,
       mimeType: FOLDER_MIME,
-      parents: parentId ? [parentId] : undefined,
+      parents: [parentId],
     }),
   });
   const { id } = (await res.json()) as { id: string };
   return id;
 }
 
-/** Get or create a folder by name under parent. */
-async function ensureFolder(name: string, parentId?: string): Promise<string> {
+async function ensureFolder(name: string, parentId: string): Promise<string> {
   const existing = await findFolder(name, parentId);
   if (existing) return existing;
   return createFolder(name, parentId);
 }
 
 /**
- * Ensure the office folder hierarchy exists. Caches the IDs in
- * `drive_connection` to avoid repeating the lookups on every call.
+ * Ensure the office folder hierarchy exists.
+ *  - Shared Drive mode: skip the "ناصر طريد" wrapper; create "قضايا" and "عملاء"
+ *    directly inside the Shared Drive root.
+ *  - Personal Drive mode: create "ناصر طريد" under My Drive, then the two
+ *    subfolders inside it.
  */
 export async function ensureOfficeFolders(): Promise<{
   rootId: string;
@@ -152,35 +203,51 @@ export async function ensureOfficeFolders(): Promise<{
 }> {
   if (!supabase) throw new Error("Supabase not configured");
 
-  // Try cache first (via SECURITY DEFINER function — safe columns only)
+  // Cache check
   const { data } = await supabase.rpc("drive_connection_status");
   const row = Array.isArray(data) ? data[0] : data;
-
   let rootId = row?.root_folder_id ?? null;
   let casesId = row?.cases_folder_id ?? null;
   let clientsId = row?.clients_folder_id ?? null;
 
-  // Verify cached folders still exist (they may have been deleted in Drive UI)
   if (rootId && !(await folderExists(rootId))) rootId = null;
   if (casesId && !(await folderExists(casesId))) casesId = null;
   if (clientsId && !(await folderExists(clientsId))) clientsId = null;
 
+  const sharedId = await getSharedDriveId();
   let changed = false;
-  if (!rootId) {
-    rootId = await ensureFolder(ROOT_FOLDER_NAME);
-    changed = true;
-  }
-  if (!casesId) {
-    casesId = await ensureFolder(CASES_FOLDER_NAME, rootId);
-    changed = true;
-  }
-  if (!clientsId) {
-    clientsId = await ensureFolder(CLIENTS_FOLDER_NAME, rootId);
-    changed = true;
+
+  if (sharedId) {
+    // Shared Drive IS the root; do NOT create a "ناصر طريد" wrapper.
+    if (rootId !== sharedId) {
+      rootId = sharedId;
+      changed = true;
+    }
+    if (!casesId) {
+      casesId = await ensureFolder(CASES_FOLDER_NAME, sharedId);
+      changed = true;
+    }
+    if (!clientsId) {
+      clientsId = await ensureFolder(CLIENTS_FOLDER_NAME, sharedId);
+      changed = true;
+    }
+  } else {
+    // Personal Drive — use the user's My Drive root.
+    if (!rootId) {
+      rootId = await ensureFolder(ROOT_FOLDER_NAME, "root");
+      changed = true;
+    }
+    if (!casesId) {
+      casesId = await ensureFolder(CASES_FOLDER_NAME, rootId);
+      changed = true;
+    }
+    if (!clientsId) {
+      clientsId = await ensureFolder(CLIENTS_FOLDER_NAME, rootId);
+      changed = true;
+    }
   }
 
   if (changed) {
-    // SECURITY DEFINER function — frontend cannot update refresh_token directly.
     await supabase.rpc("drive_connection_update_folders", {
       p_root_folder_id: rootId,
       p_cases_folder_id: casesId,
@@ -188,24 +255,20 @@ export async function ensureOfficeFolders(): Promise<{
     });
   }
 
-  return { rootId, casesId, clientsId };
+  return { rootId: rootId!, casesId: casesId!, clientsId: clientsId! };
 }
 
 async function folderExists(id: string): Promise<boolean> {
   try {
-    await driveFetch(
-      `/files/${encodeURIComponent(id)}?fields=id,trashed,mimeType`
-    );
+    const params = await withDriveParams({ fields: "id,trashed,mimeType" });
+    await driveFetch(`/files/${encodeURIComponent(id)}?${params}`);
     return true;
   } catch {
     return false;
   }
 }
 
-/**
- * Get or create the folder for a case/client. Stores the mapping in
- * `drive_folders` so subsequent calls are a single DB read.
- */
+/** Get or create the folder for a case/client. */
 export async function ensureEntityFolder(
   entityType: "case" | "client",
   entityId: string,
@@ -213,7 +276,6 @@ export async function ensureEntityFolder(
 ): Promise<string> {
   if (!supabase) throw new Error("Supabase not configured");
 
-  // 1) Check mapping
   const { data: existing } = await supabase
     .from("drive_folders")
     .select("folder_id")
@@ -222,9 +284,7 @@ export async function ensureEntityFolder(
     .maybeSingle();
 
   if (existing?.folder_id) {
-    // Verify it still exists in Drive (user may have deleted it manually)
     if (await folderExists(existing.folder_id)) return existing.folder_id;
-    // Stale mapping — wipe and recreate below
     await supabase
       .from("drive_folders")
       .delete()
@@ -232,12 +292,10 @@ export async function ensureEntityFolder(
       .eq("entity_id", entityId);
   }
 
-  // 2) Create under the appropriate parent
   const { casesId, clientsId } = await ensureOfficeFolders();
   const parentId = entityType === "case" ? casesId : clientsId;
   const folderId = await ensureFolder(displayName, parentId);
 
-  // 3) Cache mapping
   await supabase.from("drive_folders").insert({
     entity_type: entityType,
     entity_id: entityId,
@@ -252,21 +310,22 @@ export async function ensureEntityFolder(
 // Files
 // ----------------------------------------------------------------
 
-/** List files in a folder. */
 export async function listFiles(folderId: string): Promise<DriveFile[]> {
-  const params = new URLSearchParams({
-    q: `'${folderId}' in parents and trashed=false`,
-    fields:
-      "files(id,name,mimeType,size,modifiedTime,webViewLink,iconLink,thumbnailLink,parents)",
-    orderBy: "folder,name",
-    pageSize: "200",
-  });
+  const params = await withDriveParams(
+    {
+      q: `'${folderId}' in parents and trashed=false`,
+      fields:
+        "files(id,name,mimeType,size,modifiedTime,webViewLink,iconLink,thumbnailLink,parents)",
+      orderBy: "folder,name",
+      pageSize: "200",
+    },
+    /* forList */ true
+  );
   const res = await driveFetch(`/files?${params}`);
   const { files } = (await res.json()) as { files: DriveFile[] };
   return files ?? [];
 }
 
-/** Upload a file to a specific folder. */
 export async function uploadFile(
   folderId: string,
   file: File,
@@ -281,13 +340,16 @@ export async function uploadFile(
   );
   form.append("file", file);
 
-  // Use XHR so we can report upload progress.
+  const params = new URLSearchParams({
+    uploadType: "multipart",
+    supportsAllDrives: "true",
+    fields:
+      "id,name,mimeType,size,modifiedTime,webViewLink,iconLink,thumbnailLink,parents",
+  });
+
   return new Promise<DriveFile>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.open(
-      "POST",
-      `${DRIVE_UPLOAD_API}/files?uploadType=multipart&fields=id,name,mimeType,size,modifiedTime,webViewLink,iconLink,thumbnailLink,parents`
-    );
+    xhr.open("POST", `${DRIVE_UPLOAD_API}/files?${params}`);
     xhr.setRequestHeader("Authorization", `Bearer ${token}`);
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable && onProgress) onProgress(e.loaded, e.total);
@@ -304,57 +366,60 @@ export async function uploadFile(
   });
 }
 
-/** Permanently delete a file (or folder). */
 export async function deleteFile(fileId: string): Promise<void> {
-  await driveFetch(`/files/${encodeURIComponent(fileId)}`, { method: "DELETE" });
+  const params = await withDriveParams();
+  await driveFetch(`/files/${encodeURIComponent(fileId)}?${params}`, {
+    method: "DELETE",
+  });
 }
 
-/** Create a subfolder. */
 export async function createSubfolder(
   parentId: string,
   name: string
 ): Promise<DriveFile> {
-  const res = await driveFetch(
-    "/files?fields=id,name,mimeType,modifiedTime,parents",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name,
-        mimeType: FOLDER_MIME,
-        parents: [parentId],
-      }),
-    }
-  );
+  const params = await withDriveParams({
+    fields: "id,name,mimeType,modifiedTime,parents",
+  });
+  const res = await driveFetch(`/files?${params}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      name,
+      mimeType: FOLDER_MIME,
+      parents: [parentId],
+    }),
+  });
   return (await res.json()) as DriveFile;
 }
 
-/** Rename a file or folder. */
 export async function renameFile(
   fileId: string,
   newName: string
 ): Promise<DriveFile> {
-  const res = await driveFetch(
-    `/files/${encodeURIComponent(fileId)}?fields=id,name,mimeType,modifiedTime`,
-    {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: newName }),
-    }
-  );
+  const params = await withDriveParams({
+    fields: "id,name,mimeType,modifiedTime",
+  });
+  const res = await driveFetch(`/files/${encodeURIComponent(fileId)}?${params}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: newName }),
+  });
   return (await res.json()) as DriveFile;
 }
 
-/** Generate a public webViewLink for a file (requires permission grant). */
 export async function getOrCreateAnyoneLink(fileId: string): Promise<string> {
-  // Make file readable by anyone with the link
-  await driveFetch(`/files/${encodeURIComponent(fileId)}/permissions`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ role: "reader", type: "anyone" }),
-  }).catch(() => undefined);
+  const params = await withDriveParams();
+  await driveFetch(
+    `/files/${encodeURIComponent(fileId)}/permissions?${params}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ role: "reader", type: "anyone" }),
+    }
+  ).catch(() => undefined);
+  const linkParams = await withDriveParams({ fields: "webViewLink" });
   const res = await driveFetch(
-    `/files/${encodeURIComponent(fileId)}?fields=webViewLink`
+    `/files/${encodeURIComponent(fileId)}?${linkParams}`
   );
   const { webViewLink } = (await res.json()) as { webViewLink: string };
   return webViewLink;
@@ -376,13 +441,12 @@ export function buildAuthUrl(): string {
     response_type: "code",
     scope: `${DRIVE_SCOPE} email`,
     access_type: "offline",
-    prompt: "consent", // force refresh_token issuance even on re-auth
+    prompt: "consent",
     include_granted_scopes: "true",
   });
   return `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
 }
 
-/** Send the auth `code` to our Netlify function to complete the connection. */
 export async function exchangeCode(code: string): Promise<{
   connectedEmail: string | null;
   accessToken: string;
@@ -405,7 +469,6 @@ export async function exchangeCode(code: string): Promise<{
   if (!res.ok || !body.ok || !body.accessToken) {
     throw new Error(body.detail || body.error || "oauth_exchange_failed");
   }
-  // Seed the token cache so the first Drive call doesn't need a refresh round-trip.
   cachedToken = {
     value: body.accessToken,
     expiresAt: Date.now() + (body.expiresIn ?? 3600) * 1000,
@@ -417,11 +480,34 @@ export async function exchangeCode(code: string): Promise<{
   };
 }
 
-/** Disconnect: delete the row (RLS allows authenticated delete). */
 export async function disconnectDrive(): Promise<void> {
   if (!supabase) throw new Error("Supabase not configured");
   await supabase.from("drive_connection").delete().not("id", "is", null);
   cachedToken = null;
+  sharedDriveCache = null;
+}
+
+/** Persist (or clear) the Shared Drive ID. Wipes cached folder mappings. */
+export async function setSharedDriveId(id: string | null): Promise<void> {
+  if (!supabase) throw new Error("Supabase not configured");
+  const { error } = await supabase.rpc("drive_connection_set_shared_drive", {
+    p_shared_drive_id: id ?? "",
+  });
+  if (error) throw new Error(error.message);
+  invalidateSharedDriveCache();
+}
+
+/** Parse a Shared Drive ID from a URL or raw ID. */
+export function parseSharedDriveInput(input: string): string | null {
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+  // URL patterns:
+  //   https://drive.google.com/drive/folders/<ID>
+  //   https://drive.google.com/drive/u/0/folders/<ID>
+  const m = trimmed.match(/\/folders\/([A-Za-z0-9_-]+)/);
+  if (m) return m[1];
+  // Otherwise treat as raw ID
+  return /^[A-Za-z0-9_-]+$/.test(trimmed) ? trimmed : null;
 }
 
 // ----------------------------------------------------------------

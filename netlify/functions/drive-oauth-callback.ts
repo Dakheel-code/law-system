@@ -5,6 +5,15 @@
 // refresh_token in `public.drive_connection` (singleton row).
 
 import { createClient } from "@supabase/supabase-js";
+import WebSocket from "ws";
+
+// supabase-js v2 instantiates a Realtime client even when unused. In Node
+// runtimes without native WebSocket (< 22) it throws. We inject `ws` as the
+// transport explicitly so the function works on Node 20 or 22 alike.
+const supabaseOptions = {
+  auth: { persistSession: false },
+  realtime: { transport: WebSocket as unknown as typeof globalThis.WebSocket },
+};
 
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo";
@@ -99,9 +108,7 @@ async function handle(req: Request): Promise<Response> {
   }
 
   // 3) Upsert into singleton drive_connection (service role bypasses RLS)
-  const sb = createClient(supabaseUrl!, serviceKey!, {
-    auth: { persistSession: false },
-  });
+  const sb = createClient(supabaseUrl!, serviceKey!, supabaseOptions);
 
   // Check if a row already exists
   const { data: existing, error: selectErr } = await sb

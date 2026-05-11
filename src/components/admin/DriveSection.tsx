@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   HardDrive,
   CheckCircle2,
@@ -9,12 +9,16 @@ import {
   AlertCircle,
   FolderTree,
   ExternalLink,
+  Users2,
+  Save,
 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import {
   buildAuthUrl,
   disconnectDrive,
   ensureOfficeFolders,
+  parseSharedDriveInput,
+  setSharedDriveId,
 } from "../../lib/drive";
 
 type ConnectionStatus = {
@@ -23,6 +27,7 @@ type ConnectionStatus = {
   rootFolderId?: string | null;
   casesFolderId?: string | null;
   clientsFolderId?: string | null;
+  sharedDriveId?: string | null;
   connectedAt?: string | null;
 };
 
@@ -52,6 +57,7 @@ export default function DriveSection() {
       rootFolderId: row?.root_folder_id ?? null,
       casesFolderId: row?.cases_folder_id ?? null,
       clientsFolderId: row?.clients_folder_id ?? null,
+      sharedDriveId: row?.shared_drive_id ?? null,
       connectedAt: row?.connected_at ?? null,
     });
     setError(null);
@@ -59,7 +65,6 @@ export default function DriveSection() {
 
   useEffect(() => {
     load();
-    // Realtime: reload on remote changes
     const sb = supabase;
     if (!sb) return;
     const ch = sb
@@ -84,7 +89,8 @@ export default function DriveSection() {
   };
 
   const handleDisconnect = async () => {
-    if (!confirm("هل تريد فصل ربط Google Drive؟ الملفات لن تُحذف من Drive.")) return;
+    if (!confirm("هل تريد فصل ربط Google Drive؟ الملفات لن تُحذف من Drive."))
+      return;
     setBusy(true);
     try {
       await disconnectDrive();
@@ -109,12 +115,28 @@ export default function DriveSection() {
     }
   };
 
+  const handleSaveSharedDrive = async (rawInput: string) => {
+    setBusy(true);
+    setError(null);
+    try {
+      const id = rawInput.trim() ? parseSharedDriveInput(rawInput) : null;
+      if (rawInput.trim() && !id) {
+        throw new Error("صيغة المعرّف غير صحيحة. الصق رابط أو ID صالحاً.");
+      }
+      await setSharedDriveId(id);
+      await load();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
   const missingEnv = !clientId;
 
   return (
     <div className="space-y-5">
-      {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div className="text-right">
           <h3 className="flex items-center gap-2 text-lg font-bold text-slate-800 justify-end">
@@ -122,13 +144,13 @@ export default function DriveSection() {
             <HardDrive className="w-5 h-5 text-brand-500" />
           </h3>
           <p className="text-xs text-slate-500 mt-1 leading-5">
-            عند الربط ستُرفع كل المرفقات تلقائياً إلى Drive داخل المجلد:
+            عند الربط ستُرفع المرفقات تلقائياً إلى Drive داخل
             <span className="font-bold text-slate-700 mx-1" dir="ltr">
-              ناصر طريد/قضايا/&lt;رقم القضية&gt;
+              /قضايا/&lt;رقم القضية&gt;
             </span>
             أو
             <span className="font-bold text-slate-700 mx-1" dir="ltr">
-              ناصر طريد/عملاء/&lt;رقم العميل&gt;
+              /عملاء/&lt;رقم العميل&gt;
             </span>
           </p>
         </div>
@@ -165,7 +187,6 @@ export default function DriveSection() {
         </div>
       )}
 
-      {/* Status card */}
       <div className="card p-5">
         {loading ? (
           <div className="flex items-center gap-3 text-slate-500">
@@ -178,34 +199,35 @@ export default function DriveSection() {
             busy={busy}
             onDisconnect={handleDisconnect}
             onInitFolders={handleInitFolders}
+            onSaveSharedDrive={handleSaveSharedDrive}
           />
         ) : (
           <DisconnectedView onConnect={handleConnect} disabled={missingEnv} />
         )}
       </div>
 
-      {/* How it works */}
       <div className="card p-5">
         <h4 className="text-sm font-bold text-slate-800 mb-3 text-right flex items-center gap-2 justify-end">
           كيف يعمل؟
           <FolderTree className="w-4 h-4 text-brand-500" />
         </h4>
         <ol className="text-xs text-slate-600 space-y-2 leading-6 text-right list-decimal pr-5">
-          <li>تربط حساب Google Drive الخاص بالمكتب مرة واحدة فقط.</li>
+          <li>تربط حساب Google Workspace الخاص بالمكتب مرة واحدة فقط.</li>
           <li>
-            يقوم النظام تلقائياً بإنشاء مجلد جذر بمسمى{" "}
-            <span className="font-bold text-slate-700">«ناصر طريد»</span> ومجلدين
-            فرعيين: «قضايا» و «عملاء».
+            (موصى به) أنشئ <span className="font-bold">Shared Drive</span> ملك
+            للمكتب، وأضف معرّفه أدناه — الملفات تُخزَّن في الـ Shared Drive
+            بدل Drive شخصي.
+          </li>
+          <li>
+            يُنشئ النظام تلقائياً مجلدين «قضايا» و «عملاء» داخل المساحة المختارة.
           </li>
           <li>
             عند رفع ملف من صفحة قضية، يُنشأ مجلد بـ <code>رقم القضية</code> تلقائياً
-            تحت «قضايا»، ويُرفع الملف داخله.
+            ويُرفع داخله.
           </li>
-          <li>نفس الشيء عند رفع ملف من صفحة عميل — يذهب تحت «عملاء».</li>
           <li>
-            النطاق المستخدم <code className="font-mono">drive.file</code> يعني أن
-            النظام يرى ويتعامل فقط مع الملفات التي ينشئها هو — لا يصل لملفات
-            Drive الأخرى.
+            نطاق <code className="font-mono">drive.file</code> يضمن أن النظام يرى
+            ويعدّل فقط الملفات التي ينشئها — لا يصل لباقي محتوى Drive.
           </li>
         </ol>
       </div>
@@ -248,17 +270,21 @@ function ConnectedView({
   busy,
   onDisconnect,
   onInitFolders,
+  onSaveSharedDrive,
 }: {
   status: ConnectionStatus;
   busy: boolean;
   onDisconnect: () => void;
   onInitFolders: () => void;
+  onSaveSharedDrive: (input: string) => void;
 }) {
   const foldersReady =
     !!status.rootFolderId && !!status.casesFolderId && !!status.clientsFolderId;
+  const usingSharedDrive = !!status.sharedDriveId;
 
   return (
     <div className="space-y-5">
+      {/* Connection summary */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
           <CheckCircle2 className="w-6 h-6 text-emerald-500" />
@@ -281,25 +307,50 @@ function ConnectedView({
         </button>
       </div>
 
+      {/* Shared Drive config */}
+      <SharedDriveConfig
+        currentId={status.sharedDriveId ?? null}
+        busy={busy}
+        onSave={onSaveSharedDrive}
+      />
+
       {/* Folder status */}
       <div className="rounded-xl border border-slate-200 p-4 space-y-2 text-sm">
-        <div className="text-xs font-bold text-slate-500 mb-2 text-right">
-          هيكل المجلدات في Drive
+        <div className="flex items-center justify-between text-xs mb-2">
+          <span
+            className={`inline-flex items-center gap-1 font-bold ${
+              usingSharedDrive ? "text-brand-600" : "text-slate-500"
+            }`}
+          >
+            {usingSharedDrive ? (
+              <>
+                <Users2 className="w-3.5 h-3.5" /> Shared Drive
+              </>
+            ) : (
+              <>My Drive (شخصي)</>
+            )}
+          </span>
+          <span className="font-bold text-slate-500">هيكل المجلدات</span>
         </div>
-        <FolderRow
-          label="ناصر طريد (الجذر)"
-          id={status.rootFolderId}
-        />
-        <FolderRow
-          label="↳ قضايا"
-          id={status.casesFolderId}
-          indent
-        />
-        <FolderRow
-          label="↳ عملاء"
-          id={status.clientsFolderId}
-          indent
-        />
+
+        {usingSharedDrive ? (
+          <>
+            <FolderRow
+              label="جذر Shared Drive"
+              id={status.sharedDriveId}
+              kind="shared"
+            />
+            <FolderRow label="↳ قضايا" id={status.casesFolderId} indent />
+            <FolderRow label="↳ عملاء" id={status.clientsFolderId} indent />
+          </>
+        ) : (
+          <>
+            <FolderRow label="ناصر طريد (الجذر)" id={status.rootFolderId} />
+            <FolderRow label="↳ قضايا" id={status.casesFolderId} indent />
+            <FolderRow label="↳ عملاء" id={status.clientsFolderId} indent />
+          </>
+        )}
+
         {!foldersReady && (
           <button
             onClick={onInitFolders}
@@ -328,15 +379,114 @@ function ConnectedView({
   );
 }
 
+function SharedDriveConfig({
+  currentId,
+  busy,
+  onSave,
+}: {
+  currentId: string | null;
+  busy: boolean;
+  onSave: (input: string) => void;
+}) {
+  const [draft, setDraft] = useState(currentId ?? "");
+  const initialRef = useRef(currentId ?? "");
+
+  // Sync when currentId changes from outside (e.g. after a refresh)
+  useEffect(() => {
+    setDraft(currentId ?? "");
+    initialRef.current = currentId ?? "";
+  }, [currentId]);
+
+  const dirty = draft.trim() !== initialRef.current;
+
+  return (
+    <div className="rounded-xl border-2 border-dashed border-brand-200 bg-brand-50/30 p-4">
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div className="text-right">
+          <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2 justify-end">
+            Shared Drive (موصى به)
+            <Users2 className="w-4 h-4 text-brand-500" />
+          </h4>
+          <p className="text-xs text-slate-500 mt-1 leading-5">
+            استخدم Shared Drive ملك للمكتب — الملفات لا ترتبط بشخص ولا تتأثر
+            بمغادرة الموظفين.
+          </p>
+        </div>
+      </div>
+
+      <label className="block text-xs font-bold text-slate-600 mb-1.5 text-right">
+        رابط الـ Shared Drive أو معرّفه (ID)
+      </label>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => onSave(draft)}
+          disabled={!dirty || busy}
+          className="px-4 py-2.5 bg-brand-500 text-white rounded-lg text-xs font-bold shadow hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1.5 shrink-0"
+        >
+          {busy ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : (
+            <Save className="w-3.5 h-3.5" />
+          )}
+          حفظ
+        </button>
+        <input
+          dir="ltr"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder="https://drive.google.com/drive/folders/0AB...XYZ"
+          className="flex-1 px-3 py-2.5 bg-white border border-slate-200 rounded-lg text-sm font-mono text-left focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-300"
+        />
+      </div>
+      <details className="mt-3">
+        <summary className="text-xs text-brand-600 cursor-pointer hover:underline text-right">
+          كيف أحصل على Shared Drive ID؟
+        </summary>
+        <ol className="text-xs text-slate-600 space-y-1 leading-6 text-right list-decimal pr-5 mt-2">
+          <li>
+            افتح{" "}
+            <a
+              href="https://drive.google.com/drive/shared-drives"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-brand-600 hover:underline"
+            >
+              drive.google.com/drive/shared-drives
+            </a>
+          </li>
+          <li>أنشئ Shared Drive جديد (مثلاً: «شركة ناصر طريد»)</li>
+          <li>
+            أضف الحساب الذي ربطته أعلاه كـ <b>Content Manager</b> أو أعلى
+          </li>
+          <li>ادخل الـ Shared Drive وانسخ الرابط من المتصفح والصقه أعلاه</li>
+          <li>اضغط «حفظ» ثم «إنشاء/تحقّق من المجلدات»</li>
+        </ol>
+      </details>
+      {!currentId && (
+        <p className="text-[11px] text-amber-700 mt-2 text-right">
+          ⚠️ بدون Shared Drive، يستخدم النظام Drive الشخصي للحساب المربوط.
+        </p>
+      )}
+    </div>
+  );
+}
+
 function FolderRow({
   label,
   id,
   indent,
+  kind,
 }: {
   label: string;
   id: string | null | undefined;
   indent?: boolean;
+  kind?: "shared" | "folder";
 }) {
+  const href = id
+    ? kind === "shared"
+      ? `https://drive.google.com/drive/folders/${id}`
+      : `https://drive.google.com/drive/folders/${id}`
+    : undefined;
   return (
     <div
       className={`flex items-center justify-between text-xs ${
@@ -354,9 +504,9 @@ function FolderRow({
         {id ? "موجود" : "لم يُنشأ بعد"}
       </span>
       <span className="flex items-center gap-2 text-slate-700">
-        {id && (
+        {href && (
           <a
-            href={`https://drive.google.com/drive/folders/${id}`}
+            href={href}
             target="_blank"
             rel="noopener noreferrer"
             className="text-brand-500 hover:text-brand-600"

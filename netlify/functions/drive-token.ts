@@ -5,6 +5,15 @@
 // bypassing RLS) and exchange it with Google for a short-lived access_token.
 
 import { createClient } from "@supabase/supabase-js";
+import WebSocket from "ws";
+
+// supabase-js v2 instantiates a Realtime client even when unused. In Node
+// runtimes without native WebSocket (< 22) it throws. We inject `ws` so the
+// function works on Node 20 or 22 alike.
+const supabaseOptions = {
+  auth: { persistSession: false },
+  realtime: { transport: WebSocket as unknown as typeof globalThis.WebSocket },
+};
 
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 
@@ -46,7 +55,7 @@ async function handle(req: Request): Promise<Response> {
   if (!jwt) return json({ error: "unauthorized" }, 401);
 
   const userClient = createClient(supabaseUrl!, anonKey!, {
-    auth: { persistSession: false },
+    ...supabaseOptions,
     global: { headers: { Authorization: `Bearer ${jwt}` } },
   });
   const {
@@ -56,9 +65,7 @@ async function handle(req: Request): Promise<Response> {
   if (userErr || !user) return json({ error: "unauthorized" }, 401);
 
   // 2) Load refresh_token (service role bypasses RLS)
-  const adminClient = createClient(supabaseUrl!, serviceKey!, {
-    auth: { persistSession: false },
-  });
+  const adminClient = createClient(supabaseUrl!, serviceKey!, supabaseOptions);
   const { data: row, error: rowErr } = await adminClient
     .from("drive_connection")
     .select("refresh_token")
