@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   Loader2,
@@ -15,12 +15,6 @@ import {
   Hash,
   Scale,
   Paperclip,
-  Upload,
-  Download,
-  X,
-  FileText,
-  Image as ImageIcon,
-  FileType,
   Gavel,
   Video,
   MapPin,
@@ -30,11 +24,11 @@ import {
 import {
   getCase,
   deleteCase,
-  updateCase,
   type CaseRecord,
-  type CaseAttachment,
   type CaseSession,
 } from "../../lib/caseStore";
+import { ensureEntityFolder } from "../../lib/drive";
+import DriveBrowser from "../../components/drive/DriveBrowser";
 import { getClient, type ClientRecord } from "../../lib/clientStore";
 import { useUsers, type UserRecord } from "../../lib/userStore";
 import { useOffice } from "../../lib/officeStore";
@@ -45,8 +39,6 @@ import {
   priorities,
   urgencyLevels,
 } from "../../config/caseConfig";
-import { initialCase } from "../../components/cases/caseFormTypes";
-import { uploadEntityFile } from "../../lib/drive";
 
 const labelFor = (opts: { value: string; label: string }[], v: string) =>
   opts.find((o) => o.value === v)?.label || v || "—";
@@ -87,12 +79,6 @@ const fmtDate = (iso: string | null) =>
 
 const fmtMoney = (n: number) => (n > 0 ? n.toLocaleString("en-US") + " ر.س" : "");
 
-const fmtSize = (n: number) => {
-  if (n < 1024) return `${n} بايت`;
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
-  return `${(n / 1024 / 1024).toFixed(1)} MB`;
-};
-
 export default function CaseDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -104,8 +90,6 @@ export default function CaseDetail() {
   const [client, setClient] = useState<ClientRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
 
   const refresh = async () => {
     if (!id) return;
@@ -135,105 +119,6 @@ export default function CaseDetail() {
     if (!confirm(`حذف القضية "${caseData.code}"؟`)) return;
     const ok = await deleteCase(caseData.id);
     if (ok) navigate("/cases");
-  };
-
-  const handleUpload = async (files: FileList | null) => {
-    if (!files || !caseData) return;
-    setUploading(true);
-    try {
-      const folderName = caseData.caseNumber || caseData.code || caseData.id;
-      const accepted: CaseAttachment[] = [];
-      for (const f of Array.from(files)) {
-        if (f.size > 10 * 1024 * 1024) {
-          alert(`${f.name} — يتجاوز 10 ميجابايت`);
-          continue;
-        }
-        try {
-          const driveFile = await uploadEntityFile("case", caseData.id, folderName, f);
-          accepted.push({
-            name: driveFile.name || f.name,
-            size: f.size,
-            type: f.type,
-            driveFileId: driveFile.id,
-            webViewLink: driveFile.webViewLink,
-            iconLink: driveFile.iconLink,
-            thumbnailLink: driveFile.thumbnailLink,
-            uploadedAt: new Date().toISOString(),
-          });
-        } catch (e) {
-          console.error("[Drive upload]", f.name, e);
-          alert(`فشل رفع ${f.name}:\n${(e as Error).message}`);
-        }
-      }
-      if (accepted.length === 0) return;
-      const next = [...(caseData.attachments ?? []), ...accepted];
-      await updateCase(caseData.id, {
-        ...initialCase,
-        ...caseData,
-        startDate: caseData.startDate ?? "",
-        expectedEndDate: caseData.expectedEndDate ?? "",
-        assignmentDate: caseData.assignmentDate ?? "",
-        caseDate: caseData.caseDate ?? "",
-        clientType: "individual",
-        clientName: "",
-        idType: "national",
-        idNumber: "",
-        phone: "",
-        email: "",
-        city: "",
-        address: "",
-        clientRole: (caseData.clientRole as "plaintiff" | "defendant") || "plaintiff",
-        opponentRole: (caseData.opponentRole as "plaintiff" | "defendant") || "defendant",
-        fees: (caseData.fees as typeof initialCase.fees) ?? initialCase.fees,
-        attachments: next,
-        assignedLawyer: caseData.assignedLawyer ?? "",
-        linkedContract: caseData.linkedContract ?? "",
-      });
-      await refresh();
-    } finally {
-      setUploading(false);
-      if (fileRef.current) fileRef.current.value = "";
-    }
-  };
-
-  const handleRemoveAttachment = async (idx: number) => {
-    if (!caseData) return;
-    if (!confirm("هل تريد حذف هذا المرفق؟ سيُحذف من Google Drive أيضاً.")) return;
-    const target = caseData.attachments[idx];
-    if (target?.driveFileId) {
-      try {
-        const { deleteFile } = await import("../../lib/drive");
-        await deleteFile(target.driveFileId);
-      } catch (e) {
-        // Non-fatal: file may be already gone in Drive. Continue removing the
-        // local reference so the UI doesn't end up out of sync.
-        console.warn("Drive delete failed:", e);
-      }
-    }
-    const next = caseData.attachments.filter((_, i) => i !== idx);
-    await updateCase(caseData.id, {
-      ...initialCase,
-      ...caseData,
-      startDate: caseData.startDate ?? "",
-      expectedEndDate: caseData.expectedEndDate ?? "",
-      assignmentDate: caseData.assignmentDate ?? "",
-      caseDate: caseData.caseDate ?? "",
-      clientType: "individual",
-      clientName: "",
-      idType: "national",
-      idNumber: "",
-      phone: "",
-      email: "",
-      city: "",
-      address: "",
-      clientRole: (caseData.clientRole as "plaintiff" | "defendant") || "plaintiff",
-      opponentRole: (caseData.opponentRole as "plaintiff" | "defendant") || "defendant",
-      fees: (caseData.fees as typeof initialCase.fees) ?? initialCase.fees,
-      attachments: next,
-      assignedLawyer: caseData.assignedLawyer ?? "",
-      linkedContract: caseData.linkedContract ?? "",
-    });
-    await refresh();
   };
 
   if (loading) {
@@ -525,76 +410,9 @@ export default function CaseDetail() {
         )}
       </Section>
 
-      {/* Attachments */}
-      <Section
-        title={`المرفقات (${c.attachments.length})`}
-        icon={Paperclip}
-      >
-        <div className="space-y-3">
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            disabled={uploading}
-            className="w-full border-2 border-dashed border-slate-200 rounded-xl py-6 flex flex-col items-center justify-center text-slate-400 hover:border-brand-300 hover:bg-brand-50/30 hover:text-brand-600 transition disabled:opacity-60"
-          >
-            {uploading ? (
-              <Loader2 className="w-8 h-8 mb-2 animate-spin" />
-            ) : (
-              <Upload className="w-8 h-8 mb-2" strokeWidth={1.4} />
-            )}
-            <span className="text-sm font-bold">
-              {uploading ? "جارٍ الرفع..." : "اضغط لرفع مرفق جديد"}
-            </span>
-            <span className="text-xs mt-1">حتى 10 ميجابايت لكل ملف</span>
-          </button>
-          <input
-            ref={fileRef}
-            type="file"
-            multiple
-            accept="image/jpeg,image/png,image/gif,image/webp,application/pdf,.doc,.docx"
-            className="hidden"
-            onChange={(e) => handleUpload(e.target.files)}
-          />
-
-          {c.attachments.length > 0 && (
-            <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {c.attachments.map((a, i) => (
-                <li
-                  key={i}
-                  className="flex items-center gap-2 p-2.5 bg-slate-50 border border-slate-200 rounded-lg"
-                >
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveAttachment(i)}
-                    className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-md shrink-0"
-                    title="حذف"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                  <a
-                    href={a.webViewLink || a.dataUrl}
-                    download={a.dataUrl ? a.name : undefined}
-                    target={a.webViewLink ? "_blank" : undefined}
-                    rel={a.webViewLink ? "noopener noreferrer" : undefined}
-                    className="p-1.5 text-brand-600 hover:bg-brand-50 rounded-md shrink-0"
-                    title={a.webViewLink ? "فتح في Drive" : "تحميل"}
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                  </a>
-                  <div className="flex-1 min-w-0 text-right">
-                    <div className="text-sm text-slate-700 truncate" title={a.name}>
-                      {a.name}
-                    </div>
-                    <div className="text-[10px] text-slate-400 mt-0.5">
-                      {fmtSize(a.size)}
-                    </div>
-                  </div>
-                  <FileBadge type={a.type} />
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+      {/* Attachments — full Drive browser scoped to the case folder */}
+      <Section title="المرفقات" icon={Paperclip}>
+        <CaseAttachmentsBrowser caseData={c} />
       </Section>
 
       {/* Financial */}
@@ -696,6 +514,50 @@ function KV({
 function Empty({ text }: { text: string }) {
   return (
     <div className="text-center py-6 text-xs text-slate-400">{text}</div>
+  );
+}
+
+function CaseAttachmentsBrowser({ caseData }: { caseData: CaseRecord }) {
+  const [folderId, setFolderId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const folderName = caseData.caseNumber || caseData.code || caseData.id;
+
+  useEffect(() => {
+    let cancelled = false;
+    setError(null);
+    setFolderId(null);
+    ensureEntityFolder("case", caseData.id, folderName)
+      .then((id) => {
+        if (!cancelled) setFolderId(id);
+      })
+      .catch((e) => {
+        if (!cancelled) setError((e as Error).message);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [caseData.id, folderName]);
+
+  if (error) {
+    return (
+      <div className="rounded-lg bg-rose-50 border border-rose-200 p-3 text-xs text-rose-700 text-right" dir="ltr">
+        {error}
+      </div>
+    );
+  }
+  if (!folderId) {
+    return (
+      <div className="flex items-center justify-center py-8 text-slate-400 text-xs gap-2">
+        <Loader2 className="w-4 h-4 animate-spin" />
+        جاري تجهيز مجلد القضية...
+      </div>
+    );
+  }
+  return (
+    <DriveBrowser
+      rootFolder={{ id: folderId, name: folderName }}
+      showHeader={false}
+    />
   );
 }
 
@@ -856,24 +718,3 @@ function SessionRow({ session: s }: { session: CaseSession }) {
   );
 }
 
-function FileBadge({ type }: { type: string }) {
-  if (type.startsWith("image/")) {
-    return (
-      <div className="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center shrink-0">
-        <ImageIcon className="w-4 h-4 text-violet-600" />
-      </div>
-    );
-  }
-  if (type === "application/pdf") {
-    return (
-      <div className="w-8 h-8 rounded-lg bg-rose-100 flex items-center justify-center shrink-0">
-        <FileText className="w-4 h-4 text-rose-600" />
-      </div>
-    );
-  }
-  return (
-    <div className="w-8 h-8 rounded-lg bg-brand-50 flex items-center justify-center shrink-0">
-      <FileType className="w-4 h-4 text-brand-600" />
-    </div>
-  );
-}
