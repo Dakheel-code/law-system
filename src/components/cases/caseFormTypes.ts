@@ -7,6 +7,7 @@ export type FeeItem = {
 
 export type CaseFormState = {
   // Step 1 - Client
+  clientId: string | null;       // links to an existing client row (set via search/create)
   clientType: string;
   clientName: string;
   idType: string;
@@ -51,6 +52,7 @@ export type CaseFormState = {
 };
 
 export const initialCase: CaseFormState = {
+  clientId: null,
   clientType: "individual",
   clientName: "",
   idType: "national",

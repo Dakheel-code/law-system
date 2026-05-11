@@ -3,6 +3,7 @@ import Select from "../../ui/Select";
 import StepHeader from "../StepHeader";
 import type { CaseFormState } from "../caseFormTypes";
 import { priorities } from "../../../config/caseConfig";
+import { useUsers } from "../../../lib/userStore";
 
 type Props = {
   data: CaseFormState;
@@ -10,6 +11,14 @@ type Props = {
 };
 
 export default function Step5Duration({ data, update }: Props) {
+  const { users } = useUsers();
+  const lawyerOptions = [
+    { value: "", label: "اختر محامياً..." },
+    ...users
+      .filter((u) => u.status === "active" && (u.type === "lawyer" || u.type === "manager"))
+      .map((u) => ({ value: u.id, label: u.fullName || u.code })),
+  ];
+
   return (
     <div className="space-y-6">
       <StepHeader
@@ -27,8 +36,8 @@ export default function Step5Duration({ data, update }: Props) {
         </Field>
 
         <Field label="المحامي المسند">
-          <Input
-            placeholder="اسم المحامي"
+          <Select
+            options={lawyerOptions}
             value={data.assignedLawyer}
             onChange={(e) => update("assignedLawyer", e.target.value)}
           />

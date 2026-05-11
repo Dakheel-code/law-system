@@ -101,7 +101,7 @@ export function generateCaseCode(): string {
 
 const buildInsert = (form: CaseFormState): Record<string, unknown> => ({
   case_code: generateCaseCode(),
-  client_id: null, // TODO: link to a real client when client search is wired
+  client_id: form.clientId || null,
   case_type: form.caseType,
   court_type: form.courtType,
   request_title: form.requestTitle,
@@ -122,6 +122,7 @@ const buildInsert = (form: CaseFormState): Record<string, unknown> => ({
   fees_notes: form.feesNotes,
   start_date: form.startDate || null,
   expected_end_date: form.expectedEndDate || null,
+  assigned_lawyer: form.assignedLawyer || null,
   linked_contract: form.linkedContract,
   final_notes: form.finalNotes,
   status: "active",
