@@ -11,7 +11,11 @@ alter table public.drive_connection
   add column if not exists shared_drive_id text;
 
 -- Recreate the read function to expose shared_drive_id
-create or replace function public.drive_connection_status()
+-- DROP first — return type changes (added shared_drive_id column),
+-- and PostgreSQL won't let CREATE OR REPLACE change return type.
+drop function if exists public.drive_connection_status();
+
+create function public.drive_connection_status()
 returns table (
   id uuid,
   connected_email text,
@@ -50,15 +54,19 @@ language sql
 security definer
 set search_path = public
 as $$
+  -- WHERE clauses required by Supabase's safe-update setting, even though
+  -- there's only one drive_connection row.
   update public.drive_connection
   set shared_drive_id = nullif(trim(p_shared_drive_id), ''),
       -- Switching the storage root invalidates the cached folder IDs
       root_folder_id    = null,
       cases_folder_id   = null,
       clients_folder_id = null,
-      updated_at        = now();
+      updated_at        = now()
+  where id is not null;
   -- Also wipe the per-entity folder cache so they re-create under the new root
-  delete from public.drive_folders;
+  delete from public.drive_folders
+  where entity_id is not null;
 $$;
 
 revoke all on function public.drive_connection_set_shared_drive(text) from public, anon;
