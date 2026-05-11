@@ -516,7 +516,13 @@ export async function exchangeCode(code: string): Promise<{
 
 export async function disconnectDrive(): Promise<void> {
   if (!supabase) throw new Error("Supabase not configured");
-  await supabase.from("drive_connection").delete().not("id", "is", null);
+  const { error } = await supabase
+    .from("drive_connection")
+    .delete()
+    .not("id", "is", null);
+  if (error) {
+    throw new Error(`فشل الفصل من DB: ${error.message}`);
+  }
   cachedToken = null;
   sharedDriveCache = null;
 }
