@@ -44,24 +44,24 @@ export const menu: MenuGroup[] = [
       { label: "العملاء", icon: Users, to: "/clients" },
       { label: "المواعيد", icon: Clock, to: "/appointments" },
       { label: "التقويم", icon: Calendar, to: "/calendar" },
-      { label: "إدارة المهام", icon: LayoutGrid, to: "/tasks" },
+      { label: "المهام", icon: LayoutGrid, to: "/tasks" },
       { label: "الإحصائيات والتقارير", icon: BarChart3, to: "/reports" },
     ],
   },
   {
     title: "العمل القانوني",
     items: [
-      { label: "إدارة القضايا", icon: Briefcase, to: "/cases" },
+      { label: "القضايا", icon: Briefcase, to: "/cases" },
       { label: "الجلسات", icon: Gavel, to: "/sessions" },
       { label: "المرفقات", icon: Paperclip, to: "/attachments" },
-      { label: "إدارة التعاقدات", icon: FileText, to: "/contracts" },
+      { label: "التعاقدات", icon: FileText, to: "/contracts" },
     ],
   },
   {
     title: "الإعدادات والإدارة",
     items: [
       {
-        label: "إدارة المستخدم",
+        label: "المستخدمون",
         icon: UserCog,
         children: [
           { label: "المستخدمين", icon: Users, to: "/users" },

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
-import { ChevronDown, LogOut, User, Circle, X } from "lucide-react";
+import { LogOut, User, Circle, X } from "lucide-react";
 import { menu, type MenuChild } from "../../config/menu";
 import { useCurrentStaff } from "../../lib/userStore";
 import { userTypes } from "../../config/userConfig";
@@ -71,30 +71,6 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps = {}) 
     };
   }, []);
 
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() =>
-    Object.fromEntries(menu.map((g) => [g.title ?? "", true]))
-  );
-  const [openItems, setOpenItems] = useState<Record<string, boolean>>(() => {
-    const init: Record<string, boolean> = {};
-    menu.forEach((g) =>
-      g.items.forEach((it) => {
-        const childMatch = it.children?.some((c) =>
-          location.pathname.startsWith(c.to)
-        );
-        const sectionMatch = it.sections?.some((s) =>
-          s.children.some((c) => location.pathname.startsWith(c.to))
-        );
-        if (childMatch || sectionMatch) init[it.label] = true;
-      })
-    );
-    return init;
-  });
-
-  const toggle = (key: string) =>
-    setOpenGroups((p) => ({ ...p, [key]: !p[key] }));
-  const toggleItem = (key: string) =>
-    setOpenItems((p) => ({ ...p, [key]: !p[key] }));
-
   return (
     <aside
       className={`w-64 shrink-0 bg-white border-l border-slate-200 flex flex-col h-screen
@@ -159,91 +135,71 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps = {}) 
         {menu.map((group, gi) => (
           <div key={gi} className="mb-2">
             {group.title && (
-              <button
-                onClick={() => toggle(group.title!)}
-                className="w-full flex items-center justify-between px-2 py-2 text-xs font-bold text-slate-400"
-              >
-                <span className="flex items-center gap-2">
-                  <span className="w-1 h-3 bg-brand-500 rounded-full" />
-                  {group.title}
-                </span>
-                <ChevronDown
-                  className={`w-4 h-4 transition-transform ${
-                    openGroups[group.title!] ? "" : "-rotate-90"
-                  }`}
-                />
-              </button>
+              <div className="flex items-center gap-2 px-2 py-2 text-xs font-bold text-slate-400">
+                <span className="w-1 h-3 bg-brand-500 rounded-full" />
+                {group.title}
+              </div>
             )}
-            {openGroups[group.title ?? ""] &&
-              group.items.map((item) => {
-                const Icon = item.icon;
-                if (item.children || item.sections) {
-                  const isOpen = openItems[item.label];
-                  const childActive =
-                    item.children?.some((c) =>
-                      location.pathname.startsWith(c.to)
-                    ) ||
-                    item.sections?.some((s) =>
-                      s.children.some((c) => location.pathname.startsWith(c.to))
-                    );
-                  return (
-                    <div key={item.label}>
-                      <button
-                        onClick={() => toggleItem(item.label)}
-                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition ${
-                          childActive
-                            ? "bg-brand-500 text-white shadow"
-                            : "text-slate-600 hover:bg-slate-50"
-                        }`}
-                      >
-                        <Icon className="w-4 h-4" />
-                        <span className="flex-1 text-right">{item.label}</span>
-                        <ChevronDown
-                          className={`w-4 h-4 transition-transform ${
-                            isOpen ? "" : "-rotate-90"
-                          }`}
-                        />
-                      </button>
-                      {isOpen && (
-                        <div className="mt-1 mr-3 pr-3 border-r-2 border-slate-100 space-y-1">
-                          {item.children?.map((c) => (
+            {group.items.map((item) => {
+              const Icon = item.icon;
+              if (item.children || item.sections) {
+                const childActive =
+                  item.children?.some((c) =>
+                    location.pathname.startsWith(c.to)
+                  ) ||
+                  item.sections?.some((s) =>
+                    s.children.some((c) => location.pathname.startsWith(c.to))
+                  );
+                return (
+                  <div key={item.label}>
+                    <div
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium ${
+                        childActive
+                          ? "bg-brand-500 text-white shadow"
+                          : "text-slate-600"
+                      }`}
+                    >
+                      <Icon className="w-4 h-4" />
+                      <span className="flex-1 text-right">{item.label}</span>
+                    </div>
+                    <div className="mt-1 mr-3 pr-3 border-r-2 border-slate-100 space-y-1">
+                      {item.children?.map((c) => (
+                        <ChildLink key={c.label} child={c} />
+                      ))}
+                      {item.sections?.map((section, si) => (
+                        <div key={si} className="pt-1">
+                          {section.title && (
+                            <div className="px-3 py-1.5 text-[11px] font-bold text-slate-400">
+                              {section.title}
+                            </div>
+                          )}
+                          {section.children.map((c) => (
                             <ChildLink key={c.label} child={c} />
                           ))}
-                          {item.sections?.map((section, si) => (
-                            <div key={si} className="pt-1">
-                              {section.title && (
-                                <div className="px-3 py-1.5 text-[11px] font-bold text-slate-400">
-                                  {section.title}
-                                </div>
-                              )}
-                              {section.children.map((c) => (
-                                <ChildLink key={c.label} child={c} />
-                              ))}
-                            </div>
-                          ))}
                         </div>
-                      )}
+                      ))}
                     </div>
-                  );
-                }
-                return (
-                  <NavLink
-                    key={item.label}
-                    to={item.to ?? "#"}
-                    end={item.to === "/"}
-                    className={({ isActive }) =>
-                      `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition ${
-                        isActive
-                          ? "bg-brand-500 text-white shadow"
-                          : "text-slate-600 hover:bg-slate-50"
-                      }`
-                    }
-                  >
-                    <Icon className="w-4 h-4" />
-                    <span className="flex-1 text-right">{item.label}</span>
-                  </NavLink>
+                  </div>
                 );
-              })}
+              }
+              return (
+                <NavLink
+                  key={item.label}
+                  to={item.to ?? "#"}
+                  end={item.to === "/"}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition ${
+                      isActive
+                        ? "bg-brand-500 text-white shadow"
+                        : "text-slate-600 hover:bg-slate-50"
+                    }`
+                  }
+                >
+                  <Icon className="w-4 h-4" />
+                  <span className="flex-1 text-right">{item.label}</span>
+                </NavLink>
+              );
+            })}
           </div>
         ))}
       </nav>
