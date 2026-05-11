@@ -135,26 +135,30 @@ export default function Attachments() {
   const handleUpload = async (fl: FileList | null) => {
     if (!fl || !currentFolder) return;
     setUploading(true);
-    let failed = 0;
+    let anySuccess = false;
     try {
       for (const f of Array.from(fl)) {
         if (f.size > MAX_FILE_MB * 1024 * 1024) {
           alert(`${f.name} — يتجاوز ${MAX_FILE_MB} ميجابايت`);
-          failed++;
           continue;
         }
         try {
-          await uploadFile(currentFolder.id, f);
+          const uploaded = await uploadFile(currentFolder.id, f);
+          // Optimistic insert — Drive's listing can lag a moment behind the
+          // upload, so we add the returned metadata to state right away.
+          setItems((prev) => [uploaded, ...prev.filter((p) => p.id !== uploaded.id)]);
+          anySuccess = true;
         } catch (e) {
           console.error("[Drive upload]", f.name, e);
           alert(`فشل رفع ${f.name}:\n${(e as Error).message}`);
-          failed++;
         }
       }
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
-      if (failed < (fl?.length ?? 0)) await refresh();
+      // Sync with server in the background to catch any drift, but the UI is
+      // already up-to-date thanks to the optimistic inserts above.
+      if (anySuccess) void refresh();
     }
   };
 
@@ -162,10 +166,12 @@ export default function Attachments() {
     const name = newFolderName.trim();
     if (!name || !currentFolder) return;
     try {
-      await createSubfolder(currentFolder.id, name);
+      const created = await createSubfolder(currentFolder.id, name);
       setNewFolderName("");
       setShowCreate(false);
-      await refresh();
+      // Optimistic insert so the new folder appears immediately
+      setItems((prev) => [created, ...prev.filter((p) => p.id !== created.id)]);
+      void refresh();
     } catch (e) {
       alert(`فشل إنشاء المجلد: ${(e as Error).message}`);
     }
