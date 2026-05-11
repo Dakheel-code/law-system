@@ -323,7 +323,7 @@ function TableView({ items }: { items: Appointment[] }) {
                     <span
                       className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-bold ${typeColor}`}
                     >
-                      {a.type === "case" ? "قضية" : "مهمة"}
+                      {a.type === "session" ? "جلسة" : a.type === "case" ? "قضية" : "مهمة"}
                       <TypeIcon className="w-3.5 h-3.5" />
                     </span>
                   </td>
@@ -395,7 +395,7 @@ function CardsView({ items }: { items: Appointment[] }) {
               <span
                 className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-bold ${typeColor}`}
               >
-                {a.type === "case" ? "قضية" : "مهمة"}
+                {a.type === "session" ? "جلسة" : a.type === "case" ? "قضية" : "مهمة"}
                 <TypeIcon className="w-3.5 h-3.5" />
               </span>
               <span
@@ -481,9 +481,16 @@ function TimelineView({ items }: { items: Appointment[] }) {
               </div>
               <ul className="space-y-2 border-r-2 border-slate-200 pr-4 mr-2">
                 {group.map((a) => {
-                  const TypeIcon = a.type === "case" ? Briefcase : ListTodo;
+                  const TypeIcon =
+                    a.type === "session"
+                      ? Gavel
+                      : a.type === "case"
+                      ? Briefcase
+                      : ListTodo;
                   const typeColor =
-                    a.type === "case"
+                    a.type === "session"
+                      ? "bg-emerald-100 text-emerald-700"
+                      : a.type === "case"
                       ? "bg-sky-100 text-sky-700"
                       : "bg-violet-100 text-violet-700";
                   return (
