@@ -1,112 +1,99 @@
-import { Briefcase, ClipboardList, Wallet, AlertCircle } from "lucide-react";
+import { Briefcase, Users, FileSignature, ListTodo } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useCases } from "../../lib/caseStore";
 import { useContracts } from "../../lib/contractStore";
-import { useUsers } from "../../lib/userStore";
 import { useClients } from "../../lib/clientStore";
+import { useTasks } from "../../lib/taskStore";
 
 type KPI = {
   title: string;
-  value: string;
-  sub: string;
-  progress: number;
+  value: number;
+  delta: string;
   icon: LucideIcon;
-  bg: string;
+  to: string;
+  iconBg: string;
+  iconColor: string;
 };
-
-const sumServices = (services: { qty: number; price: number }[]) =>
-  services.reduce((s, x) => s + x.qty * x.price, 0);
 
 export default function KPICards() {
   const { cases } = useCases();
   const { contracts } = useContracts();
-  const { users } = useUsers();
   const { clients } = useClients();
+  const { tasks } = useTasks();
 
-  const totalCases = cases.length;
   const activeCases = cases.filter((c) => c.status === "active").length;
-  const casesPct = totalCases > 0 ? Math.round((activeCases / totalCases) * 100) : 0;
-
-  const totalRequests = cases.length; // requests treated as cases
-  const pendingRequests = cases.filter((c) => c.status === "active").length;
-  const requestsPct =
-    totalRequests > 0 ? Math.round((pendingRequests / totalRequests) * 100) : 0;
-
-  // Revenue = paid contracts (those marked "active")
-  const revenue = contracts
-    .filter((c) => c.status === "active")
-    .reduce((s, c) => s + sumServices(c.services), 0);
-
-  const lawyersCount = users.filter((u) => u.type === "lawyer" && u.status === "active").length;
-
-  // Pending dues = total contracts value (rough estimate)
-  const pendingDues = contracts.reduce((s, c) => s + sumServices(c.services), 0) - revenue;
+  const activeContracts = contracts.filter((c) => c.status === "active").length;
+  const activeTasks = tasks.filter(
+    (t) => !t.archived && t.status !== "done"
+  ).length;
 
   const items: KPI[] = [
     {
-      title: "إجمالي القضايا",
-      value: String(totalCases),
-      sub: `نشطة ${activeCases}`,
-      progress: casesPct,
+      title: "العملاء",
+      value: clients.length,
+      delta: `${clients.filter((c) => c.email).length} مسجّل`,
+      icon: Users,
+      to: "/clients",
+      iconBg: "bg-sky-100",
+      iconColor: "text-sky-600",
+    },
+    {
+      title: "القضايا",
+      value: cases.length,
+      delta: `${activeCases} نشطة`,
       icon: Briefcase,
-      bg: "from-sky-400 to-sky-500",
+      to: "/cases",
+      iconBg: "bg-violet-100",
+      iconColor: "text-violet-600",
     },
     {
-      title: "إجمالي الطلبات",
-      value: String(totalRequests),
-      sub: `بانتظار الإجراء ${pendingRequests}`,
-      progress: requestsPct,
-      icon: ClipboardList,
-      bg: "from-teal-500 to-brand-500",
+      title: "العقود",
+      value: contracts.length,
+      delta: `${activeContracts} سارية`,
+      icon: FileSignature,
+      to: "/contracts",
+      iconBg: "bg-emerald-100",
+      iconColor: "text-emerald-600",
     },
     {
-      title: "الإيرادات (ر.س)",
-      value: revenue.toLocaleString("en-US"),
-      sub: `${lawyersCount} محامي · ${contracts.length} عقد`,
-      progress: 100,
-      icon: Wallet,
-      bg: "from-emerald-400 to-emerald-500",
-    },
-    {
-      title: "مستحقات معلقة (ر.س)",
-      value: pendingDues.toLocaleString("en-US"),
-      sub: `${clients.length} عميل`,
-      progress: pendingDues > 0 ? 60 : 0,
-      icon: AlertCircle,
-      bg: "from-rose-400 to-rose-500",
+      title: "المهام",
+      value: tasks.filter((t) => !t.archived).length,
+      delta: `${activeTasks} قيد العمل`,
+      icon: ListTodo,
+      to: "/tasks",
+      iconBg: "bg-amber-100",
+      iconColor: "text-amber-600",
     },
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
       {items.map((it) => {
         const Icon = it.icon;
         return (
-          <div
+          <Link
             key={it.title}
-            className={`relative overflow-hidden rounded-2xl text-white p-5 shadow-card bg-gradient-to-l ${it.bg}`}
+            to={it.to}
+            className="card p-4 hover:border-brand-200 hover:shadow-card-hover transition group"
           >
-            <div className="absolute -left-8 -bottom-8 w-32 h-32 rounded-full bg-white/10" />
-            <div className="relative">
-              <div className="flex items-start justify-between">
-                <Icon className="w-6 h-6 opacity-80" />
-                <div className="text-right">
-                  <div className="text-sm/none opacity-90">{it.title}</div>
-                  <div className="text-4xl font-extrabold mt-2">{it.value}</div>
+            <div className="flex items-start justify-between gap-3">
+              <div
+                className={`w-10 h-10 rounded-xl ${it.iconBg} ${it.iconColor} flex items-center justify-center shrink-0 group-hover:scale-110 transition`}
+              >
+                <Icon className="w-5 h-5" />
+              </div>
+              <div className="text-right">
+                <div className="text-xs text-slate-500">{it.title}</div>
+                <div className="text-2xl sm:text-3xl font-extrabold text-slate-800 mt-0.5">
+                  <bdi dir="ltr">{it.value}</bdi>
+                </div>
+                <div className="text-[11px] text-emerald-600 font-medium mt-1">
+                  {it.delta}
                 </div>
               </div>
-              <div className="mt-4 flex items-center justify-between text-xs">
-                <span>{it.progress}%</span>
-                <span className="opacity-90">{it.sub}</span>
-              </div>
-              <div className="mt-2 h-1.5 bg-white/20 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-white"
-                  style={{ width: `${it.progress}%` }}
-                />
-              </div>
             </div>
-          </div>
+          </Link>
         );
       })}
     </div>
