@@ -13,18 +13,19 @@ import {
   Edit3,
   Search,
   RotateCcw,
-  User as UserIcon,
 } from "lucide-react";
 import CasesPageShell from "../../components/cases/CasesPageShell";
 import CasesKpiStrip from "../../components/cases/CasesKpiStrip";
 import { useCases, deleteCase } from "../../lib/caseStore";
 import { useClients } from "../../lib/clientStore";
+import { useUsers } from "../../lib/userStore";
 import { useOffice } from "../../lib/officeStore";
 import { priorities } from "../../config/caseConfig";
 
 const columns = [
   "رقم القضية",
   "العميل",
+  "المحامي",
   "عنوان الطلب",
   "نوع القضية",
   "المحكمة",
@@ -35,6 +36,15 @@ const columns = [
 
 const labelFor = (opts: { value: string; label: string }[], v: string) =>
   opts.find((o) => o.value === v)?.label ?? v ?? "—";
+
+const clientInitials = (fullName: string): string =>
+  fullName
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((s) => s[0] || "")
+    .join("")
+    .toUpperCase() || "؟";
 
 const priorityChip: Record<string, string> = {
   low: "bg-slate-100 text-slate-700",
@@ -59,6 +69,7 @@ const statusLabel: Record<string, string> = {
 export default function CasesList() {
   const { cases, loading } = useCases();
   const { clients } = useClients();
+  const { users } = useUsers();
   const { office } = useOffice();
   const navigate = useNavigate();
 
@@ -73,6 +84,10 @@ export default function CasesList() {
   const clientById = useMemo(
     () => new Map(clients.map((c) => [c.id, c])),
     [clients]
+  );
+  const userById = useMemo(
+    () => new Map(users.map((u) => [u.id, u])),
+    [users]
   );
 
   const filtered = useMemo(() => {
@@ -283,6 +298,16 @@ export default function CasesList() {
             ) : (
               filtered.map((c) => {
                 const client = c.clientId ? clientById.get(c.clientId) : null;
+                // Primary lawyer: first try `assignments` (new schema), then
+                // fall back to legacy `assignedLawyer` / `assignedLawyers[0]`.
+                const primaryUserId =
+                  c.assignments?.find((a) => a.role === "primary")?.userId ??
+                  c.assignments?.[0]?.userId ??
+                  c.assignedLawyer ??
+                  c.assignedLawyers?.[0] ??
+                  null;
+                const lawyer = primaryUserId ? userById.get(primaryUserId) : null;
+                const lawyerCount = c.assignments?.length ?? 0;
                 return (
                   <tr
                     key={c.id}
@@ -292,21 +317,57 @@ export default function CasesList() {
                     <td className="px-4 py-3 text-right text-xs font-mono text-slate-500 group-hover:text-brand-700">
                       {c.caseNumber || c.code}
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-4 py-3">
                       {client ? (
-                        <div className="flex items-center gap-2 justify-end">
-                          <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center shrink-0 text-brand-700 text-[11px] font-extrabold">
+                            {clientInitials(client.fullName)}
+                          </div>
+                          <div className="min-w-0 text-right">
                             <div className="text-sm font-bold text-slate-800 truncate">
                               {client.fullName}
                             </div>
                             {client.phone && (
-                              <div className="text-[11px] text-slate-400 mt-0.5 font-mono" dir="ltr">
+                              <div
+                                className="text-[11px] text-slate-400 mt-0.5 font-mono"
+                                dir="ltr"
+                              >
                                 {client.phone}
                               </div>
                             )}
                           </div>
-                          <div className="w-7 h-7 rounded-full bg-brand-100 flex items-center justify-center shrink-0">
-                            <UserIcon className="w-3.5 h-3.5 text-brand-600" />
+                        </div>
+                      ) : (
+                        <span className="text-xs text-slate-300">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {lawyer ? (
+                        <div className="flex items-center gap-2">
+                          {lawyer.avatarDataUrl ? (
+                            <img
+                              src={lawyer.avatarDataUrl}
+                              alt={lawyer.fullName}
+                              className="w-8 h-8 rounded-full object-cover ring-1 ring-slate-200 shrink-0"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0 text-amber-700 text-[11px] font-extrabold">
+                              {clientInitials(lawyer.fullName)}
+                            </div>
+                          )}
+                          <div className="min-w-0 text-right">
+                            <div className="text-sm font-bold text-slate-800 truncate">
+                              {lawyer.fullName || lawyer.code}
+                            </div>
+                            <div className="text-[11px] text-slate-400 mt-0.5">
+                              {lawyerCount > 1 ? (
+                                <span>
+                                  المحامي الأساسي + {lawyerCount - 1} مسند
+                                </span>
+                              ) : (
+                                "المحامي الأساسي"
+                              )}
+                            </div>
                           </div>
                         </div>
                       ) : (
