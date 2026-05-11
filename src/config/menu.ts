@@ -6,11 +6,6 @@ import {
   LayoutGrid,
   BarChart3,
   Briefcase,
-  FilePlus,
-  Inbox,
-  ListChecks,
-  ClipboardList as ClipList,
-  Folder,
   FolderCog,
   FileSignature,
   FileText,
@@ -57,18 +52,7 @@ export const menu: MenuGroup[] = [
   {
     title: "العمل القانوني",
     items: [
-      {
-        label: "القضايا",
-        icon: Briefcase,
-        children: [
-          { label: "فتح طلب", icon: FilePlus, to: "/cases/new" },
-          { label: "إدارة الطلبات", icon: ListChecks, to: "/cases/requests" },
-          { label: "الطلبات المتاحة", icon: Inbox, to: "/cases/available" },
-          { label: "طلباتي", icon: ClipList, to: "/cases/my-requests" },
-          { label: "قضاياي", icon: Folder, to: "/cases/mine" },
-          { label: "إدارة القضايا", icon: FolderCog, to: "/cases" },
-        ],
-      },
+      { label: "إدارة القضايا", icon: Briefcase, to: "/cases" },
       {
         label: "التعاقدات",
         icon: FileText,
