@@ -20,6 +20,9 @@ import {
   MapPin,
   Clock,
   Link as LinkIcon,
+  Phone,
+  Mail,
+  TrendingUp,
 } from "lucide-react";
 import {
   getCase,
@@ -169,17 +172,6 @@ export default function CaseDetail() {
     user: UserRecord;
   }>;
 
-  // Build maps of non-empty entries for compact rendering
-  const clientEntries = client
-    ? [
-        ["الاسم", client.fullName, false],
-        ["الكود", client.code, true],
-        ["رقم الهوية", client.idNumber, true],
-        ["رقم الجوال", client.phone, true],
-        ["البريد", client.email, true],
-      ].filter(([, v]) => v) as [string, string, boolean][]
-    : [];
-
   // Build parties list — prefer new `parties` array; fall back to legacy
   // `other_party_*` fields if it's empty.
   const parties =
@@ -223,215 +215,372 @@ export default function CaseDetail() {
     ["طريقة الدفع", c.paymentMethod ? labelFor(paymentMethods, c.paymentMethod) : "", false],
   ].filter(([, v]) => v) as [string, string, boolean][];
 
+  // ---- Derived stats for the hero strip
+  const daysSinceCreated = Math.max(
+    1,
+    Math.floor(
+      (Date.now() - new Date(c.createdAt).getTime()) / (1000 * 60 * 60 * 24)
+    )
+  );
+  const upcomingSessions = c.sessions.filter(
+    (s) => s.date && s.date >= new Date().toISOString().slice(0, 10)
+  ).length;
+  const totalFees =
+    (c.estimatedFees || 0) +
+    (c.consultationFees || 0) +
+    (c.expectedCourtFees || 0);
+
+  const initials = client?.fullName
+    ?.split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((s) => s[0])
+    .join("");
+
   return (
     <div className="space-y-5">
-      {/* Top bar */}
-      <div className="card p-5">
-        <div className="flex items-start justify-between flex-wrap gap-3">
+      {/* ============= Hero Header ============= */}
+      <div className="card overflow-hidden">
+        {/* Top action bar */}
+        <div className="flex items-center justify-between gap-3 px-5 py-3 border-b border-slate-100 bg-slate-50/40">
           <div className="flex items-center gap-2">
             <button
               onClick={handleDelete}
-              className="inline-flex items-center gap-2 px-3 py-2 bg-rose-50 text-rose-500 rounded-lg text-xs font-bold hover:bg-rose-100"
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-rose-200 text-rose-600 rounded-lg text-xs font-bold hover:bg-rose-50"
             >
               <Trash2 className="w-3.5 h-3.5" />
               حذف
             </button>
             <Link
               to={`/cases/${c.id}/edit`}
-              className="inline-flex items-center gap-2 px-3 py-2 bg-brand-500 text-white rounded-lg text-xs font-bold shadow hover:bg-brand-600"
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-brand-500 text-white rounded-lg text-xs font-bold shadow hover:bg-brand-600"
             >
               <Edit3 className="w-3.5 h-3.5" />
               تعديل
             </Link>
-            <Link
-              to="/cases"
-              className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-50"
-            >
-              <ArrowRight className="w-3.5 h-3.5" />
-              العودة
-            </Link>
           </div>
-          <div className="text-right min-w-0 flex-1">
-            <div className="flex items-center justify-start gap-2 mb-1 flex-wrap">
-              <span
-                className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold ${
-                  statusChip[c.status] ?? "bg-slate-100 text-slate-700"
-                }`}
-              >
-                {statusLabel[c.status] ?? c.status}
-              </span>
-              <span
-                className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold ${
-                  priorityChip[c.priority] ?? priorityChip.medium
-                }`}
-              >
-                {labelFor(priorities, c.priority)}
-              </span>
-              <span
-                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold ${
-                  urgencyChip[c.urgency] ?? urgencyChip.normal
-                }`}
-              >
-                {(c.urgency === "high" || c.urgency === "critical") && (
-                  <AlertOctagon className="w-3 h-3" />
-                )}
-                {labelFor(urgencyLevels, c.urgency)}
-              </span>
-              <span className="text-xs font-mono text-slate-400" dir="ltr">
-                {c.code}
-              </span>
-            </div>
-            <h2 className="flex items-center justify-start gap-2 text-xl font-extrabold text-slate-800">
-              {c.requestTitle || "—"}
-              <Briefcase className="w-5 h-5 text-brand-500" />
-            </h2>
-            <p className="text-xs text-slate-500 mt-1">
-              تم الإنشاء في{" "}
-              <bdi dir="ltr">
-                {new Date(c.createdAt).toLocaleDateString("ar-EG-u-nu-latn", {
-                  dateStyle: "medium",
-                })}
-              </bdi>
-            </p>
-          </div>
+          <Link
+            to="/cases"
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-50"
+          >
+            <ArrowRight className="w-3.5 h-3.5" />
+            العودة للقائمة
+          </Link>
         </div>
 
-        {c.description && (
-          <div className="mt-4 pt-4 border-t border-slate-100">
-            <p className="text-sm text-slate-700 leading-7 text-right whitespace-pre-line">
+        {/* Title row */}
+        <div className="p-5 md:p-6">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            {/* Right side — title + identifiers */}
+            <div className="text-right min-w-0 flex-1">
+              <div className="flex items-center justify-end gap-2 flex-wrap mb-2">
+                <span
+                  className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold ${
+                    statusChip[c.status] ?? "bg-slate-100 text-slate-700"
+                  }`}
+                >
+                  {statusLabel[c.status] ?? c.status}
+                </span>
+                <span
+                  className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold ${
+                    priorityChip[c.priority] ?? priorityChip.medium
+                  }`}
+                >
+                  {labelFor(priorities, c.priority)}
+                </span>
+                {(c.urgency === "high" || c.urgency === "critical") && (
+                  <span
+                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold ${
+                      urgencyChip[c.urgency] ?? urgencyChip.normal
+                    }`}
+                  >
+                    <AlertOctagon className="w-3 h-3" />
+                    {labelFor(urgencyLevels, c.urgency)}
+                  </span>
+                )}
+                <span
+                  className="inline-flex items-center text-[11px] text-slate-500 font-mono bg-slate-100 px-2 py-1 rounded-md"
+                  dir="ltr"
+                >
+                  {c.code}
+                </span>
+              </div>
+              <h1 className="text-2xl font-extrabold text-slate-800 leading-snug">
+                {c.requestTitle || "—"}
+              </h1>
+              <div className="flex items-center justify-end gap-3 mt-3 text-xs text-slate-500 flex-wrap">
+                {c.caseNumber && (
+                  <span className="inline-flex items-center gap-1.5">
+                    <Hash className="w-3.5 h-3.5" />
+                    <bdi dir="ltr" className="font-mono font-bold text-slate-700">
+                      {c.caseNumber}
+                    </bdi>
+                  </span>
+                )}
+                <span className="inline-flex items-center gap-1.5">
+                  <CalendarDays className="w-3.5 h-3.5" />
+                  أُنشئت{" "}
+                  <bdi dir="ltr">
+                    {new Date(c.createdAt).toLocaleDateString(
+                      "ar-EG-u-nu-latn",
+                      { dateStyle: "medium" }
+                    )}
+                  </bdi>
+                </span>
+              </div>
+            </div>
+
+            {/* Left side — large icon */}
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-100 to-brand-200 flex items-center justify-center shrink-0 border border-brand-200">
+              <Briefcase className="w-8 h-8 text-brand-600" strokeWidth={1.5} />
+            </div>
+          </div>
+
+          {c.description && (
+            <p className="mt-4 pt-4 border-t border-slate-100 text-sm text-slate-700 leading-7 text-right whitespace-pre-line">
               {c.description}
             </p>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
-      {/* Parties */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <Section
-          title="العميل"
-          icon={UserIcon}
-          badge={c.clientRole === "plaintiff" ? "مدّعي" : "مدّعى عليه"}
-          badgeColor={c.clientRole === "plaintiff" ? "brand" : "rose"}
-        >
-          {client ? (
-            <KV entries={clientEntries} />
-          ) : (
-            <Empty text="لا يوجد عميل مرتبط" />
-          )}
-        </Section>
+      {/* ============= Quick Stats Strip ============= */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <Stat
+          icon={Gavel}
+          label="الجلسات"
+          value={String(c.sessions.length)}
+          sub={upcomingSessions > 0 ? `${upcomingSessions} قادمة` : "—"}
+          tint="sky"
+        />
+        <Stat
+          icon={Scale}
+          label="المحامون المسندون"
+          value={String(enrichedAssignments.length)}
+          sub={enrichedAssignments.length > 0 ? "نشط" : "غير مُسند"}
+          tint="violet"
+        />
+        <Stat
+          icon={Clock}
+          label="مدة القضية"
+          value={String(daysSinceCreated)}
+          sub="يوم منذ الإنشاء"
+          tint="amber"
+        />
+        <Stat
+          icon={TrendingUp}
+          label="إجمالي الأتعاب"
+          value={totalFees > 0 ? totalFees.toLocaleString("en-US") : "—"}
+          sub={totalFees > 0 ? "ر.س" : "لم تُحدّد"}
+          tint="emerald"
+        />
+      </div>
 
-        <Section
-          title={`أطراف القضية (${parties.length})`}
-          icon={UserX}
-        >
-          {parties.length === 0 ? (
-            <Empty text="لم يتم إضافة أي طرف" />
-          ) : (
-            <div className="space-y-3">
-              {parties.map((p, i) => {
-                const entries = [
-                  ["رقم الهوية", p.idNumber, true],
-                  ["رقم الجوال", p.phone, true],
-                  ["العنوان", p.address, false],
-                ].filter(([, v]) => v) as [string, string, boolean][];
-                const roleLabel = p.role === "plaintiff" ? "مدّعي" : "مدّعى عليه";
-                const roleClass =
-                  p.role === "plaintiff"
-                    ? "bg-brand-100 text-brand-700"
-                    : "bg-rose-100 text-rose-700";
-                return (
-                  <div
-                    key={p.id || i}
-                    className="rounded-lg border border-slate-200 bg-slate-50/40 p-3"
-                  >
-                    <div className="flex items-center justify-between mb-2 pb-2 border-b border-slate-100">
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold ${roleClass}`}
-                      >
-                        {roleLabel}
-                      </span>
-                      <div className="text-sm font-bold text-slate-700">
-                        {p.name || `الطرف ${i + 1}`}
+      {/* ============= 2-column main layout ============= */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        {/* ===== Main column (2/3) ===== */}
+        <div className="lg:col-span-2 space-y-5">
+          {/* Parties */}
+          <Section
+            title={`أطراف القضية (${parties.length})`}
+            icon={UserX}
+          >
+            {parties.length === 0 ? (
+              <Empty text="لم يتم إضافة أي طرف" />
+            ) : (
+              <div className="space-y-3">
+                {parties.map((p, i) => {
+                  const entries = [
+                    ["رقم الهوية", p.idNumber, true],
+                    ["رقم الجوال", p.phone, true],
+                    ["العنوان", p.address, false],
+                  ].filter(([, v]) => v) as [string, string, boolean][];
+                  const roleLabel =
+                    p.role === "plaintiff" ? "مدّعي" : "مدّعى عليه";
+                  const roleClass =
+                    p.role === "plaintiff"
+                      ? "bg-emerald-100 text-emerald-700"
+                      : "bg-rose-100 text-rose-700";
+                  return (
+                    <div
+                      key={p.id || i}
+                      className="rounded-xl border border-slate-200 bg-slate-50/40 p-4"
+                    >
+                      <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold ${roleClass}`}
+                        >
+                          {roleLabel}
+                        </span>
+                        <div className="text-sm font-bold text-slate-800">
+                          {p.name || `الطرف ${i + 1}`}
+                        </div>
                       </div>
+                      {entries.length > 0 && <KV entries={entries} />}
                     </div>
-                    {entries.length > 0 && <KV entries={entries} />}
+                  );
+                })}
+              </div>
+            )}
+          </Section>
+
+          {/* Case details — only shown if there are entries */}
+          {caseEntries.length > 0 && (
+            <Section title="تفاصيل القضية" icon={Hash}>
+              <KV entries={caseEntries} columns={2} />
+            </Section>
+          )}
+
+          {/* Sessions */}
+          <Section
+            title={`الجلسات (${c.sessions.length})`}
+            icon={Gavel}
+          >
+            {c.sessions.length === 0 ? (
+              <Empty text="لا توجد جلسات مسجّلة" />
+            ) : (
+              <ul className="space-y-2">
+                {[...c.sessions]
+                  .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))
+                  .map((s) => (
+                    <SessionRow key={s.id} session={s} />
+                  ))}
+              </ul>
+            )}
+          </Section>
+
+          {/* Attachments */}
+          <Section title="المرفقات" icon={Paperclip}>
+            <CaseAttachmentsBrowser caseData={c} />
+          </Section>
+
+          {/* Notes */}
+          {c.finalNotes && (
+            <Section title="الملاحظات النهائية" icon={StickyNote}>
+              <p className="text-sm text-slate-700 leading-7 text-right whitespace-pre-line">
+                {c.finalNotes}
+              </p>
+            </Section>
+          )}
+        </div>
+
+        {/* ===== Sidebar (1/3) — sticky on desktop ===== */}
+        <div className="space-y-5 lg:sticky lg:top-24 self-start">
+          {/* Client card */}
+          <div className="card p-5">
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+              <span
+                className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                  c.clientRole === "plaintiff"
+                    ? "bg-emerald-100 text-emerald-700"
+                    : "bg-rose-100 text-rose-700"
+                }`}
+              >
+                {c.clientRole === "plaintiff" ? "مدّعي" : "مدّعى عليه"}
+              </span>
+              <h3 className="flex items-center justify-start gap-2 text-sm font-bold text-slate-800">
+                العميل
+                <UserIcon className="w-4 h-4 text-brand-500" />
+              </h3>
+            </div>
+            {client ? (
+              <Link
+                to={`/clients/${client.id}`}
+                className="block group"
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="text-right flex-1 min-w-0">
+                    <div className="text-sm font-bold text-slate-800 truncate group-hover:text-brand-700">
+                      {client.fullName}
+                    </div>
+                    <div
+                      className="text-[11px] text-slate-500 font-mono mt-0.5"
+                      dir="ltr"
+                    >
+                      {client.code}
+                    </div>
                   </div>
-                );
-              })}
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-100 to-brand-200 flex items-center justify-center text-brand-700 font-extrabold shrink-0 border border-brand-200">
+                    {initials || <UserIcon className="w-5 h-5" />}
+                  </div>
+                </div>
+                <div className="space-y-1.5 text-xs">
+                  {client.idNumber && (
+                    <InfoRow
+                      icon={Hash}
+                      label="رقم الهوية"
+                      value={client.idNumber}
+                      mono
+                    />
+                  )}
+                  {client.phone && (
+                    <InfoRow
+                      icon={Phone}
+                      label="الجوال"
+                      value={client.phone}
+                      mono
+                    />
+                  )}
+                  {client.email && (
+                    <InfoRow
+                      icon={Mail}
+                      label="البريد"
+                      value={client.email}
+                      ltr
+                    />
+                  )}
+                </div>
+              </Link>
+            ) : (
+              <Empty text="لا يوجد عميل مرتبط" />
+            )}
+          </div>
+
+          {/* Assignments */}
+          <div className="card p-5">
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+              <span className="text-xs text-slate-400 font-normal">
+                ({enrichedAssignments.length})
+              </span>
+              <h3 className="flex items-center justify-start gap-2 text-sm font-bold text-slate-800">
+                الإسناد
+                <Scale className="w-4 h-4 text-brand-500" />
+              </h3>
+            </div>
+            {enrichedAssignments.length === 0 ? (
+              <Empty text="لم يتم إسناد القضية لأحد" />
+            ) : (
+              <div className="space-y-2">
+                {enrichedAssignments.map((a) => (
+                  <AssignmentChip key={a.userId} item={a} />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Schedule & Admin */}
+          {adminEntries.length > 0 && (
+            <div className="card p-5">
+              <h3 className="flex items-center justify-start gap-2 text-sm font-bold text-slate-800 mb-4 pb-3 border-b border-slate-100">
+                المدة والإدارة
+                <CalendarDays className="w-4 h-4 text-brand-500" />
+              </h3>
+              <KV entries={adminEntries} />
             </div>
           )}
-        </Section>
-      </div>
 
-      {/* Case details + admin */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <Section title="تفاصيل القضية" icon={Hash}>
-          {caseEntries.length > 0 ? (
-            <KV entries={caseEntries} />
-          ) : (
-            <Empty text="لا توجد تفاصيل" />
+          {/* Financial */}
+          {financialEntries.length > 0 && (
+            <div className="card p-5">
+              <h3 className="flex items-center justify-start gap-2 text-sm font-bold text-slate-800 mb-4 pb-3 border-b border-slate-100">
+                المالية
+                <Wallet className="w-4 h-4 text-brand-500" />
+              </h3>
+              <KV entries={financialEntries} />
+            </div>
           )}
-        </Section>
-
-        <Section title="المدة والإدارة" icon={CalendarDays}>
-          {adminEntries.length > 0 ? (
-            <KV entries={adminEntries} />
-          ) : (
-            <Empty text="لا توجد بيانات إدارة" />
-          )}
-        </Section>
+        </div>
       </div>
-
-      {/* Assignments */}
-      <Section title={`الإسناد (${enrichedAssignments.length})`} icon={Scale}>
-        {enrichedAssignments.length === 0 ? (
-          <Empty text="لم يتم إسناد القضية لأحد" />
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            {enrichedAssignments.map((a) => (
-              <AssignmentChip key={a.userId} item={a} />
-            ))}
-          </div>
-        )}
-      </Section>
-
-      {/* Sessions */}
-      <Section title={`الجلسات (${c.sessions.length})`} icon={Gavel}>
-        {c.sessions.length === 0 ? (
-          <Empty text="لا توجد جلسات مسجّلة" />
-        ) : (
-          <ul className="space-y-2">
-            {[...c.sessions]
-              .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))
-              .map((s) => (
-                <SessionRow key={s.id} session={s} />
-              ))}
-          </ul>
-        )}
-      </Section>
-
-      {/* Attachments — full Drive browser scoped to the case folder */}
-      <Section title="المرفقات" icon={Paperclip}>
-        <CaseAttachmentsBrowser caseData={c} />
-      </Section>
-
-      {/* Financial */}
-      <Section title="المالية" icon={Wallet}>
-        {financialEntries.length > 0 ? (
-          <KV entries={financialEntries} columns={2} />
-        ) : (
-          <Empty text="لا توجد بيانات مالية" />
-        )}
-      </Section>
-
-      {/* Notes */}
-      {c.finalNotes && (
-        <Section title="الملاحظات النهائية" icon={StickyNote}>
-          <p className="text-sm text-slate-700 leading-7 text-right whitespace-pre-line">
-            {c.finalNotes}
-          </p>
-        </Section>
-      )}
     </div>
   );
 }
@@ -514,6 +663,74 @@ function KV({
 function Empty({ text }: { text: string }) {
   return (
     <div className="text-center py-6 text-xs text-slate-400">{text}</div>
+  );
+}
+
+const statTints = {
+  sky: "from-sky-50 to-sky-100 text-sky-700 ring-sky-200",
+  violet: "from-violet-50 to-violet-100 text-violet-700 ring-violet-200",
+  amber: "from-amber-50 to-amber-100 text-amber-700 ring-amber-200",
+  emerald: "from-emerald-50 to-emerald-100 text-emerald-700 ring-emerald-200",
+} as const;
+
+function Stat({
+  icon: Icon,
+  label,
+  value,
+  sub,
+  tint,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: string;
+  sub: string;
+  tint: keyof typeof statTints;
+}) {
+  return (
+    <div className="card p-4 flex items-center gap-3 hover:shadow-md transition">
+      <div
+        className={`w-11 h-11 rounded-xl bg-gradient-to-br ${statTints[tint]} flex items-center justify-center shrink-0 ring-1`}
+      >
+        <Icon className="w-5 h-5" />
+      </div>
+      <div className="flex-1 min-w-0 text-right">
+        <div className="text-[11px] text-slate-500 truncate">{label}</div>
+        <div className="text-xl font-extrabold text-slate-800 mt-0.5 leading-none">
+          <bdi dir="ltr">{value}</bdi>
+        </div>
+        <div className="text-[10px] text-slate-400 mt-0.5 truncate">{sub}</div>
+      </div>
+    </div>
+  );
+}
+
+function InfoRow({
+  icon: Icon,
+  label,
+  value,
+  mono,
+  ltr,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: string;
+  mono?: boolean;
+  ltr?: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-2 py-1.5 px-2 -mx-2 rounded-md group-hover:bg-brand-50/40 transition">
+      <Icon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+      <span className="text-[10px] text-slate-400 shrink-0">{label}</span>
+      <span
+        className={`text-xs text-slate-700 truncate text-left flex-1 ${
+          mono || ltr ? "font-mono" : ""
+        }`}
+        dir={ltr ? "ltr" : undefined}
+        title={value}
+      >
+        {value}
+      </span>
+    </div>
   );
 }
 
