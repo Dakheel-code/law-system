@@ -90,11 +90,13 @@ language sql
 security definer
 set search_path = public
 as $$
+  -- WHERE required by Supabase's safe-update setting.
   update public.drive_connection
   set root_folder_id    = p_root_folder_id,
       cases_folder_id   = p_cases_folder_id,
       clients_folder_id = p_clients_folder_id,
-      updated_at        = now();
+      updated_at        = now()
+  where id is not null;
 $$;
 
 revoke all on function public.drive_connection_update_folders(text, text, text) from public, anon;
