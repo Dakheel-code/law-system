@@ -5,7 +5,7 @@ import TodayAppointments from "../components/dashboard/TodayAppointments";
 import TasksOverview from "../components/dashboard/TasksOverview";
 import LatestCases from "../components/dashboard/LatestCases";
 import RevenueChart from "../components/dashboard/RevenueChart";
-import CasesByStatus from "../components/dashboard/CasesByStatus";
+import LawyersStats from "../components/dashboard/LawyersStats";
 
 export default function Dashboard() {
   return (
@@ -27,7 +27,7 @@ export default function Dashboard() {
         <div className="lg:col-span-2">
           <RevenueChart />
         </div>
-        <CasesByStatus />
+        <LawyersStats />
       </div>
     </div>
   );
