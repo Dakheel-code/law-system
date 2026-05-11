@@ -24,8 +24,11 @@ import {
   uploadFile,
   createSubfolder,
   deleteFile,
+  moveItem,
   type DriveFile,
 } from "../lib/drive";
+
+const DRAG_MIME = "application/x-drive-item";
 
 const FOLDER_MIME = "application/vnd.google-apps.folder";
 const MAX_FILE_MB = 10;
@@ -49,6 +52,10 @@ export default function Attachments() {
   const [dragOver, setDragOver] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
+  // Internal drag-and-drop state (move file/folder onto another folder)
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null);
+  const [dragOverCrumbIdx, setDragOverCrumbIdx] = useState<number | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const currentFolder = path[path.length - 1];
@@ -176,7 +183,24 @@ export default function Attachments() {
     }
   };
 
-  // ---- Drag and drop
+  // ---- Move a Drive item into another folder
+  const handleMove = async (itemId: string, toFolderId: string) => {
+    if (!currentFolder || itemId === toFolderId) return;
+    try {
+      await moveItem(itemId, currentFolder.id, toFolderId);
+      await refresh();
+    } catch (e) {
+      console.error("[Drive move]", e);
+      alert(`فشل نقل العنصر:\n${(e as Error).message}`);
+    } finally {
+      setDraggingId(null);
+      setDragOverFolderId(null);
+      setDragOverCrumbIdx(null);
+    }
+  };
+
+  // ---- Drag and drop (external desktop files → upload)
+  // Internal drags carry DRAG_MIME and are handled by individual cards/breadcrumbs.
   const onDragOver = (e: React.DragEvent) => {
     if (e.dataTransfer.types.includes("Files")) {
       e.preventDefault();
@@ -188,6 +212,7 @@ export default function Attachments() {
     setDragOver(false);
   };
   const onDrop = (e: React.DragEvent) => {
+    if (!e.dataTransfer.types.includes("Files")) return;
     e.preventDefault();
     setDragOver(false);
     handleUpload(e.dataTransfer.files);
@@ -265,7 +290,18 @@ export default function Attachments() {
         >
           <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
         </button>
-        <Breadcrumb path={path} onJump={jumpTo} onHome={goHome} />
+        <Breadcrumb
+          path={path}
+          onJump={jumpTo}
+          onHome={goHome}
+          dragOverIdx={dragOverCrumbIdx}
+          onCrumbDragOver={(i) => setDragOverCrumbIdx(i)}
+          onCrumbDragLeave={() => setDragOverCrumbIdx(null)}
+          onCrumbDrop={(itemId, i) => {
+            const target = path[i];
+            if (target) handleMove(itemId, target.id);
+          }}
+        />
 
         {/* Inline action buttons — always visible next to the current path */}
         <div className="flex items-center gap-1.5 shrink-0">
@@ -341,8 +377,18 @@ export default function Attachments() {
                   <FolderCard
                     key={f.id}
                     folder={f}
+                    isDragging={draggingId === f.id}
+                    isDropTarget={dragOverFolderId === f.id}
                     onOpen={() => enter(f)}
                     onDelete={() => handleDeleteItem(f)}
+                    onDragStart={() => setDraggingId(f.id)}
+                    onDragEnd={() => {
+                      setDraggingId(null);
+                      setDragOverFolderId(null);
+                    }}
+                    onDragOver={() => setDragOverFolderId(f.id)}
+                    onDragLeave={() => setDragOverFolderId(null)}
+                    onDrop={(itemId) => handleMove(itemId, f.id)}
                   />
                 ))}
               </div>
@@ -355,7 +401,10 @@ export default function Attachments() {
                   <FileRow
                     key={f.id}
                     file={f}
+                    isDragging={draggingId === f.id}
                     onDelete={() => handleDeleteItem(f)}
+                    onDragStart={() => setDraggingId(f.id)}
+                    onDragEnd={() => setDraggingId(null)}
                   />
                 ))}
               </ul>
@@ -388,10 +437,18 @@ function Breadcrumb({
   path,
   onJump,
   onHome,
+  dragOverIdx,
+  onCrumbDragOver,
+  onCrumbDragLeave,
+  onCrumbDrop,
 }: {
   path: Crumb[];
   onJump: (i: number) => void;
   onHome: () => void;
+  dragOverIdx: number | null;
+  onCrumbDragOver: (i: number) => void;
+  onCrumbDragLeave: () => void;
+  onCrumbDrop: (itemId: string, i: number) => void;
 }) {
   return (
     <div className="flex items-center gap-1 overflow-x-auto min-w-0 flex-1 scrollbar-thin">
@@ -404,14 +461,37 @@ function Breadcrumb({
       </button>
       {path.map((c, i) => {
         const isLast = i === path.length - 1;
+        const isDropTarget = !isLast && dragOverIdx === i;
         return (
           <div key={c.id} className="flex items-center gap-1 shrink-0">
             <ChevronLeft className="w-3.5 h-3.5 text-slate-300" />
             <button
               onClick={() => onJump(i)}
               disabled={isLast}
+              onDragOver={(e) => {
+                if (isLast) return;
+                if (!e.dataTransfer.types.includes(DRAG_MIME)) return;
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "move";
+                if (dragOverIdx !== i) onCrumbDragOver(i);
+              }}
+              onDragLeave={onCrumbDragLeave}
+              onDrop={(e) => {
+                if (isLast) return;
+                const data = e.dataTransfer.getData(DRAG_MIME);
+                if (!data) return;
+                e.preventDefault();
+                try {
+                  const parsed = JSON.parse(data) as { id: string };
+                  onCrumbDrop(parsed.id, i);
+                } catch {
+                  /* ignore */
+                }
+              }}
               className={`px-2 py-1 rounded-md text-sm transition truncate max-w-[160px] ${
-                isLast
+                isDropTarget
+                  ? "bg-brand-100 text-brand-800 ring-2 ring-brand-400"
+                  : isLast
                   ? "text-slate-800 font-bold cursor-default"
                   : "text-slate-500 hover:bg-brand-50 hover:text-brand-700"
               }`}
@@ -453,15 +533,69 @@ function Section({
 
 function FolderCard({
   folder,
+  isDragging,
+  isDropTarget,
   onOpen,
   onDelete,
+  onDragStart,
+  onDragEnd,
+  onDragOver,
+  onDragLeave,
+  onDrop,
 }: {
   folder: DriveFile;
+  isDragging: boolean;
+  isDropTarget: boolean;
   onOpen: () => void;
   onDelete: () => void;
+  onDragStart: () => void;
+  onDragEnd: () => void;
+  onDragOver: () => void;
+  onDragLeave: () => void;
+  onDrop: (itemId: string) => void;
 }) {
   return (
-    <div className="group relative card p-3 cursor-pointer hover:border-brand-300 hover:shadow-md transition flex flex-col items-center text-center">
+    <div
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData(
+          DRAG_MIME,
+          JSON.stringify({ id: folder.id, name: folder.name, type: "folder" })
+        );
+        onDragStart();
+      }}
+      onDragEnd={onDragEnd}
+      onDragOver={(e) => {
+        if (!e.dataTransfer.types.includes(DRAG_MIME)) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        onDragOver();
+      }}
+      onDragLeave={(e) => {
+        if ((e.currentTarget as Node).contains(e.relatedTarget as Node)) return;
+        onDragLeave();
+      }}
+      onDrop={(e) => {
+        const data = e.dataTransfer.getData(DRAG_MIME);
+        if (!data) return;
+        e.preventDefault();
+        try {
+          const parsed = JSON.parse(data) as { id: string };
+          if (parsed.id !== folder.id) onDrop(parsed.id);
+        } catch {
+          /* ignore */
+        }
+        onDragLeave();
+      }}
+      className={`group relative card p-3 cursor-pointer transition flex flex-col items-center text-center ${
+        isDragging ? "opacity-40" : ""
+      } ${
+        isDropTarget
+          ? "border-brand-500 ring-4 ring-brand-200 bg-brand-50/60"
+          : "hover:border-brand-300 hover:shadow-md"
+      }`}
+    >
       <button
         onClick={(e) => {
           e.stopPropagation();
@@ -494,13 +628,33 @@ function FolderCard({
 
 function FileRow({
   file,
+  isDragging,
   onDelete,
+  onDragStart,
+  onDragEnd,
 }: {
   file: DriveFile;
+  isDragging: boolean;
   onDelete: () => void;
+  onDragStart: () => void;
+  onDragEnd: () => void;
 }) {
   return (
-    <li className="card p-3 flex items-center gap-3 group hover:border-brand-300 transition">
+    <li
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData(
+          DRAG_MIME,
+          JSON.stringify({ id: file.id, name: file.name, type: "file" })
+        );
+        onDragStart();
+      }}
+      onDragEnd={onDragEnd}
+      className={`card p-3 flex items-center gap-3 group hover:border-brand-300 transition cursor-grab active:cursor-grabbing ${
+        isDragging ? "opacity-40" : ""
+      }`}
+    >
       <div className="flex items-center gap-1 shrink-0">
         <button
           onClick={onDelete}

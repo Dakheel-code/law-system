@@ -423,6 +423,26 @@ export async function createSubfolder(
   return (await res.json()) as DriveFile;
 }
 
+/**
+ * Move a file or folder from one parent to another (Drive's "move" op).
+ * No-op if the source and destination parents are the same.
+ */
+export async function moveItem(
+  itemId: string,
+  fromParentId: string,
+  toParentId: string
+): Promise<void> {
+  if (fromParentId === toParentId) return;
+  const params = await withDriveParams({ fields: "id,parents" });
+  params.set("addParents", toParentId);
+  params.set("removeParents", fromParentId);
+  await driveFetch(`/files/${encodeURIComponent(itemId)}?${params}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: "{}",
+  });
+}
+
 export async function renameFile(
   fileId: string,
   newName: string
