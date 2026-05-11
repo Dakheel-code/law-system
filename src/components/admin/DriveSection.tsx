@@ -60,8 +60,9 @@ export default function DriveSection() {
   useEffect(() => {
     load();
     // Realtime: reload on remote changes
-    if (!supabase) return;
-    const ch = supabase
+    const sb = supabase;
+    if (!sb) return;
+    const ch = sb
       .channel(`drive-conn-${crypto.randomUUID()}`)
       .on(
         "postgres_changes",
@@ -70,7 +71,7 @@ export default function DriveSection() {
       )
       .subscribe();
     return () => {
-      supabase.removeChannel(ch);
+      sb.removeChannel(ch);
     };
   }, []);
 

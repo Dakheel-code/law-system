@@ -121,8 +121,18 @@ drop policy if exists "auth full access" on public.drive_folders;
 create policy "auth full access" on public.drive_folders
   for all to authenticated using (true) with check (true);
 
--- Realtime for folder mapping updates across tabs
-alter publication supabase_realtime add table public.drive_folders;
+-- Realtime for folder mapping updates across tabs (idempotent)
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public'
+      and tablename = 'drive_folders'
+  ) then
+    alter publication supabase_realtime add table public.drive_folders;
+  end if;
+end $$;
 
 -- ============================================================
 -- Done
