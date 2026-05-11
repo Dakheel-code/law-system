@@ -133,17 +133,26 @@ export function generateClientCode(): string {
 
 // ---------- public API ----------
 
+// All ClientRow columns EXCEPT `attachments`. Excluded so legacy base64
+// rows don't blow up the list response past the JSON limit. Attachments are
+// fetched from Drive on the client detail page.
+const LIST_CLIENT_COLUMNS =
+  "id,client_code,client_type,contract_type," +
+  "first_name,second_name,third_name,last_name,full_name," +
+  "id_number,nationality,email,phone,notes,status,created_at";
+
 export async function listClients(): Promise<ClientRecord[]> {
   if (!supabase) return [];
   const { data, error } = await supabase
     .from("clients")
-    .select("*")
+    .select(LIST_CLIENT_COLUMNS)
     .order("created_at", { ascending: false });
   if (error) {
     console.error("listClients", error);
     return [];
   }
-  return (data as ClientRow[]).map(fromRow);
+  const rows = data as unknown as Omit<ClientRow, "attachments">[];
+  return rows.map((r) => fromRow({ ...r, attachments: [] } as ClientRow));
 }
 
 export async function getClient(id: string): Promise<ClientRecord | null> {

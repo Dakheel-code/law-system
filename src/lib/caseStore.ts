@@ -223,17 +223,35 @@ const buildInsert = (form: CaseFormState): Record<string, unknown> => ({
   status: "active",
 });
 
+// All CaseRow columns EXCEPT `attachments`. Listing the column explicitly
+// guards us against legacy base64 payloads ballooning the response past
+// the proxy/JSON limit. Attachments are loaded on demand on the detail page
+// via the Drive API.
+const LIST_CASE_COLUMNS =
+  "id,case_code,client_id,client_role,opponent_role,case_type,court_type," +
+  "request_title,description,urgency,priority," +
+  "other_party_name,other_party_id,other_party_phone,other_party_address," +
+  "parties,case_number,claim_subject,circuit_name," +
+  "assignment_date,case_date,claim_type," +
+  "estimated_fees,consultation_fees,expected_court_fees," +
+  "payment_status,payment_method,fees,fees_notes," +
+  "start_date,expected_end_date," +
+  "assigned_lawyer,assigned_lawyers,assignments,sessions," +
+  "linked_contract,final_notes,status,created_at";
+
 export async function listCases(): Promise<CaseRecord[]> {
   if (!supabase) return [];
   const { data, error } = await supabase
     .from("cases")
-    .select("*")
+    .select(LIST_CASE_COLUMNS)
     .order("created_at", { ascending: false });
   if (error) {
     console.error("listCases", error);
     return [];
   }
-  return (data as CaseRow[]).map(fromRow);
+  // attachments is intentionally omitted from the list query — fill with [].
+  const rows = data as unknown as Omit<CaseRow, "attachments">[];
+  return rows.map((r) => fromRow({ ...r, attachments: [] } as CaseRow));
 }
 
 export async function getCase(id: string): Promise<CaseRecord | null> {
