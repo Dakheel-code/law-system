@@ -9,6 +9,7 @@ import {
   XCircle,
   User as UserIcon,
   Edit3,
+  ShieldCheck,
 } from "lucide-react";
 import { useUsers, deleteUser, updateUser, type UserRecord } from "../../lib/userStore";
 import { userTypes } from "../../config/userConfig";
@@ -69,13 +70,22 @@ export default function Users() {
           </span>
           <UsersIcon className="w-5 h-5 text-brand-500" />
         </h2>
-        <Link
-          to="/users/new"
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-500 text-white rounded-lg text-sm font-bold shadow hover:bg-brand-600"
-        >
-          <Plus className="w-4 h-4" />
-          إضافة مستخدم
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            to="/users/permissions"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-lg text-sm font-bold hover:bg-slate-50"
+          >
+            <ShieldCheck className="w-4 h-4" />
+            إدارة الصلاحيات
+          </Link>
+          <Link
+            to="/users/new"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-500 text-white rounded-lg text-sm font-bold shadow hover:bg-brand-600"
+          >
+            <Plus className="w-4 h-4" />
+            إضافة مستخدم
+          </Link>
+        </div>
       </div>
 
       <div className="card">

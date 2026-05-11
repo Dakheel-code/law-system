@@ -10,7 +10,6 @@ import {
   UserCog,
   Building2,
   Palette,
-  ShieldCheck,
   Gavel,
   Paperclip,
   type LucideIcon,
@@ -61,7 +60,6 @@ export const menu: MenuGroup[] = [
     title: "الإعدادات والإدارة",
     items: [
       { label: "المستخدمين", icon: UserCog, to: "/users" },
-      { label: "إدارة الصلاحيات", icon: ShieldCheck, to: "/users/permissions" },
       { label: "الإدارة", icon: Building2, to: "/admin" },
       { label: "تخصيص الواجهة", icon: Palette, to: "/theme" },
     ],
