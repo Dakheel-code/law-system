@@ -215,8 +215,8 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps = {}) 
             <LogOut className="w-4 h-4" />
           </button>
           <Link
-            to="/admin"
-            title={user?.email ? `إعدادات الحساب (${user.email})` : "إعدادات الحساب"}
+            to="/profile"
+            title={user?.email ? `الملف الشخصي (${user.email})` : "الملف الشخصي"}
             className="w-8 h-8 rounded-lg hover:bg-brand-50 hover:text-brand-600 flex items-center justify-center text-slate-500 transition"
           >
             <User className="w-4 h-4" />
