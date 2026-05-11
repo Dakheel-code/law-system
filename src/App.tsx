@@ -29,6 +29,7 @@ import Permissions from "./pages/users/Permissions";
 import Admin from "./pages/Admin";
 import Theme from "./pages/Theme";
 import Profile from "./pages/Profile";
+import DriveCallback from "./pages/DriveCallback";
 
 export default function App() {
   return (
@@ -37,6 +38,7 @@ export default function App() {
     <AuthProvider>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/oauth/drive/callback" element={<DriveCallback />} />
         <Route
           element={
             <ProtectedRoute>

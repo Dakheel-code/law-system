@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import DriveSection from "../components/admin/DriveSection";
 import {
   Building2,
   Settings,
   Bell,
   Database,
   Activity,
+  HardDrive,
   Save,
   Building,
   Phone,
@@ -55,6 +58,7 @@ const tabs = [
   { key: "forms", label: "تخصيص النماذج", icon: Sliders },
   { key: "notifications", label: "الإشعارات", icon: Bell },
   { key: "backup", label: "النسخ الاحتياطي", icon: Database },
+  { key: "drive", label: "Google Drive", icon: HardDrive },
   { key: "activity", label: "سجل النشاطات", icon: Activity },
 ] as const;
 
@@ -88,7 +92,15 @@ const dateFormats = [
 type SaveState = "idle" | "saving" | "saved" | "error";
 
 export default function Admin() {
-  const [tab, setTab] = useState<TabKey>("office");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialTab = (searchParams.get("tab") as TabKey | null) ?? "office";
+  const [tab, setTabState] = useState<TabKey>(
+    tabs.some((t) => t.key === initialTab) ? initialTab : "office"
+  );
+  const setTab = (k: TabKey) => {
+    setTabState(k);
+    setSearchParams(k === "office" ? {} : { tab: k }, { replace: true });
+  };
   const { office, loading, refresh, isConfigured } = useOffice();
   const [draft, setDraft] = useState<OfficeInfo | null>(null);
   const [saveState, setSaveState] = useState<SaveState>("idle");
@@ -199,11 +211,12 @@ export default function Admin() {
             <NotificationsSection draft={draft} update={update} />
           )}
           {tab === "backup" && <BackupSection draft={draft} update={update} />}
+          {tab === "drive" && <DriveSection />}
           {tab === "activity" && <ActivitySection />}
         </div>
       </div>
 
-      {tab !== "activity" && tab !== "backup" && (
+      {tab !== "activity" && tab !== "backup" && tab !== "drive" && (
         <div className="flex items-center justify-start gap-3">
           <button
             disabled={!dirty || saveState === "saving"}

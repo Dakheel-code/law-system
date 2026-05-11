@@ -1,11 +1,26 @@
 [build]
   command = "npm run build"
   publish = "dist"
+  functions = "netlify/functions"
 
 [build.environment]
   NODE_VERSION = "20"
 
-# SPA fallback — all routes return index.html so React Router handles them
+[functions]
+  node_bundler = "esbuild"
+
+# Drive API functions are reached at /api/drive/* for cleaner URLs.
+[[redirects]]
+  from = "/api/drive/oauth-callback"
+  to = "/.netlify/functions/drive-oauth-callback"
+  status = 200
+
+[[redirects]]
+  from = "/api/drive/token"
+  to = "/.netlify/functions/drive-token"
+  status = 200
+
+# SPA fallback — all OTHER routes return index.html so React Router handles them
 [[redirects]]
   from = "/*"
   to = "/index.html"
