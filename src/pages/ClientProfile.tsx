@@ -131,7 +131,8 @@ export default function ClientProfile() {
             uploadedAt: new Date().toISOString(),
           });
         } catch (e) {
-          alert(`فشل رفع ${f.name}: ${(e as Error).message}`);
+          console.error("[Drive upload]", f.name, e);
+          alert(`فشل رفع ${f.name}:\n${(e as Error).message}`);
         }
       }
       if (accepted.length > 0) {

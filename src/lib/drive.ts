@@ -259,6 +259,12 @@ export async function ensureOfficeFolders(): Promise<{
 }
 
 async function folderExists(id: string): Promise<boolean> {
+  // Shared Drive roots are NOT files in the Drive API — they live under
+  // /drives/{id}, not /files/{id}. GET /files/<sharedDriveId> returns 404.
+  // Trust that the configured Shared Drive exists; only verify regular folders.
+  const sharedId = await getSharedDriveId();
+  if (sharedId && id === sharedId) return true;
+
   try {
     const params = await withDriveParams({ fields: "id,trashed,mimeType" });
     await driveFetch(`/files/${encodeURIComponent(id)}?${params}`);
