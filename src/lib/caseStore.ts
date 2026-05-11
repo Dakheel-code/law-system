@@ -2,6 +2,13 @@ import { useEffect, useState } from "react";
 import { supabase } from "./supabase";
 import type { CaseFormState } from "../components/cases/caseFormTypes";
 
+export type CaseAttachment = {
+  name: string;
+  size: number;
+  type: string;
+  dataUrl: string;
+};
+
 export type CaseRecord = {
   id: string;            // UUID
   code: string;          // CSE-XXXXX
@@ -34,7 +41,9 @@ export type CaseRecord = {
   startDate: string | null;
   expectedEndDate: string | null;
   assignedLawyer: string | null;
+  assignedLawyers: string[];
   linkedContract: string;
+  attachments: CaseAttachment[];
   finalNotes: string;
   status: string;
   createdAt: string;
@@ -72,7 +81,9 @@ type CaseRow = {
   start_date: string | null;
   expected_end_date: string | null;
   assigned_lawyer: string | null;
+  assigned_lawyers: string[] | null;
   linked_contract: string | null;
+  attachments: CaseAttachment[] | null;
   final_notes: string | null;
   status: string;
   created_at: string;
@@ -110,7 +121,9 @@ const fromRow = (r: CaseRow): CaseRecord => ({
   startDate: r.start_date,
   expectedEndDate: r.expected_end_date,
   assignedLawyer: r.assigned_lawyer,
+  assignedLawyers: Array.isArray(r.assigned_lawyers) ? r.assigned_lawyers : [],
   linkedContract: r.linked_contract ?? "",
+  attachments: Array.isArray(r.attachments) ? r.attachments : [],
   finalNotes: r.final_notes ?? "",
   status: r.status,
   createdAt: r.created_at,
@@ -150,8 +163,10 @@ const buildInsert = (form: CaseFormState): Record<string, unknown> => ({
   fees_notes: form.feesNotes,
   start_date: form.startDate || null,
   expected_end_date: form.expectedEndDate || null,
-  assigned_lawyer: form.assignedLawyer || null,
+  assigned_lawyer: form.assignedLawyer || form.assignedLawyers[0] || null,
+  assigned_lawyers: form.assignedLawyers ?? [],
   linked_contract: form.linkedContract,
+  attachments: form.attachments ?? [],
   final_notes: form.finalNotes,
   status: "active",
 });

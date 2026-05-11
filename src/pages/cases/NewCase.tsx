@@ -78,7 +78,9 @@ export default function NewCase() {
         startDate: c.startDate ?? "",
         expectedEndDate: c.expectedEndDate ?? "",
         assignedLawyer: c.assignedLawyer ?? "",
+        assignedLawyers: c.assignedLawyers ?? [],
         linkedContract: c.linkedContract,
+        attachments: c.attachments ?? [],
         finalNotes: c.finalNotes,
       });
       setLoading(false);

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   Loader2,
@@ -6,21 +6,31 @@ import {
   Edit3,
   Trash2,
   Briefcase,
-  Building2,
   User as UserIcon,
   UserX,
   CalendarDays,
   AlertOctagon,
   Wallet,
-  FileText,
   StickyNote,
   Hash,
-  Gavel,
-  Clock,
+  Scale,
+  Paperclip,
+  Upload,
+  Download,
+  X,
+  FileText,
+  Image as ImageIcon,
+  FileType,
 } from "lucide-react";
-import { getCase, deleteCase, type CaseRecord } from "../../lib/caseStore";
+import {
+  getCase,
+  deleteCase,
+  updateCase,
+  type CaseRecord,
+  type CaseAttachment,
+} from "../../lib/caseStore";
 import { getClient, type ClientRecord } from "../../lib/clientStore";
-import { useUsers } from "../../lib/userStore";
+import { useUsers, type UserRecord } from "../../lib/userStore";
 import { useOffice } from "../../lib/officeStore";
 import {
   claimTypes,
@@ -29,6 +39,7 @@ import {
   priorities,
   urgencyLevels,
 } from "../../config/caseConfig";
+import { initialCase } from "../../components/cases/caseFormTypes";
 
 const labelFor = (opts: { value: string; label: string }[], v: string) =>
   opts.find((o) => o.value === v)?.label || v || "—";
@@ -65,10 +76,23 @@ const fmtDate = (iso: string | null) =>
         month: "long",
         year: "numeric",
       })
-    : "—";
+    : "";
 
-const fmtMoney = (n: number) =>
-  n > 0 ? n.toLocaleString("en-US") + " ر.س" : "—";
+const fmtMoney = (n: number) => (n > 0 ? n.toLocaleString("en-US") + " ر.س" : "");
+
+const fmtSize = (n: number) => {
+  if (n < 1024) return `${n} بايت`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / 1024 / 1024).toFixed(1)} MB`;
+};
+
+const readAsDataURL = (file: File): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result as string);
+    r.onerror = () => reject(r.error);
+    r.readAsDataURL(file);
+  });
 
 export default function CaseDetail() {
   const { id } = useParams<{ id: string }>();
@@ -81,28 +105,30 @@ export default function CaseDetail() {
   const [client, setClient] = useState<ClientRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const refresh = async () => {
+    if (!id) return;
+    const c = await getCase(id);
+    if (!c) {
+      setNotFound(true);
+      setLoading(false);
+      return;
+    }
+    setCaseData(c);
+    if (c.clientId) {
+      const cl = await getClient(c.clientId);
+      setClient(cl);
+    } else {
+      setClient(null);
+    }
+    setLoading(false);
+  };
 
   useEffect(() => {
-    if (!id) return;
-    let cancelled = false;
-    (async () => {
-      const c = await getCase(id);
-      if (cancelled) return;
-      if (!c) {
-        setNotFound(true);
-        setLoading(false);
-        return;
-      }
-      setCaseData(c);
-      if (c.clientId) {
-        const cl = await getClient(c.clientId);
-        if (!cancelled) setClient(cl);
-      }
-      setLoading(false);
-    })();
-    return () => {
-      cancelled = true;
-    };
+    refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const handleDelete = async () => {
@@ -110,6 +136,79 @@ export default function CaseDetail() {
     if (!confirm(`حذف القضية "${caseData.code}"؟`)) return;
     const ok = await deleteCase(caseData.id);
     if (ok) navigate("/cases");
+  };
+
+  const handleUpload = async (files: FileList | null) => {
+    if (!files || !caseData) return;
+    setUploading(true);
+    try {
+      const accepted: CaseAttachment[] = [];
+      for (const f of Array.from(files)) {
+        if (f.size > 10 * 1024 * 1024) {
+          alert(`${f.name} — يتجاوز 10 ميجابايت`);
+          continue;
+        }
+        const dataUrl = await readAsDataURL(f);
+        accepted.push({ name: f.name, size: f.size, type: f.type, dataUrl });
+      }
+      if (accepted.length === 0) return;
+      const next = [...(caseData.attachments ?? []), ...accepted];
+      await updateCase(caseData.id, {
+        ...initialCase,
+        ...caseData,
+        startDate: caseData.startDate ?? "",
+        expectedEndDate: caseData.expectedEndDate ?? "",
+        assignmentDate: caseData.assignmentDate ?? "",
+        caseDate: caseData.caseDate ?? "",
+        clientType: "individual",
+        clientName: "",
+        idType: "national",
+        idNumber: "",
+        phone: "",
+        email: "",
+        city: "",
+        address: "",
+        clientRole: (caseData.clientRole as "plaintiff" | "defendant") || "plaintiff",
+        opponentRole: (caseData.opponentRole as "plaintiff" | "defendant") || "defendant",
+        fees: (caseData.fees as typeof initialCase.fees) ?? initialCase.fees,
+        attachments: next,
+        assignedLawyer: caseData.assignedLawyer ?? "",
+        linkedContract: caseData.linkedContract ?? "",
+      });
+      await refresh();
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  };
+
+  const handleRemoveAttachment = async (idx: number) => {
+    if (!caseData) return;
+    if (!confirm("هل تريد حذف هذا المرفق؟")) return;
+    const next = caseData.attachments.filter((_, i) => i !== idx);
+    await updateCase(caseData.id, {
+      ...initialCase,
+      ...caseData,
+      startDate: caseData.startDate ?? "",
+      expectedEndDate: caseData.expectedEndDate ?? "",
+      assignmentDate: caseData.assignmentDate ?? "",
+      caseDate: caseData.caseDate ?? "",
+      clientType: "individual",
+      clientName: "",
+      idType: "national",
+      idNumber: "",
+      phone: "",
+      email: "",
+      city: "",
+      address: "",
+      clientRole: (caseData.clientRole as "plaintiff" | "defendant") || "plaintiff",
+      opponentRole: (caseData.opponentRole as "plaintiff" | "defendant") || "defendant",
+      fees: (caseData.fees as typeof initialCase.fees) ?? initialCase.fees,
+      attachments: next,
+      assignedLawyer: caseData.assignedLawyer ?? "",
+      linkedContract: caseData.linkedContract ?? "",
+    });
+    await refresh();
   };
 
   if (loading) {
@@ -136,7 +235,55 @@ export default function CaseDetail() {
   }
 
   const c = caseData;
-  const lawyer = users.find((u) => u.id === c.assignedLawyer);
+  const lawyerIds = c.assignedLawyers && c.assignedLawyers.length > 0
+    ? c.assignedLawyers
+    : c.assignedLawyer
+    ? [c.assignedLawyer]
+    : [];
+  const lawyers = users.filter((u) => lawyerIds.includes(u.id));
+
+  // Build maps of non-empty entries for compact rendering
+  const clientEntries = client
+    ? [
+        ["الاسم", client.fullName, false],
+        ["الكود", client.code, true],
+        ["رقم الهوية", client.idNumber, true],
+        ["رقم الجوال", client.phone, true],
+        ["البريد", client.email, true],
+      ].filter(([, v]) => v) as [string, string, boolean][]
+    : [];
+
+  const opponentEntries = [
+    ["الاسم", c.otherPartyName, false],
+    ["رقم الهوية", c.otherPartyId, true],
+    ["رقم الجوال", c.otherPartyPhone, true],
+    ["العنوان", c.otherPartyAddress, false],
+  ].filter(([, v]) => v) as [string, string, boolean][];
+
+  const caseEntries = [
+    ["رقم القضية", c.caseNumber, true],
+    ["نوع القضية", labelFor(caseTypes, c.caseType), false],
+    ["نوع المحكمة", labelFor(courtTypes, c.courtType), false],
+    ["اسم الدائرة", c.circuitName, false],
+    ["نوع المطالبة", c.claimSubject, false],
+    ["تاريخ تكليف القضية", fmtDate(c.assignmentDate), false],
+    ["تاريخ القضية", fmtDate(c.caseDate), false],
+  ].filter(([, v]) => v) as [string, string, boolean][];
+
+  const adminEntries = [
+    ["تاريخ البدء", fmtDate(c.startDate), false],
+    ["التاريخ المتوقع للانتهاء", fmtDate(c.expectedEndDate), false],
+    ["العقد المرتبط", c.linkedContract, false],
+  ].filter(([, v]) => v) as [string, string, boolean][];
+
+  const financialEntries = [
+    ["نوع المطالبة", c.claimType ? labelFor(claimTypes, c.claimType) : "", false],
+    ["التكلفة المقدرة للأتعاب", fmtMoney(c.estimatedFees), false],
+    ["رسوم الاستشارة", fmtMoney(c.consultationFees), false],
+    ["الرسوم القضائية المتوقعة", fmtMoney(c.expectedCourtFees), false],
+    ["حالة الدفع", c.paymentStatus ? labelFor(paymentStatus, c.paymentStatus) : "", false],
+    ["طريقة الدفع", c.paymentMethod ? labelFor(paymentMethods, c.paymentMethod) : "", false],
+  ].filter(([, v]) => v) as [string, string, boolean][];
 
   return (
     <div className="space-y-5">
@@ -156,7 +303,7 @@ export default function CaseDetail() {
               className="inline-flex items-center gap-2 px-3 py-2 bg-brand-500 text-white rounded-lg text-xs font-bold shadow hover:bg-brand-600"
             >
               <Edit3 className="w-3.5 h-3.5" />
-              تعديل القضية
+              تعديل
             </Link>
             <Link
               to="/cases"
@@ -166,7 +313,7 @@ export default function CaseDetail() {
               العودة
             </Link>
           </div>
-          <div className="text-right">
+          <div className="text-right min-w-0 flex-1">
             <div className="flex items-center justify-start gap-2 mb-1 flex-wrap">
               <span
                 className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold ${
@@ -210,103 +357,164 @@ export default function CaseDetail() {
             </p>
           </div>
         </div>
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {/* Client */}
-        <Section title="العميل" icon={UserIcon}>
-          {client ? (
-            <>
-              <Row label="الاسم" value={client.fullName} />
-              <Row label="الكود" value={client.code} mono />
-              <Row label="رقم الهوية" value={client.idNumber || "—"} mono />
-              <Row label="رقم الجوال" value={client.phone || "—"} mono />
-              <Row label="البريد" value={client.email || "—"} mono />
-            </>
-          ) : (
-            <div className="text-xs text-slate-400 text-center py-4">
-              لا يوجد عميل مرتبط بهذه القضية
-            </div>
-          )}
-          <Row
-            label="صفة العميل"
-            value={c.clientRole === "plaintiff" ? "مدّعي" : "مدّعى عليه"}
-            highlight={c.clientRole === "plaintiff" ? "brand" : "rose"}
-          />
-        </Section>
-
-        {/* Opponent */}
-        <Section title="الطرف الآخر" icon={UserX}>
-          <Row label="الاسم" value={c.otherPartyName || "—"} />
-          <Row label="رقم الهوية" value={c.otherPartyId || "—"} mono />
-          <Row label="رقم الجوال" value={c.otherPartyPhone || "—"} mono />
-          <Row label="العنوان" value={c.otherPartyAddress || "—"} />
-          <Row
-            label="صفة الخصم"
-            value={c.opponentRole === "plaintiff" ? "مدّعي" : "مدّعى عليه"}
-            highlight={c.opponentRole === "plaintiff" ? "brand" : "rose"}
-          />
-        </Section>
-
-        {/* Case details */}
-        <Section title="تفاصيل القضية" icon={Hash}>
-          <Row label="رقم القضية" value={c.caseNumber || "—"} mono />
-          <Row label="نوع القضية" value={labelFor(caseTypes, c.caseType)} />
-          <Row label="نوع المحكمة" value={labelFor(courtTypes, c.courtType)} />
-          <Row label="اسم الدائرة" value={c.circuitName || "—"} />
-          <Row label="نوع المطالبة" value={c.claimSubject || "—"} />
-          <Row label="تاريخ تكليف القضية" value={fmtDate(c.assignmentDate)} />
-          <Row label="تاريخ القضية" value={fmtDate(c.caseDate)} />
-          {c.description && (
-            <div className="pt-2 border-t border-slate-100 mt-2">
-              <div className="text-xs text-slate-500 mb-1">الوصف:</div>
-              <p className="text-sm text-slate-700 leading-7 text-right whitespace-pre-line">
-                {c.description}
-              </p>
-            </div>
-          )}
-        </Section>
-
-        {/* Court & Schedule */}
-        <Section title="المدة والإدارة" icon={CalendarDays}>
-          <Row label="المحامي المسند" value={lawyer?.fullName || "—"} />
-          <Row label="تاريخ البدء" value={fmtDate(c.startDate)} />
-          <Row label="التاريخ المتوقع للانتهاء" value={fmtDate(c.expectedEndDate)} />
-          <Row label="العقد المرتبط" value={c.linkedContract || "—"} />
-        </Section>
-
-        {/* Financial */}
-        <Section title="المالية" icon={Wallet}>
-          <Row
-            label="نوع المطالبة"
-            value={labelFor(claimTypes, c.claimType)}
-          />
-          <Row label="التكلفة المقدرة للأتعاب" value={fmtMoney(c.estimatedFees)} />
-          <Row label="رسوم الاستشارة" value={fmtMoney(c.consultationFees)} />
-          <Row label="الرسوم القضائية المتوقعة" value={fmtMoney(c.expectedCourtFees)} />
-          <Row
-            label="حالة الدفع"
-            value={labelFor(paymentStatus, c.paymentStatus)}
-          />
-          <Row
-            label="طريقة الدفع"
-            value={c.paymentMethod ? labelFor(paymentMethods, c.paymentMethod) : "—"}
-          />
-        </Section>
-
-        {/* Notes */}
-        <Section title="الملاحظات النهائية" icon={StickyNote}>
-          {c.finalNotes ? (
+        {c.description && (
+          <div className="mt-4 pt-4 border-t border-slate-100">
             <p className="text-sm text-slate-700 leading-7 text-right whitespace-pre-line">
-              {c.finalNotes}
+              {c.description}
             </p>
+          </div>
+        )}
+      </div>
+
+      {/* Parties */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <Section
+          title="العميل"
+          icon={UserIcon}
+          badge={c.clientRole === "plaintiff" ? "مدّعي" : "مدّعى عليه"}
+          badgeColor={c.clientRole === "plaintiff" ? "brand" : "rose"}
+        >
+          {client ? (
+            <KV entries={clientEntries} />
           ) : (
-            <div className="text-xs text-slate-400 text-center py-4">
-              لا توجد ملاحظات
-            </div>
+            <Empty text="لا يوجد عميل مرتبط" />
+          )}
+        </Section>
+
+        <Section
+          title="الطرف الآخر"
+          icon={UserX}
+          badge={c.opponentRole === "plaintiff" ? "مدّعي" : "مدّعى عليه"}
+          badgeColor={c.opponentRole === "plaintiff" ? "brand" : "rose"}
+        >
+          {opponentEntries.length > 0 ? (
+            <KV entries={opponentEntries} />
+          ) : (
+            <Empty text="لا توجد بيانات للطرف الآخر" />
           )}
         </Section>
       </div>
+
+      {/* Case details + admin */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <Section title="تفاصيل القضية" icon={Hash}>
+          {caseEntries.length > 0 ? (
+            <KV entries={caseEntries} />
+          ) : (
+            <Empty text="لا توجد تفاصيل" />
+          )}
+        </Section>
+
+        <Section title="المدة والإدارة" icon={CalendarDays}>
+          {adminEntries.length > 0 ? (
+            <KV entries={adminEntries} />
+          ) : (
+            <Empty text="لا توجد بيانات إدارة" />
+          )}
+        </Section>
+      </div>
+
+      {/* Lawyers */}
+      <Section title="المحامون المعيّنون" icon={Scale}>
+        {lawyers.length === 0 ? (
+          <Empty text="لم يتم تعيين محامي لهذه القضية" />
+        ) : (
+          <div className="flex flex-wrap items-center gap-2">
+            {lawyers.map((u) => (
+              <LawyerChip key={u.id} user={u} />
+            ))}
+          </div>
+        )}
+      </Section>
+
+      {/* Attachments */}
+      <Section
+        title={`المرفقات (${c.attachments.length})`}
+        icon={Paperclip}
+      >
+        <div className="space-y-3">
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading}
+            className="w-full border-2 border-dashed border-slate-200 rounded-xl py-6 flex flex-col items-center justify-center text-slate-400 hover:border-brand-300 hover:bg-brand-50/30 hover:text-brand-600 transition disabled:opacity-60"
+          >
+            {uploading ? (
+              <Loader2 className="w-8 h-8 mb-2 animate-spin" />
+            ) : (
+              <Upload className="w-8 h-8 mb-2" strokeWidth={1.4} />
+            )}
+            <span className="text-sm font-bold">
+              {uploading ? "جارٍ الرفع..." : "اضغط لرفع مرفق جديد"}
+            </span>
+            <span className="text-xs mt-1">حتى 10 ميجابايت لكل ملف</span>
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            multiple
+            accept="image/jpeg,image/png,image/gif,image/webp,application/pdf,.doc,.docx"
+            className="hidden"
+            onChange={(e) => handleUpload(e.target.files)}
+          />
+
+          {c.attachments.length > 0 && (
+            <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {c.attachments.map((a, i) => (
+                <li
+                  key={i}
+                  className="flex items-center gap-2 p-2.5 bg-slate-50 border border-slate-200 rounded-lg"
+                >
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveAttachment(i)}
+                    className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-md shrink-0"
+                    title="حذف"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                  <a
+                    href={a.dataUrl}
+                    download={a.name}
+                    className="p-1.5 text-brand-600 hover:bg-brand-50 rounded-md shrink-0"
+                    title="تحميل"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                  </a>
+                  <div className="flex-1 min-w-0 text-right">
+                    <div className="text-sm text-slate-700 truncate" title={a.name}>
+                      {a.name}
+                    </div>
+                    <div className="text-[10px] text-slate-400 mt-0.5">
+                      {fmtSize(a.size)}
+                    </div>
+                  </div>
+                  <FileBadge type={a.type} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </Section>
+
+      {/* Financial */}
+      <Section title="المالية" icon={Wallet}>
+        {financialEntries.length > 0 ? (
+          <KV entries={financialEntries} columns={2} />
+        ) : (
+          <Empty text="لا توجد بيانات مالية" />
+        )}
+      </Section>
+
+      {/* Notes */}
+      {c.finalNotes && (
+        <Section title="الملاحظات النهائية" icon={StickyNote}>
+          <p className="text-sm text-slate-700 leading-7 text-right whitespace-pre-line">
+            {c.finalNotes}
+          </p>
+        </Section>
+      )}
     </div>
   );
 }
@@ -319,51 +527,118 @@ function Section({
   title,
   icon: Icon,
   children,
+  badge,
+  badgeColor,
 }: {
   title: string;
   icon: React.ComponentType<{ className?: string }>;
   children: React.ReactNode;
+  badge?: string;
+  badgeColor?: "brand" | "rose";
 }) {
+  const badgeClass =
+    badgeColor === "brand"
+      ? "bg-brand-100 text-brand-700"
+      : "bg-rose-100 text-rose-700";
   return (
     <div className="card p-5">
-      <h3 className="flex items-center justify-start gap-2 text-base font-bold text-slate-800 mb-4 pb-3 border-b border-slate-100">
-        {title}
-        <Icon className="w-4 h-4 text-brand-500" />
-      </h3>
-      <div className="space-y-2">{children}</div>
-    </div>
-  );
-}
-
-function Row({
-  label,
-  value,
-  mono = false,
-  highlight,
-}: {
-  label: string;
-  value: string;
-  mono?: boolean;
-  highlight?: "brand" | "rose";
-}) {
-  const valClass =
-    highlight === "brand"
-      ? "text-brand-700 font-bold"
-      : highlight === "rose"
-      ? "text-rose-700 font-bold"
-      : "text-slate-700";
-  return (
-    <div className="flex items-start justify-between gap-3 py-1.5 text-sm">
-      <div
-        className={`${valClass} text-left ${mono ? "font-mono text-xs" : ""} flex-1 min-w-0`}
-        dir={mono ? "ltr" : undefined}
-      >
-        {value}
+      <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+        {badge && (
+          <span
+            className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold ${badgeClass}`}
+          >
+            {badge}
+          </span>
+        )}
+        <h3 className="flex items-center justify-start gap-2 text-base font-bold text-slate-800">
+          {title}
+          <Icon className="w-4 h-4 text-brand-500" />
+        </h3>
       </div>
-      <div className="text-slate-500 text-xs shrink-0">{label}</div>
+      {children}
     </div>
   );
 }
 
-// Re-exported icons not currently used inline but referenced in headers above
-export { Building2, FileText, Clock, Gavel };
+function KV({
+  entries,
+  columns = 1,
+}: {
+  entries: [string, string, boolean][];
+  columns?: 1 | 2;
+}) {
+  return (
+    <dl
+      className={`grid ${
+        columns === 2 ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1"
+      } gap-x-6 gap-y-2`}
+    >
+      {entries.map(([label, value, mono]) => (
+        <div
+          key={label}
+          className="flex items-baseline justify-between gap-3 py-1 text-sm border-b border-slate-50 last:border-b-0"
+        >
+          <div
+            className={`flex-1 min-w-0 text-left text-slate-700 truncate ${
+              mono ? "font-mono text-xs" : ""
+            }`}
+            dir={mono ? "ltr" : undefined}
+            title={value}
+          >
+            {value}
+          </div>
+          <dt className="text-xs text-slate-500 shrink-0">{label}</dt>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+function Empty({ text }: { text: string }) {
+  return (
+    <div className="text-center py-6 text-xs text-slate-400">{text}</div>
+  );
+}
+
+function LawyerChip({ user }: { user: UserRecord }) {
+  return (
+    <div className="inline-flex items-center gap-2 pl-3 pr-1 py-1 bg-brand-50 border border-brand-200 rounded-full">
+      {user.avatarDataUrl ? (
+        <img
+          src={user.avatarDataUrl}
+          alt={user.fullName}
+          className="w-7 h-7 rounded-full object-cover ring-2 ring-white"
+        />
+      ) : (
+        <div className="w-7 h-7 rounded-full bg-brand-500 text-white flex items-center justify-center text-xs font-bold ring-2 ring-white">
+          {(user.firstName?.[0] || user.fullName?.[0] || "؟").toUpperCase()}
+        </div>
+      )}
+      <span className="text-sm font-bold text-brand-700">
+        {user.fullName || user.code}
+      </span>
+    </div>
+  );
+}
+
+function FileBadge({ type }: { type: string }) {
+  if (type.startsWith("image/")) {
+    return (
+      <div className="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center shrink-0">
+        <ImageIcon className="w-4 h-4 text-violet-600" />
+      </div>
+    );
+  }
+  if (type === "application/pdf") {
+    return (
+      <div className="w-8 h-8 rounded-lg bg-rose-100 flex items-center justify-center shrink-0">
+        <FileText className="w-4 h-4 text-rose-600" />
+      </div>
+    );
+  }
+  return (
+    <div className="w-8 h-8 rounded-lg bg-brand-50 flex items-center justify-center shrink-0">
+      <FileType className="w-4 h-4 text-brand-600" />
+    </div>
+  );
+}

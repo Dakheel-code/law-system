@@ -5,6 +5,13 @@ export type FeeItem = {
   amount: number;
 };
 
+export type Attachment = {
+  name: string;
+  size: number;
+  type: string;
+  dataUrl: string;
+};
+
 export type PartyRole = "plaintiff" | "defendant";
 
 export type CaseFormState = {
@@ -54,10 +61,12 @@ export type CaseFormState = {
   priority: string;
   startDate: string;
   expectedEndDate: string;
-  assignedLawyer: string;
+  assignedLawyer: string;            // primary (kept for backward compat)
+  assignedLawyers: string[];         // multi-lawyer assignment
   linkedContract: string;
 
   // Step 6 - Attachments & notes
+  attachments: Attachment[];
   finalNotes: string;
 };
 
@@ -103,7 +112,9 @@ export const initialCase: CaseFormState = {
   startDate: "",
   expectedEndDate: "",
   assignedLawyer: "",
+  assignedLawyers: [],
   linkedContract: "",
 
+  attachments: [],
   finalNotes: "",
 };
