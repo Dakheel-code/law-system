@@ -280,7 +280,7 @@ export default function Sessions() {
           )}
         </div>
       ) : (
-        <ul className="space-y-3">
+        <ul className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
           {filtered.map((s) => (
             <SessionRow
               key={`${s.caseId}-${s.id}`}
