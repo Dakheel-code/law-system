@@ -36,6 +36,8 @@ type SettingsRow = {
   sidebar_position: string | null;
   sidebar_collapsed: boolean | null;
   compact_mode: boolean | null;
+  custom_primary: string | null;
+  custom_accent: string | null;
 };
 
 function fromRow(row: SettingsRow): ThemeSettings {
@@ -50,6 +52,8 @@ function fromRow(row: SettingsRow): ThemeSettings {
     officeName: row.office_name ?? defaultTheme.officeName,
     shortName: row.short_name ?? defaultTheme.shortName,
     logoDataUrl: row.logo_data_url,
+    customPrimary: row.custom_primary,
+    customAccent: row.custom_accent,
   };
 }
 
@@ -64,6 +68,8 @@ function toUpdatePayload(t: ThemeSettings): Record<string, unknown> {
     office_name: t.officeName,
     short_name: t.shortName,
     logo_data_url: t.logoDataUrl,
+    custom_primary: t.customPrimary ?? null,
+    custom_accent: t.customAccent ?? null,
   };
 }
 

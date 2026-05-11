@@ -65,11 +65,14 @@ export default function Theme() {
             </h3>
             <div className="grid grid-cols-4 sm:grid-cols-8 gap-3">
               {colorThemes.map((c) => {
-                const active = theme.color === c.key;
+                const active = theme.color === c.key && !theme.customPrimary;
                 return (
                   <button
                     key={c.key}
-                    onClick={() => update("color", c.key)}
+                    onClick={() => {
+                      update("color", c.key);
+                      update("customPrimary", null);
+                    }}
                     className={`relative h-16 rounded-xl shadow-card transition hover:scale-105 ${
                       active ? "ring-4 ring-offset-2 ring-slate-300" : ""
                     }`}
@@ -84,9 +87,44 @@ export default function Theme() {
               })}
             </div>
             <p className="text-xs text-slate-500 mt-3 text-right">
-              اللون المختار: <span className="font-bold">{activeColor?.name}</span>
-              <span className="text-emerald-600 mr-2">✓ يُطبَّق فوراً على كل النظام</span>
+              {theme.customPrimary ? (
+                <>
+                  لون مخصص: <span className="font-bold font-mono" dir="ltr">{theme.customPrimary}</span>
+                  <span className="text-emerald-600 mr-2">✓ يُطبَّق فوراً</span>
+                </>
+              ) : (
+                <>
+                  اللون المختار: <span className="font-bold">{activeColor?.name}</span>
+                  <span className="text-emerald-600 mr-2">✓ يُطبَّق فوراً على كل النظام</span>
+                </>
+              )}
             </p>
+
+            {/* Custom hex picker for primary */}
+            <CustomHexPicker
+              label="أو اختر لوناً مخصصاً (رئيسي)"
+              value={theme.customPrimary ?? ""}
+              onChange={(v) => update("customPrimary", v || null)}
+              hint="مثال: #1e9a8a — يتجاوز اللون المختار أعلاه"
+            />
+          </div>
+
+          {/* Accent (secondary) color */}
+          <div className="card p-5">
+            <h3 className="flex items-center justify-start gap-2 text-base font-bold text-slate-800 mb-4">
+              اللون الثانوي (Accent)
+              <Sparkles className="w-4 h-4 text-brand-500" />
+            </h3>
+            <p className="text-xs text-slate-500 mb-3 text-right leading-6">
+              لون ثانوي يُولِّد تدرّجاً كاملاً (accent-50 … accent-900) يمكن استخدامه للنصوص والعناصر الثانوية.
+              إذا لم تُحدِّده، يستخدم النظام نفس اللون الرئيسي.
+            </p>
+            <CustomHexPicker
+              label="اللون الثانوي"
+              value={theme.customAccent ?? ""}
+              onChange={(v) => update("customAccent", v || null)}
+              hint="مثال: #8b5cf6"
+            />
           </div>
 
           {/* Mode */}
@@ -294,8 +332,103 @@ export default function Theme() {
             الوضع: <span className="font-bold text-slate-700">{modes.find((m) => m.key === theme.mode)?.label}</span> ·
             الخط: <span className="font-bold text-slate-700">{activeFont?.name.split(" ")[0]}</span>
           </div>
+
+          {/* Accent preview chips */}
+          <div className="card p-3 space-y-2">
+            <div className="text-[11px] text-slate-500 text-right mb-1">
+              الألوان النشطة
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center gap-1">
+                <span className="w-4 h-4 rounded bg-brand-300 border border-slate-200" />
+                <span className="w-4 h-4 rounded bg-brand-500 border border-slate-200" />
+                <span className="w-4 h-4 rounded bg-brand-700 border border-slate-200" />
+              </div>
+              <span className="text-slate-600">رئيسي</span>
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center gap-1">
+                <span className="w-4 h-4 rounded bg-accent-300 border border-slate-200" />
+                <span className="w-4 h-4 rounded bg-accent-500 border border-slate-200" />
+                <span className="w-4 h-4 rounded bg-accent-700 border border-slate-200" />
+              </div>
+              <span className="text-slate-600">ثانوي</span>
+            </div>
+          </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ============================================================
+// Custom hex color picker
+// ============================================================
+
+function CustomHexPicker({
+  label,
+  value,
+  onChange,
+  hint,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  hint?: string;
+}) {
+  const isValid = /^#[0-9a-fA-F]{6}$/.test(value) || value === "";
+  return (
+    <div className="mt-4 pt-4 border-t border-dashed border-slate-200">
+      <label className="block text-xs font-bold text-slate-500 mb-2 text-right">
+        {label}
+      </label>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => onChange("")}
+          disabled={!value}
+          className="px-3 py-2 text-xs font-bold text-rose-500 hover:bg-rose-50 rounded-md disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          إزالة
+        </button>
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => {
+            let v = e.target.value.trim();
+            if (v && !v.startsWith("#")) v = "#" + v;
+            onChange(v);
+          }}
+          placeholder="#000000"
+          dir="ltr"
+          className={`flex-1 px-3 py-2 bg-slate-50 border rounded-lg text-sm text-left font-mono focus:outline-none focus:ring-2 ${
+            isValid
+              ? "border-slate-200 focus:ring-brand-200"
+              : "border-rose-300 focus:ring-rose-200 text-rose-700"
+          }`}
+        />
+        <div className="relative shrink-0">
+          <input
+            type="color"
+            value={isValid && value ? value : "#1e9a8a"}
+            onChange={(e) => onChange(e.target.value)}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            title="اختر لوناً"
+          />
+          <div
+            className="w-10 h-10 rounded-lg border-2 border-slate-200 shadow-sm"
+            style={{ backgroundColor: isValid && value ? value : "transparent" }}
+          />
+        </div>
+      </div>
+      {hint && (
+        <p className="text-[11px] text-slate-400 mt-1.5 text-right">{hint}</p>
+      )}
+      {!isValid && value && (
+        <p className="text-[11px] text-rose-600 mt-1 text-right">
+          صيغة غير صحيحة. مثال: #1e9a8a
+        </p>
+      )}
     </div>
   );
 }

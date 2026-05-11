@@ -189,6 +189,9 @@ export type ThemeSettings = {
   officeName: string;
   shortName: string;
   logoDataUrl: string | null;
+  // Custom colors (overrides preset when set)
+  customPrimary?: string | null;   // hex e.g. "#1e9a8a" — replaces `color` palette
+  customAccent?: string | null;    // hex — secondary/accent palette (always present)
 };
 
 export const defaultTheme: ThemeSettings = {
@@ -201,6 +204,8 @@ export const defaultTheme: ThemeSettings = {
   officeName: "شركة ناصر طريد للمحاماة",
   shortName: "ناصر طريد",
   logoDataUrl: null,
+  customPrimary: null,
+  customAccent: null,
 };
 
 const loadedFonts = new Set<FontKey>(["tajawal"]); // tajawal already in index.css
@@ -216,13 +221,102 @@ export function loadFont(key: FontKey) {
   loadedFonts.add(key);
 }
 
+// ----------------------------------------------------------
+// Palette generation from a single hex color
+// ----------------------------------------------------------
+
+/** Parse "#RRGGBB" or "#RGB" → [r, g, b] (0-255) */
+function hexToRgb(hex: string): [number, number, number] | null {
+  let h = hex.trim().replace("#", "");
+  if (h.length === 3) h = h.split("").map((c) => c + c).join("");
+  if (!/^[0-9a-fA-F]{6}$/.test(h)) return null;
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+}
+
+function rgbToHsl(r: number, g: number, b: number): [number, number, number] {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let h = 0, s = 0;
+  const l = (max + min) / 2;
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+      case g: h = (b - r) / d + 2; break;
+      case b: h = (r - g) / d + 4; break;
+    }
+    h /= 6;
+  }
+  return [h * 360, s * 100, l * 100];
+}
+
+function hslToRgb(h: number, s: number, l: number): [number, number, number] {
+  h /= 360; s /= 100; l /= 100;
+  if (s === 0) {
+    const v = Math.round(l * 255);
+    return [v, v, v];
+  }
+  const hue2rgb = (p: number, q: number, t: number) => {
+    if (t < 0) t += 1;
+    if (t > 1) t -= 1;
+    if (t < 1 / 6) return p + (q - p) * 6 * t;
+    if (t < 1 / 2) return q;
+    if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+    return p;
+  };
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+  const p = 2 * l - q;
+  return [
+    Math.round(hue2rgb(p, q, h + 1 / 3) * 255),
+    Math.round(hue2rgb(p, q, h) * 255),
+    Math.round(hue2rgb(p, q, h - 1 / 3) * 255),
+  ];
+}
+
+/** Generate a 10-shade Tailwind-style palette from a single hex (used as base) */
+export function paletteFromHex(hex: string): Record<Shade, string> | null {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return null;
+  const [h, s] = rgbToHsl(rgb[0], rgb[1], rgb[2]);
+  // Lightness targets per shade (Tailwind-ish)
+  const targets: Record<Shade, number> = {
+    "50": 96,
+    "100": 92,
+    "200": 84,
+    "300": 74,
+    "400": 64,
+    "500": 52,
+    "600": 42,
+    "700": 33,
+    "800": 25,
+    "900": 18,
+  };
+  const out = {} as Record<Shade, string>;
+  (Object.keys(targets) as Shade[]).forEach((shade) => {
+    const [r, g, b] = hslToRgb(h, Math.max(s, 25), targets[shade]);
+    out[shade] = `${r} ${g} ${b}`;
+  });
+  return out;
+}
+
 export function applyTheme(settings: ThemeSettings) {
   const root = document.documentElement;
 
-  // Color theme — set CSS variables
-  const palette = themes[settings.color];
+  // Primary palette — use custom hex if valid, otherwise the preset.
+  const customPalette =
+    settings.customPrimary ? paletteFromHex(settings.customPrimary) : null;
+  const palette = customPalette ?? themes[settings.color];
   Object.entries(palette).forEach(([shade, value]) => {
     root.style.setProperty(`--brand-${shade}`, value);
+  });
+
+  // Accent palette — derived from customAccent or falls back to primary
+  const accentPalette =
+    (settings.customAccent ? paletteFromHex(settings.customAccent) : null) ??
+    palette;
+  Object.entries(accentPalette).forEach(([shade, value]) => {
+    root.style.setProperty(`--accent-${shade}`, value);
   });
 
   // Dark mode
