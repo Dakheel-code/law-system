@@ -207,3 +207,55 @@ export function useUsers() {
 
   return { users, loading, refresh };
 }
+
+// ---------- Current staff (linked to the authenticated user) ----------
+
+export async function getStaffByAuthId(authId: string): Promise<UserRecord | null> {
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from("staff")
+    .select("*")
+    .eq("auth_id", authId)
+    .maybeSingle();
+  if (error || !data) return null;
+  return fromRow(data as StaffRow);
+}
+
+export function useCurrentStaff(authId: string | null | undefined) {
+  const [staff, setStaff] = useState<UserRecord | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const refresh = async () => {
+    if (!authId) {
+      setStaff(null);
+      setLoading(false);
+      return;
+    }
+    const found = await getStaffByAuthId(authId);
+    setStaff(found);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    setLoading(true);
+    refresh();
+
+    const sb = supabase;
+    if (!sb || !authId) return;
+    const channel = sb
+      .channel(`my-staff-${crypto.randomUUID()}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "staff" },
+        () => refresh()
+      )
+      .subscribe();
+
+    return () => {
+      sb.removeChannel(channel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authId]);
+
+  return { staff, loading };
+}

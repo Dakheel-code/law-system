@@ -2,18 +2,27 @@ import { Sun, Moon, Sunset, Sparkles } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useCases } from "../../lib/caseStore";
 import { useTasks } from "../../lib/taskStore";
+import { useCurrentStaff } from "../../lib/userStore";
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
 
 export default function WelcomeCard() {
   const { user } = useAuth();
+  const { staff } = useCurrentStaff(user?.id);
   const { cases } = useCases();
   const { tasks } = useTasks();
 
+  // Greeting name = first name + last name only (per user request)
+  const firstLast = [staff?.firstName, staff?.lastName]
+    .filter((s) => s && s.trim())
+    .join(" ")
+    .trim();
   const displayName =
-    (user?.user_metadata?.full_name as string | undefined) ??
-    (user?.user_metadata?.name as string | undefined) ??
-    user?.email?.split("@")[0] ??
+    firstLast ||
+    staff?.fullName ||
+    (user?.user_metadata?.full_name as string | undefined) ||
+    (user?.user_metadata?.name as string | undefined) ||
+    user?.email?.split("@")[0] ||
     "مرحباً";
 
   const hour = new Date().getHours();

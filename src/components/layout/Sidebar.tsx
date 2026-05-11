@@ -4,6 +4,8 @@ import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
 import { ChevronDown, LogOut, User, Circle, X } from "lucide-react";
 import { menu, type MenuChild } from "../../config/menu";
+import { useCurrentStaff } from "../../lib/userStore";
+import { userTypes } from "../../config/userConfig";
 
 function ChildLink({ child }: { child: MenuChild }) {
   const Icon = child.icon;
@@ -34,6 +36,22 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps = {}) 
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
   const { theme } = useTheme();
+  const { staff } = useCurrentStaff(user?.id);
+
+  const displayName =
+    staff?.fullName ||
+    (user?.user_metadata?.full_name as string | undefined) ||
+    (user?.user_metadata?.name as string | undefined) ||
+    user?.email?.split("@")[0] ||
+    "ضيف";
+  const initial = (
+    staff?.firstName?.[0] ||
+    staff?.fullName?.[0] ||
+    user?.email?.[0] ||
+    "؟"
+  ).toUpperCase();
+  const roleLabel =
+    userTypes.find((t) => t.value === staff?.type)?.label || "مدير المكتب";
 
   const handleLogout = async () => {
     await signOut();
@@ -113,16 +131,24 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps = {}) 
       {/* User */}
       <div className="p-3">
         <div className="flex items-center gap-3 p-3 rounded-xl bg-brand-50 border border-brand-100">
-          <div className="w-10 h-10 rounded-full bg-brand-500 text-white flex items-center justify-center font-bold">
-            {(user?.email?.[0] ?? "؟").toUpperCase()}
-          </div>
+          {staff?.avatarDataUrl ? (
+            <img
+              src={staff.avatarDataUrl}
+              alt={displayName}
+              className="w-10 h-10 rounded-full object-cover ring-2 ring-white"
+            />
+          ) : (
+            <div className="w-10 h-10 rounded-full bg-brand-500 text-white flex items-center justify-center font-bold">
+              {initial}
+            </div>
+          )}
           <div className="flex-1 min-w-0">
             <div className="text-sm font-bold text-slate-800 truncate" title={user?.email}>
-              {(user?.user_metadata?.name as string | undefined) ?? user?.email?.split("@")[0] ?? "ضيف"}
+              {displayName}
             </div>
             <div className="text-xs text-slate-500 flex items-center gap-1">
               <Circle className="w-2 h-2 fill-emerald-500 text-emerald-500" />
-              مدير المكتب
+              {roleLabel}
             </div>
           </div>
         </div>
