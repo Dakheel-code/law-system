@@ -6,6 +6,7 @@ import TasksOverview from "../components/dashboard/TasksOverview";
 import LatestCases from "../components/dashboard/LatestCases";
 import RevenueChart from "../components/dashboard/RevenueChart";
 import LawyersStats from "../components/dashboard/LawyersStats";
+import UpcomingSessions from "../components/dashboard/UpcomingSessions";
 
 export default function Dashboard() {
   return (
@@ -18,8 +19,9 @@ export default function Dashboard() {
         <TodayAppointments />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
         <TasksOverview />
+        <UpcomingSessions />
         <LatestCases />
       </div>
 
