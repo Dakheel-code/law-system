@@ -23,6 +23,8 @@ import {
   Phone,
   Mail,
   TrendingUp,
+  FileText,
+  Calendar,
 } from "lucide-react";
 import {
   getCase,
@@ -190,15 +192,59 @@ export default function CaseDetail() {
         ]
       : [];
 
-  const caseEntries = [
-    ["رقم القضية", c.caseNumber, true],
-    ["نوع القضية", labelFor(caseTypes, c.caseType), false],
-    ["نوع المحكمة", labelFor(courtTypes, c.courtType), false],
-    ["اسم الدائرة", c.circuitName, false],
-    ["نوع المطالبة", c.claimSubject, false],
-    ["تاريخ تكليف القضية", fmtDate(c.assignmentDate), false],
-    ["تاريخ القضية", fmtDate(c.caseDate), false],
-  ].filter(([, v]) => v) as [string, string, boolean][];
+  // Grouped + ordered for the redesigned "تفاصيل القضية" section.
+  //   1) Identification → 2) Court → 3) Subject → 4) Dates
+  const caseGroups: {
+    label: string;
+    value: string;
+    mono?: boolean;
+    icon: typeof Hash;
+    tone: "sky" | "violet" | "amber" | "emerald";
+  }[] = [
+    {
+      label: "رقم القضية",
+      value: c.caseNumber,
+      mono: true,
+      icon: Hash,
+      tone: "sky",
+    },
+    {
+      label: "نوع القضية",
+      value: labelFor(caseTypes, c.caseType),
+      icon: FileText,
+      tone: "sky",
+    },
+    {
+      label: "نوع المحكمة",
+      value: labelFor(courtTypes, c.courtType),
+      icon: Scale,
+      tone: "violet",
+    },
+    {
+      label: "اسم الدائرة",
+      value: c.circuitName,
+      icon: Scale,
+      tone: "violet",
+    },
+    {
+      label: "نوع المطالبة",
+      value: c.claimSubject,
+      icon: Gavel,
+      tone: "amber",
+    },
+    {
+      label: "تاريخ القضية",
+      value: fmtDate(c.caseDate),
+      icon: Calendar,
+      tone: "emerald",
+    },
+    {
+      label: "تاريخ تكليف القضية",
+      value: fmtDate(c.assignmentDate),
+      icon: Calendar,
+      tone: "emerald",
+    },
+  ].filter((e) => e.value);
 
   const adminEntries = [
     ["تاريخ البدء", fmtDate(c.startDate), false],
@@ -429,9 +475,13 @@ export default function CaseDetail() {
           </Section>
 
           {/* Case details — only shown if there are entries */}
-          {caseEntries.length > 0 && (
+          {caseGroups.length > 0 && (
             <Section title="تفاصيل القضية" icon={Hash}>
-              <KV entries={caseEntries} columns={2} />
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {caseGroups.map((g) => (
+                  <CaseInfoCard key={g.label} {...g} />
+                ))}
+              </div>
             </Section>
           )}
 
@@ -744,6 +794,64 @@ function KV({
         </div>
       ))}
     </dl>
+  );
+}
+
+const infoTints: Record<
+  "sky" | "violet" | "amber" | "emerald",
+  { bg: string; ic: string; tx: string; bd: string }
+> = {
+  sky: { bg: "bg-sky-50", ic: "bg-sky-100 text-sky-700", tx: "text-sky-900", bd: "border-sky-100" },
+  violet: {
+    bg: "bg-violet-50",
+    ic: "bg-violet-100 text-violet-700",
+    tx: "text-violet-900",
+    bd: "border-violet-100",
+  },
+  amber: {
+    bg: "bg-amber-50",
+    ic: "bg-amber-100 text-amber-700",
+    tx: "text-amber-900",
+    bd: "border-amber-100",
+  },
+  emerald: {
+    bg: "bg-emerald-50",
+    ic: "bg-emerald-100 text-emerald-700",
+    tx: "text-emerald-900",
+    bd: "border-emerald-100",
+  },
+};
+
+function CaseInfoCard({
+  label,
+  value,
+  mono,
+  icon: Icon,
+  tone,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+  icon: typeof Hash;
+  tone: "sky" | "violet" | "amber" | "emerald";
+}) {
+  const t = infoTints[tone];
+  return (
+    <div className={`rounded-xl border ${t.bd} ${t.bg} p-3 flex items-center gap-3`}>
+      <div className={`w-10 h-10 rounded-lg ${t.ic} flex items-center justify-center shrink-0`}>
+        <Icon className="w-5 h-5" />
+      </div>
+      <div className="flex-1 min-w-0 text-right">
+        <div className="text-[11px] text-slate-500 font-bold">{label}</div>
+        <div
+          className={`text-sm font-extrabold ${t.tx} truncate ${mono ? "font-mono" : ""}`}
+          {...(mono ? { dir: "ltr" } : {})}
+          title={value}
+        >
+          {value}
+        </div>
+      </div>
+    </div>
   );
 }
 
