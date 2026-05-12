@@ -6,7 +6,16 @@
 import { useEffect, useState } from "react";
 import { supabase } from "./supabase";
 
-export type CustomRole = { key: string; label: string };
+export type CustomRole = {
+  key: string;
+  label: string;
+  /**
+   * Marks a built-in role as hidden. The original `defaultRoles` array stays
+   * intact (users assigned that role still have a valid `type` value), but
+   * the role is filtered out of the UI lists.
+   */
+  hidden?: boolean;
+};
 export type PermissionBundle = {
   key: string;
   label: string;

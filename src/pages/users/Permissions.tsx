@@ -58,6 +58,33 @@ const groupIcons: Record<
 const allPermissionKeys = () =>
   permissionGroups.flatMap((g) => g.permissions.map((p) => p.key));
 
+/**
+ * Merge built-in `defaultRoles` with the user's `customRoles` overrides:
+ *  - Built-in role + matching entry (no hidden flag) → use overridden label
+ *  - Built-in role + entry with hidden=true → filtered out
+ *  - Built-in role with no entry → use as-is
+ *  - Custom role (key not in defaults) → appended
+ */
+function mergeRoles(customRoles: CustomRole[]): Role[] {
+  const customByKey = new Map(customRoles.map((r) => [r.key, r]));
+  const merged: Role[] = [];
+
+  for (const d of defaultRoles) {
+    const override = customByKey.get(d.key);
+    if (override?.hidden) continue;
+    merged.push({ ...d, label: override?.label ?? d.label });
+  }
+
+  for (const c of customRoles) {
+    const isBuiltin = defaultRoles.some((d) => d.key === c.key);
+    if (isBuiltin) continue;
+    if (c.hidden) continue;
+    merged.push({ key: c.key, label: c.label, count: 0 });
+  }
+
+  return merged;
+}
+
 const defaultBundles: PermissionBundle[] = [
   {
     key: "read-only",
@@ -234,15 +261,11 @@ function RolesTab({
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
   const [search, setSearch] = useState("");
 
-  // Merge built-in + custom roles into one list
-  const allRoles: Role[] = useMemo(() => {
-    const customAsRoles: Role[] = customRoles.map((r) => ({
-      key: r.key,
-      label: r.label,
-      count: 0,
-    }));
-    return [...defaultRoles, ...customAsRoles];
-  }, [customRoles]);
+  // Merge built-in + custom roles, applying overrides + hidden flag
+  const allRoles: Role[] = useMemo(
+    () => mergeRoles(customRoles),
+    [customRoles]
+  );
 
   // Resolved permissions for the selected role — fall back to defaults for
   // built-in roles that haven't been saved yet.
@@ -655,20 +678,22 @@ function ManageRolesTab({
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editingLabel, setEditingLabel] = useState("");
   const [newLabel, setNewLabel] = useState("");
+  const [showHidden, setShowHidden] = useState(false);
 
-  // Merged list: built-in roles (not editable/removable) + custom roles
-  const allRoles = useMemo(() => {
-    const builtIn = defaultRoles.map((r) => ({
+  // Visible (non-hidden) roles, merged + overridden
+  const visibleRoles = useMemo(() => {
+    const merged = mergeRoles(customRoles);
+    return merged.map((r) => ({
       ...r,
-      isBuiltin: true,
+      isBuiltin: defaultRoles.some((d) => d.key === r.key),
     }));
-    const custom = customRoles.map((r) => ({
-      key: r.key,
-      label: r.label,
-      count: 0,
-      isBuiltin: false,
-    }));
-    return [...builtIn, ...custom];
+  }, [customRoles]);
+
+  // Hidden built-in roles — surfaced under a "Restore" section
+  const hiddenBuiltins = useMemo(() => {
+    return defaultRoles.filter((d) =>
+      customRoles.some((r) => r.key === d.key && r.hidden)
+    );
   }, [customRoles]);
 
   const startEdit = (key: string, label: string) => {
@@ -678,9 +703,19 @@ function ManageRolesTab({
 
   const saveEdit = () => {
     if (!editingKey || !editingLabel.trim()) return;
-    const next = customRoles.map((r) =>
-      r.key === editingKey ? { ...r, label: editingLabel.trim() } : r
-    );
+    const builtIn = defaultRoles.find((d) => d.key === editingKey);
+    const existing = customRoles.find((r) => r.key === editingKey);
+    let next: CustomRole[];
+    if (existing) {
+      next = customRoles.map((r) =>
+        r.key === editingKey ? { ...r, label: editingLabel.trim() } : r
+      );
+    } else if (builtIn) {
+      // First-time rename of a built-in role — add an override entry.
+      next = [...customRoles, { key: editingKey, label: editingLabel.trim() }];
+    } else {
+      next = customRoles;
+    }
     onSave(next);
     setEditingKey(null);
     setEditingLabel("");
@@ -692,12 +727,40 @@ function ManageRolesTab({
   };
 
   const removeRole = (key: string) => {
-    if (!confirm("هل تريد حذف هذا الدور؟ سيُزال أيضاً من صلاحيات الأدوار."))
-      return;
-    const nextRoles = customRoles.filter((r) => r.key !== key);
-    const nextGrants = { ...roleGrants };
-    delete nextGrants[key];
-    onSave(nextRoles, nextGrants);
+    const isBuiltin = defaultRoles.some((d) => d.key === key);
+    const msg = isBuiltin
+      ? "هل تريد إخفاء هذا الدور المدمج؟ يبقى ساكناً في النظام وتستطيع إعادته لاحقاً."
+      : "هل تريد حذف هذا الدور نهائياً؟";
+    if (!confirm(msg)) return;
+
+    if (isBuiltin) {
+      // Mark as hidden — preserve label override if any
+      const existing = customRoles.find((r) => r.key === key);
+      const label = existing?.label ?? defaultRoles.find((d) => d.key === key)?.label ?? key;
+      const without = customRoles.filter((r) => r.key !== key);
+      onSave([...without, { key, label, hidden: true }]);
+    } else {
+      // Hard delete custom role + its grants
+      const nextRoles = customRoles.filter((r) => r.key !== key);
+      const nextGrants = { ...roleGrants };
+      delete nextGrants[key];
+      onSave(nextRoles, nextGrants);
+    }
+  };
+
+  const restoreRole = (key: string) => {
+    // Remove the hidden flag — keep label override if there was one
+    const entry = customRoles.find((r) => r.key === key);
+    if (!entry) return;
+    const withoutOld = customRoles.filter((r) => r.key !== key);
+    const defaultLabel = defaultRoles.find((d) => d.key === key)?.label ?? key;
+    // If the override label matches the default, drop the entry entirely;
+    // otherwise keep the rename but clear the hidden flag.
+    if (entry.label === defaultLabel) {
+      onSave(withoutOld);
+    } else {
+      onSave([...withoutOld, { key, label: entry.label }]);
+    }
   };
 
   const addRole = () => {
@@ -728,7 +791,7 @@ function ManageRolesTab({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-        {allRoles.map((r) => {
+        {visibleRoles.map((r) => {
           const grantCount =
             roleGrants[r.key]?.length ?? defaultPermissionsFor(r.key).length;
           return (
@@ -769,24 +832,20 @@ function ManageRolesTab({
                 <>
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="flex items-center gap-1">
-                      {!r.isBuiltin && (
-                        <>
-                          <button
-                            onClick={() => removeRole(r.key)}
-                            className="p-1.5 rounded-md text-rose-500 hover:bg-rose-50"
-                            title="حذف"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => startEdit(r.key, r.label)}
-                            className="p-1.5 rounded-md text-blue-500 hover:bg-blue-50"
-                            title="تعديل"
-                          >
-                            <Edit3 className="w-3.5 h-3.5" />
-                          </button>
-                        </>
-                      )}
+                      <button
+                        onClick={() => removeRole(r.key)}
+                        className="p-1.5 rounded-md text-rose-500 hover:bg-rose-50"
+                        title={r.isBuiltin ? "إخفاء" : "حذف"}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => startEdit(r.key, r.label)}
+                        className="p-1.5 rounded-md text-blue-500 hover:bg-blue-50"
+                        title="تعديل"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </button>
                       {r.isBuiltin && (
                         <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
                           مدمج
@@ -811,6 +870,47 @@ function ManageRolesTab({
           );
         })}
       </div>
+
+      {/* Hidden built-in roles — restorable */}
+      {hiddenBuiltins.length > 0 && (
+        <div className="pt-4 border-t border-slate-100">
+          <button
+            onClick={() => setShowHidden((v) => !v)}
+            className="text-xs text-slate-500 hover:text-slate-700 mb-2 inline-flex items-center gap-1"
+          >
+            <span>{showHidden ? "▼" : "◀"}</span>
+            الأدوار المخفية ({hiddenBuiltins.length})
+          </button>
+          {showHidden && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {hiddenBuiltins.map((r) => {
+                const override = customRoles.find((c) => c.key === r.key);
+                const displayLabel = override?.label ?? r.label;
+                return (
+                  <div
+                    key={r.key}
+                    className="rounded-xl border border-dashed border-slate-300 p-4 bg-slate-50/40 flex items-center justify-between"
+                  >
+                    <button
+                      onClick={() => restoreRole(r.key)}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-500 text-white rounded-md text-xs font-bold hover:bg-emerald-600"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      استعادة
+                    </button>
+                    <div className="text-right">
+                      <div className="text-sm font-bold text-slate-600 line-through">
+                        {displayLabel}
+                      </div>
+                      <div className="text-[10px] text-slate-400">مخفي</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
