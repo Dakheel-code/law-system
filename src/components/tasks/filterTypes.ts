@@ -1,4 +1,4 @@
-import type { TaskRecord } from "../../lib/taskStore";
+import { isTaskOverdue, type TaskRecord } from "../../lib/taskStore";
 
 export type TasksFiltersState = {
   search: string;
@@ -7,7 +7,7 @@ export type TasksFiltersState = {
   calendar: "greg" | "hijri";
   sort: "none" | "date-asc" | "date-desc";
   assignee: string;       // "all" | user id
-  status: string;         // "all" | "todo" | "doing" | "review" | "done"
+  status: string;         // "all" | "todo" | "doing" | "review" | "done" | "overdue" | "cancelled"
   priority: string;       // "all" | "low" | "medium" | "high" | "urgent"
 };
 
@@ -48,7 +48,11 @@ export function filterTasks(
         (Array.isArray(t.assignees) && t.assignees.includes(f.assignee))
     );
   }
-  if (f.status !== "all") list = list.filter((t) => t.status === f.status);
+  if (f.status === "overdue") {
+    list = list.filter((t) => isTaskOverdue(t));
+  } else if (f.status !== "all") {
+    list = list.filter((t) => t.status === f.status);
+  }
   if (f.priority !== "all") list = list.filter((t) => t.priority === f.priority);
 
   if (f.sort === "date-asc") {

@@ -1,9 +1,19 @@
 import { useState } from "react";
-import { Inbox, Trash2, Calendar, AlertOctagon, GripVertical } from "lucide-react";
+import {
+  Inbox,
+  Trash2,
+  Calendar,
+  AlertOctagon,
+  GripVertical,
+  Paperclip,
+  MessageSquare,
+  Flame,
+} from "lucide-react";
 import {
   useTasks,
   deleteTask,
   updateTaskStatus,
+  isTaskOverdue,
   type TaskStatus,
   type TaskRecord,
 } from "../../lib/taskStore";
@@ -12,12 +22,14 @@ import {
   filterTasks,
   type TasksFiltersState,
 } from "./filterTypes";
+import TaskDetailModal from "./TaskDetailModal";
 
 const columns: { key: TaskStatus; title: string; color: string; ringColor: string }[] = [
   { key: "todo", title: "للقيام بها", color: "bg-slate-300 text-slate-700", ringColor: "ring-slate-400" },
   { key: "doing", title: "قيد التنفيذ", color: "bg-sky-500 text-white", ringColor: "ring-sky-400" },
   { key: "review", title: "قيد المراجعة", color: "bg-amber-400 text-white", ringColor: "ring-amber-400" },
   { key: "done", title: "مكتملة", color: "bg-emerald-500 text-white", ringColor: "ring-emerald-400" },
+  { key: "cancelled", title: "ملغاة", color: "bg-slate-500 text-white", ringColor: "ring-slate-400" },
 ];
 
 const priorityColors: Record<string, string> = {
@@ -56,6 +68,7 @@ export default function KanbanBoard({ filters }: KanbanProps = {}) {
   const { users } = useUsers();
   const [drag, setDrag] = useState<DragState>(null);
   const [overColumn, setOverColumn] = useState<TaskStatus | null>(null);
+  const [detailId, setDetailId] = useState<string | null>(null);
 
   const visible = filters ? filterTasks(tasks, filters) : tasks.filter((t) => !t.archived);
 
@@ -79,7 +92,6 @@ export default function KanbanBoard({ filters }: KanbanProps = {}) {
   };
 
   const handleDragLeave = (e: React.DragEvent, columnKey: TaskStatus) => {
-    // Only clear when actually leaving the column box, not entering a child
     if (e.currentTarget.contains(e.relatedTarget as Node)) return;
     if (overColumn === columnKey) setOverColumn(null);
   };
@@ -94,78 +106,86 @@ export default function KanbanBoard({ filters }: KanbanProps = {}) {
     await updateTaskStatus(taskId, columnKey);
   };
 
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      {columns.map((c) => {
-        const items = tasksByStatus(c.key);
-        const isOver = overColumn === c.key;
-        const isSource = drag?.from === c.key;
-        return (
-          <div
-            key={c.key}
-            onDragOver={(e) => handleDragOver(e, c.key)}
-            onDragEnter={(e) => handleDragOver(e, c.key)}
-            onDragLeave={(e) => handleDragLeave(e, c.key)}
-            onDrop={(e) => handleDrop(e, c.key)}
-            className={`bg-slate-50 rounded-2xl p-3 min-h-[400px] border transition ${
-              isOver
-                ? `border-transparent ring-2 ${c.ringColor} bg-white shadow-inner`
-                : "border-slate-200"
-            }`}
-          >
-            <div
-              className={`flex items-center justify-between rounded-xl ${c.color} px-4 py-2.5 mb-3 shadow`}
-            >
-              <span className="text-xs font-bold bg-white/30 px-2 py-0.5 rounded-md">
-                {items.length}
-              </span>
-              <h3 className="text-sm font-extrabold">{c.title}</h3>
-            </div>
+  const detailTask = detailId ? tasks.find((t) => t.id === detailId) ?? null : null;
 
-            {loading && items.length === 0 ? (
-              <div className="text-center text-xs text-slate-400 py-6">
-                جارٍ التحميل...
-              </div>
-            ) : items.length === 0 ? (
+  return (
+    <>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+        {columns.map((c) => {
+          const items = tasksByStatus(c.key);
+          const isOver = overColumn === c.key;
+          const isSource = drag?.from === c.key;
+          return (
+            <div
+              key={c.key}
+              onDragOver={(e) => handleDragOver(e, c.key)}
+              onDragEnter={(e) => handleDragOver(e, c.key)}
+              onDragLeave={(e) => handleDragLeave(e, c.key)}
+              onDrop={(e) => handleDrop(e, c.key)}
+              className={`bg-slate-50 rounded-2xl p-3 min-h-[400px] border transition ${
+                isOver
+                  ? `border-transparent ring-2 ${c.ringColor} bg-white shadow-inner`
+                  : "border-slate-200"
+              }`}
+            >
               <div
-                className={`flex flex-col items-center justify-center h-64 transition ${
-                  isOver && drag && !isSource ? "text-brand-500" : "text-slate-300"
-                }`}
+                className={`flex items-center justify-between rounded-xl ${c.color} px-4 py-2.5 mb-3 shadow`}
               >
-                <Inbox className="w-10 h-10 mb-2" strokeWidth={1.2} />
-                <span className="text-xs">
-                  {isOver && drag && !isSource ? "أفلت هنا" : "لا توجد مهام"}
+                <span className="text-xs font-bold bg-white/30 px-2 py-0.5 rounded-md">
+                  {items.length}
                 </span>
+                <h3 className="text-sm font-extrabold">{c.title}</h3>
               </div>
-            ) : (
-              <div className="space-y-2">
-                {items.map((t) => {
-                  const taskUsers = (t.assignees ?? [])
-                    .map((id) => userById.get(id))
-                    .filter((u): u is UserRecord => !!u);
-                  return (
-                    <TaskCard
-                      key={t.id}
-                      task={t}
-                      assignees={taskUsers}
-                      isDragging={drag?.taskId === t.id}
-                      onDragStart={() => handleDragStart(t.id, t.status)}
-                      onDragEnd={handleDragEnd}
-                    />
-                  );
-                })}
-                {/* Drop hint when target column is empty of incoming-zone area */}
-                {isOver && drag && !isSource && (
-                  <div className="rounded-xl border-2 border-dashed border-brand-300 bg-brand-50/40 text-brand-600 text-xs text-center py-3">
-                    أفلت لنقل المهمة إلى «{c.title}»
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
+
+              {loading && items.length === 0 ? (
+                <div className="text-center text-xs text-slate-400 py-6">
+                  جارٍ التحميل...
+                </div>
+              ) : items.length === 0 ? (
+                <div
+                  className={`flex flex-col items-center justify-center h-64 transition ${
+                    isOver && drag && !isSource ? "text-brand-500" : "text-slate-300"
+                  }`}
+                >
+                  <Inbox className="w-10 h-10 mb-2" strokeWidth={1.2} />
+                  <span className="text-xs">
+                    {isOver && drag && !isSource ? "أفلت هنا" : "لا توجد مهام"}
+                  </span>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {items.map((t) => {
+                    const taskUsers = (t.assignees ?? [])
+                      .map((id) => userById.get(id))
+                      .filter((u): u is UserRecord => !!u);
+                    return (
+                      <TaskCard
+                        key={t.id}
+                        task={t}
+                        assignees={taskUsers}
+                        isDragging={drag?.taskId === t.id}
+                        onDragStart={() => handleDragStart(t.id, t.status)}
+                        onDragEnd={handleDragEnd}
+                        onOpen={() => setDetailId(t.id)}
+                      />
+                    );
+                  })}
+                  {isOver && drag && !isSource && (
+                    <div className="rounded-xl border-2 border-dashed border-brand-300 bg-brand-50/40 text-brand-600 text-xs text-center py-3">
+                      أفلت لنقل المهمة إلى «{c.title}»
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {detailTask && (
+        <TaskDetailModal task={detailTask} onClose={() => setDetailId(null)} />
+      )}
+    </>
   );
 }
 
@@ -175,15 +195,18 @@ function TaskCard({
   isDragging,
   onDragStart,
   onDragEnd,
+  onOpen,
 }: {
   task: TaskRecord;
   assignees: UserRecord[];
   isDragging: boolean;
   onDragStart: () => void;
   onDragEnd: () => void;
+  onOpen: () => void;
 }) {
   const due = formatDate(task.dueDate);
   const isUrgent = task.priority === "urgent";
+  const overdue = isTaskOverdue(task);
 
   const moveNext = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -192,6 +215,7 @@ function TaskCard({
       doing: "review",
       review: "done",
       done: "todo",
+      cancelled: "todo",
     };
     updateTaskStatus(task.id, next[task.status]);
   };
@@ -200,6 +224,9 @@ function TaskCard({
     e.stopPropagation();
     if (confirm(`حذف المهمة "${task.title}"؟`)) deleteTask(task.id);
   };
+
+  const attachmentsCount = task.attachments?.length ?? 0;
+  const commentsCount = task.comments?.length ?? 0;
 
   return (
     <div
@@ -210,9 +237,12 @@ function TaskCard({
         onDragStart();
       }}
       onDragEnd={onDragEnd}
-      className={`bg-white rounded-xl border p-3 shadow-sm transition group cursor-grab active:cursor-grabbing select-none ${
+      onClick={onOpen}
+      className={`bg-white rounded-xl border p-3 shadow-sm transition group cursor-pointer select-none ${
         isDragging
           ? "border-brand-300 opacity-40 ring-2 ring-brand-200"
+          : overdue
+          ? "border-rose-300 hover:shadow ring-1 ring-rose-100"
           : "border-slate-200 hover:shadow"
       }`}
     >
@@ -239,6 +269,13 @@ function TaskCard({
         </p>
       )}
 
+      {overdue && (
+        <div className="inline-flex items-center gap-1 px-2 py-0.5 mb-2 rounded-md bg-rose-50 text-rose-600 text-[10px] font-bold border border-rose-200">
+          <Flame className="w-3 h-3" />
+          متأخرة
+        </div>
+      )}
+
       <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-100">
         <button
           onClick={moveNext}
@@ -248,8 +285,28 @@ function TaskCard({
           نقل ←
         </button>
         <div className="flex items-center gap-1.5">
+          {(attachmentsCount > 0 || commentsCount > 0) && (
+            <span className="inline-flex items-center gap-2 text-[10px] text-slate-500">
+              {commentsCount > 0 && (
+                <span className="inline-flex items-center gap-0.5">
+                  {commentsCount}
+                  <MessageSquare className="w-3 h-3" />
+                </span>
+              )}
+              {attachmentsCount > 0 && (
+                <span className="inline-flex items-center gap-0.5">
+                  {attachmentsCount}
+                  <Paperclip className="w-3 h-3" />
+                </span>
+              )}
+            </span>
+          )}
           {due && (
-            <span className="inline-flex items-center gap-1 text-[11px] text-slate-500">
+            <span
+              className={`inline-flex items-center gap-1 text-[11px] ${
+                overdue ? "text-rose-600 font-bold" : "text-slate-500"
+              }`}
+            >
               {due}
               <Calendar className="w-3 h-3" />
             </span>

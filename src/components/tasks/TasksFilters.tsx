@@ -23,6 +23,8 @@ const statusOptions = [
   { value: "doing", label: "قيد التنفيذ" },
   { value: "review", label: "قيد المراجعة" },
   { value: "done", label: "مكتملة" },
+  { value: "overdue", label: "متأخرة" },
+  { value: "cancelled", label: "ملغاة" },
 ];
 
 const priorityOptions = [

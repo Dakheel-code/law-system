@@ -18,6 +18,7 @@ const DRIVE_UPLOAD_API = "https://www.googleapis.com/upload/drive/v3";
 const ROOT_FOLDER_NAME = "ناصر طريد";
 const CASES_FOLDER_NAME = "قضايا";
 const CLIENTS_FOLDER_NAME = "عملاء";
+const TASKS_FOLDER_NAME = "مهام";
 const FOLDER_MIME = "application/vnd.google-apps.folder";
 
 export type DriveFile = {
@@ -280,9 +281,19 @@ async function folderExists(id: string): Promise<boolean> {
   }
 }
 
-/** Get or create the folder for a case/client. */
+/**
+ * Get-or-create the top-level "مهام" folder. Stored as a flat sibling of
+ * "قضايا" / "عملاء" but resolved by name each time (we don't persist its id
+ * in drive_connection so we avoid a migration).
+ */
+async function ensureTasksFolder(): Promise<string> {
+  const { rootId } = await ensureOfficeFolders();
+  return ensureFolder(TASKS_FOLDER_NAME, rootId);
+}
+
+/** Get or create the folder for a case/client/task. */
 export async function ensureEntityFolder(
-  entityType: "case" | "client",
+  entityType: "case" | "client" | "task",
   entityId: string,
   displayName: string
 ): Promise<string> {
@@ -304,8 +315,14 @@ export async function ensureEntityFolder(
       .eq("entity_id", entityId);
   }
 
-  const { casesId, clientsId } = await ensureOfficeFolders();
-  const parentId = entityType === "case" ? casesId : clientsId;
+  let parentId: string;
+  if (entityType === "case") {
+    parentId = (await ensureOfficeFolders()).casesId;
+  } else if (entityType === "client") {
+    parentId = (await ensureOfficeFolders()).clientsId;
+  } else {
+    parentId = await ensureTasksFolder();
+  }
   const folderId = await ensureFolder(displayName, parentId);
 
   await supabase.from("drive_folders").insert({
@@ -383,7 +400,7 @@ export async function uploadFile(
  * (auto-creating that folder under the office hierarchy if needed).
  */
 export async function uploadEntityFile(
-  entityType: "case" | "client",
+  entityType: "case" | "client" | "task",
   entityId: string,
   entityDisplayName: string,
   file: File,

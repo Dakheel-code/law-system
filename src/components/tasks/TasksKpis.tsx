@@ -3,10 +3,10 @@ import {
   AlertCircle,
   CalendarClock,
   LayoutGrid,
-  Archive,
+  XCircle,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { useTasks } from "../../lib/taskStore";
+import { useTasks, isTaskOverdue } from "../../lib/taskStore";
 import { toLocalISO } from "../../lib/hijri";
 
 type Stat = {
@@ -23,13 +23,12 @@ export default function TasksKpis() {
   const { tasks } = useTasks();
   const today = toLocalISO(new Date());
 
-  const total = tasks.filter((t) => !t.archived).length;
-  const dueToday = tasks.filter((t) => t.dueDate === today && !t.archived).length;
-  const overdue = tasks.filter(
-    (t) => t.dueDate && t.dueDate < today && t.status !== "done" && !t.archived
-  ).length;
-  const done = tasks.filter((t) => t.status === "done" && !t.archived).length;
-  const archived = tasks.filter((t) => t.archived).length;
+  const active = tasks.filter((t) => !t.archived);
+  const total = active.length;
+  const dueToday = active.filter((t) => t.dueDate === today).length;
+  const overdue = active.filter((t) => isTaskOverdue(t)).length;
+  const done = active.filter((t) => t.status === "done").length;
+  const cancelled = active.filter((t) => t.status === "cancelled").length;
 
   const items: Stat[] = [
     {
@@ -69,11 +68,11 @@ export default function TasksKpis() {
       text: "text-sky-700",
     },
     {
-      title: "مؤرشفة",
-      value: archived,
-      icon: Archive,
+      title: "ملغاة",
+      value: cancelled,
+      icon: XCircle,
       bg: "bg-slate-100",
-      iconBg: "bg-slate-700",
+      iconBg: "bg-slate-500",
       iconColor: "text-white",
       text: "text-slate-700",
     },

@@ -20,6 +20,7 @@ export default function NewTaskModal({ onClose }: Props) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState("medium");
+  const [startDate, setStartDate] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [assignees, setAssignees] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
@@ -31,12 +32,17 @@ export default function NewTaskModal({ onClose }: Props) {
       setError("أدخل عنوان المهمة");
       return;
     }
+    if (startDate && dueDate && startDate > dueDate) {
+      setError("تاريخ البداية يجب أن يكون قبل تاريخ النهاية");
+      return;
+    }
     setSaving(true);
     const created = await addTask({
       title,
       description,
       status: "todo",
       priority,
+      startDate: startDate || null,
       dueDate: dueDate || null,
       assignees,
     });
@@ -92,15 +98,26 @@ export default function NewTaskModal({ onClose }: Props) {
               />
             </Field>
 
-            <Field label="تاريخ الاستحقاق">
-              <Input
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                dir="ltr"
-                className="text-left"
-              />
-            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="تاريخ البداية">
+                <Input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  dir="ltr"
+                  className="text-left"
+                />
+              </Field>
+              <Field label="تاريخ النهاية">
+                <Input
+                  type="date"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  dir="ltr"
+                  className="text-left"
+                />
+              </Field>
+            </div>
 
             <AssigneesPicker value={assignees} onChange={setAssignees} />
 
