@@ -26,6 +26,11 @@ export type CaseParty = {
   idNumber: string;
   phone: string;
   address: string;
+  // Added with the opponent-data form expansion:
+  lawyer?: string;             // محامي الخصم
+  companyName?: string;        // اسم الشركة
+  commercialRegistry?: string; // السجل التجاري
+  taxNumber?: string;          // الرقم الضريبي
 };
 
 export type SessionMode = "in-person" | "online";

@@ -19,6 +19,10 @@ const newParty = (): CaseParty => ({
   idNumber: "",
   phone: "",
   address: "",
+  lawyer: "",
+  companyName: "",
+  commercialRegistry: "",
+  taxNumber: "",
 });
 
 export default function Step2Details({ data, update }: Props) {
@@ -404,6 +408,49 @@ function PartyEditCard({
             onChange={(e) => onChange({ address: e.target.value })}
           />
         </Field>
+        <Field label="محامي الخصم">
+          <Input
+            placeholder="اسم المحامي المقابل"
+            value={party.lawyer ?? ""}
+            onChange={(e) => onChange({ lawyer: e.target.value })}
+          />
+        </Field>
+      </div>
+
+      {/* Company fields — collapsible under a divider, only relevant for institutions */}
+      <div className="mt-4 pt-4 border-t border-dashed border-slate-200">
+        <div className="text-xs font-bold text-slate-500 mb-2 text-right">
+          بيانات الشركة / الجهة (إن وُجدت)
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <Field label="اسم الشركة / الجهة">
+            <Input
+              placeholder="الاسم الكامل"
+              value={party.companyName ?? ""}
+              onChange={(e) => onChange({ companyName: e.target.value })}
+            />
+          </Field>
+          <Field label="السجل التجاري">
+            <Input
+              placeholder="رقم السجل"
+              value={party.commercialRegistry ?? ""}
+              onChange={(e) =>
+                onChange({ commercialRegistry: e.target.value })
+              }
+              dir="ltr"
+              className="text-left"
+            />
+          </Field>
+          <Field label="الرقم الضريبي">
+            <Input
+              placeholder="الرقم الضريبي"
+              value={party.taxNumber ?? ""}
+              onChange={(e) => onChange({ taxNumber: e.target.value })}
+              dir="ltr"
+              className="text-left"
+            />
+          </Field>
+        </div>
       </div>
 
       {error && (

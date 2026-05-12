@@ -23,6 +23,11 @@ export type CaseParty = {
   idNumber: string;
   phone: string;
   address: string;
+  // Optional opponent-side fields (added with the expanded form):
+  lawyer?: string;
+  companyName?: string;
+  commercialRegistry?: string;
+  taxNumber?: string;
 };
 
 export type CaseAssignment = {

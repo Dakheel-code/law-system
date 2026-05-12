@@ -394,6 +394,10 @@ export default function CaseDetail() {
                     ["رقم الهوية", p.idNumber, true],
                     ["رقم الجوال", p.phone, true],
                     ["العنوان", p.address, false],
+                    ["محامي الخصم", p.lawyer ?? "", false],
+                    ["اسم الشركة / الجهة", p.companyName ?? "", false],
+                    ["السجل التجاري", p.commercialRegistry ?? "", true],
+                    ["الرقم الضريبي", p.taxNumber ?? "", true],
                   ].filter(([, v]) => v) as [string, string, boolean][];
                   const roleLabel =
                     p.role === "plaintiff" ? "مدّعي" : "مدّعى عليه";
