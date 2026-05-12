@@ -266,6 +266,114 @@ export default function Step2Details({ data, update }: Props) {
           </Field>
         </div>
       </div>
+
+      {/* ============= Legal details ============= */}
+      <div className="border-t border-dashed border-slate-200 pt-5">
+        <h3 className="text-base font-bold text-slate-700 text-right mb-4">
+          التفاصيل القانونية
+        </h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Field label="موضوع الدعوى">
+            <Textarea
+              placeholder="موضوع الدعوى بتفصيل..."
+              rows={3}
+              value={data.lawsuitSubject}
+              onChange={(e) => update("lawsuitSubject", e.target.value)}
+            />
+          </Field>
+          <Field label="الوقائع">
+            <Textarea
+              placeholder="الوقائع المتعلقة بالقضية..."
+              rows={3}
+              value={data.facts}
+              onChange={(e) => update("facts", e.target.value)}
+            />
+          </Field>
+          <Field label="الطلبات">
+            <Textarea
+              placeholder="الطلبات المقدّمة للمحكمة..."
+              rows={3}
+              value={data.claims}
+              onChange={(e) => update("claims", e.target.value)}
+            />
+          </Field>
+          <Field label="الدفوع">
+            <Textarea
+              placeholder="الدفوع والردود..."
+              rows={3}
+              value={data.defenses}
+              onChange={(e) => update("defenses", e.target.value)}
+            />
+          </Field>
+          <Field label="السند النظامي">
+            <Textarea
+              placeholder="الأنظمة والقوانين المستند إليها..."
+              rows={3}
+              value={data.legalBasis}
+              onChange={(e) => update("legalBasis", e.target.value)}
+            />
+          </Field>
+          <Field label="المواد القانونية">
+            <Textarea
+              placeholder="مواد قانونية محددة..."
+              rows={3}
+              value={data.legalArticles}
+              onChange={(e) => update("legalArticles", e.target.value)}
+            />
+          </Field>
+
+          <Field label="قيمة المطالبة (ر.س)">
+            <Input
+              type="number"
+              min={0}
+              step="any"
+              placeholder="0"
+              value={data.claimValue || ""}
+              onChange={(e) => update("claimValue", Number(e.target.value) || 0)}
+              dir="ltr"
+              className="text-left"
+            />
+          </Field>
+          <Field label="نسبة الخطورة (%)">
+            <Input
+              type="number"
+              min={0}
+              max={100}
+              step={1}
+              placeholder="0 - 100"
+              value={data.riskLevel || ""}
+              onChange={(e) =>
+                update(
+                  "riskLevel",
+                  Math.max(0, Math.min(100, Number(e.target.value) || 0))
+                )
+              }
+              dir="ltr"
+              className="text-left"
+            />
+          </Field>
+        </div>
+
+        <div className="mt-4 grid grid-cols-1 gap-4">
+          <Field label="ملخص القضية">
+            <Textarea
+              placeholder="ملخص شامل للقضية..."
+              rows={4}
+              value={data.caseSummary}
+              onChange={(e) => update("caseSummary", e.target.value)}
+            />
+          </Field>
+          <Field label="الاستراتيجية القانونية">
+            <Textarea
+              placeholder="الخطة القانونية ومراحل التقاضي..."
+              rows={4}
+              value={data.legalStrategy}
+              onChange={(e) => update("legalStrategy", e.target.value)}
+            />
+          </Field>
+        </div>
+      </div>
     </div>
   );
 }

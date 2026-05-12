@@ -435,6 +435,85 @@ export default function CaseDetail() {
             </Section>
           )}
 
+          {/* Legal narrative — only shown if any field is filled */}
+          {(c.lawsuitSubject ||
+            c.facts ||
+            c.claims ||
+            c.defenses ||
+            c.legalBasis ||
+            c.legalArticles ||
+            c.claimValue > 0 ||
+            c.riskLevel > 0 ||
+            c.caseSummary ||
+            c.legalStrategy) && (
+            <Section title="التفاصيل القانونية" icon={Scale}>
+              <div className="space-y-4">
+                {/* Numeric stats row */}
+                {(c.claimValue > 0 || c.riskLevel > 0) && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {c.claimValue > 0 && (
+                      <div className="rounded-xl border border-slate-200 bg-slate-50/40 p-3 flex items-center justify-between">
+                        <div className="text-base font-extrabold text-slate-800">
+                          <bdi dir="ltr">
+                            {c.claimValue.toLocaleString("en-US")} ر.س
+                          </bdi>
+                        </div>
+                        <div className="text-xs text-slate-500">
+                          قيمة المطالبة
+                        </div>
+                      </div>
+                    )}
+                    {c.riskLevel > 0 && (
+                      <div className="rounded-xl border border-slate-200 bg-slate-50/40 p-3">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span
+                            className={`text-base font-extrabold ${
+                              c.riskLevel >= 70
+                                ? "text-rose-600"
+                                : c.riskLevel >= 40
+                                ? "text-amber-600"
+                                : "text-emerald-600"
+                            }`}
+                          >
+                            {c.riskLevel}%
+                          </span>
+                          <div className="text-xs text-slate-500">
+                            نسبة الخطورة
+                          </div>
+                        </div>
+                        <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full ${
+                              c.riskLevel >= 70
+                                ? "bg-rose-500"
+                                : c.riskLevel >= 40
+                                ? "bg-amber-500"
+                                : "bg-emerald-500"
+                            }`}
+                            style={{ width: `${c.riskLevel}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Narrative blocks */}
+                <NarrativeBlock title="موضوع الدعوى" value={c.lawsuitSubject} />
+                <NarrativeBlock title="الوقائع" value={c.facts} />
+                <NarrativeBlock title="الطلبات" value={c.claims} />
+                <NarrativeBlock title="الدفوع" value={c.defenses} />
+                <NarrativeBlock title="السند النظامي" value={c.legalBasis} />
+                <NarrativeBlock title="المواد القانونية" value={c.legalArticles} />
+                <NarrativeBlock title="ملخص القضية" value={c.caseSummary} />
+                <NarrativeBlock
+                  title="الاستراتيجية القانونية"
+                  value={c.legalStrategy}
+                />
+              </div>
+            </Section>
+          )}
+
           {/* Sessions */}
           <Section
             title={`الجلسات (${c.sessions.length})`}
@@ -667,6 +746,20 @@ function KV({
 function Empty({ text }: { text: string }) {
   return (
     <div className="text-center py-6 text-xs text-slate-400">{text}</div>
+  );
+}
+
+function NarrativeBlock({ title, value }: { title: string; value: string }) {
+  if (!value) return null;
+  return (
+    <div className="rounded-xl border border-slate-200 bg-slate-50/40 p-3.5">
+      <div className="text-xs font-bold text-slate-500 mb-2 text-right">
+        {title}
+      </div>
+      <p className="text-sm text-slate-700 leading-7 whitespace-pre-line text-right">
+        {value}
+      </p>
+    </div>
   );
 }
 

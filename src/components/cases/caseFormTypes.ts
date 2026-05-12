@@ -93,6 +93,18 @@ export type CaseFormState = {
   assignmentDate: string;        // تاريخ تكليف القضية
   caseDate: string;              // تاريخ القضية
 
+  // Legal narrative (added by migration 017_case_details_fields)
+  lawsuitSubject: string;        // موضوع الدعوى
+  facts: string;                 // الوقائع
+  claims: string;                // الطلبات
+  defenses: string;              // الدفوع
+  legalBasis: string;            // السند النظامي
+  legalArticles: string;         // المواد القانونية
+  claimValue: number;            // قيمة المطالبة
+  riskLevel: number;             // نسبة الخطورة (0-100)
+  caseSummary: string;           // ملخص القضية
+  legalStrategy: string;         // الاستراتيجية القانونية
+
   // Step 3 - Financial
   claimType: string;
   estimatedFees: number;
@@ -148,6 +160,17 @@ export const initialCase: CaseFormState = {
   circuitName: "",
   assignmentDate: "",
   caseDate: "",
+
+  lawsuitSubject: "",
+  facts: "",
+  claims: "",
+  defenses: "",
+  legalBasis: "",
+  legalArticles: "",
+  claimValue: 0,
+  riskLevel: 0,
+  caseSummary: "",
+  legalStrategy: "",
 
   claimType: "financial",
   estimatedFees: 0,

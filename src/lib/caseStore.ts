@@ -69,6 +69,17 @@ export type CaseRecord = {
   circuitName: string;
   assignmentDate: string | null;
   caseDate: string | null;
+  // Legal narrative (migration 017)
+  lawsuitSubject: string;
+  facts: string;
+  claims: string;
+  defenses: string;
+  legalBasis: string;
+  legalArticles: string;
+  claimValue: number;
+  riskLevel: number;
+  caseSummary: string;
+  legalStrategy: string;
   claimType: string;
   estimatedFees: number;
   consultationFees: number;
@@ -112,6 +123,16 @@ type CaseRow = {
   circuit_name: string | null;
   assignment_date: string | null;
   case_date: string | null;
+  lawsuit_subject: string | null;
+  facts: string | null;
+  claims: string | null;
+  defenses: string | null;
+  legal_basis: string | null;
+  legal_articles: string | null;
+  claim_value: number | null;
+  risk_level: number | null;
+  case_summary: string | null;
+  legal_strategy: string | null;
   claim_type: string | null;
   estimated_fees: number | null;
   consultation_fees: number | null;
@@ -155,6 +176,16 @@ const fromRow = (r: CaseRow): CaseRecord => ({
   circuitName: r.circuit_name ?? "",
   assignmentDate: r.assignment_date,
   caseDate: r.case_date,
+  lawsuitSubject: r.lawsuit_subject ?? "",
+  facts: r.facts ?? "",
+  claims: r.claims ?? "",
+  defenses: r.defenses ?? "",
+  legalBasis: r.legal_basis ?? "",
+  legalArticles: r.legal_articles ?? "",
+  claimValue: r.claim_value ?? 0,
+  riskLevel: r.risk_level ?? 0,
+  caseSummary: r.case_summary ?? "",
+  legalStrategy: r.legal_strategy ?? "",
   claimType: r.claim_type ?? "financial",
   estimatedFees: r.estimated_fees ?? 0,
   consultationFees: r.consultation_fees ?? 0,
@@ -201,6 +232,16 @@ const buildInsert = (form: CaseFormState): Record<string, unknown> => ({
   circuit_name: form.circuitName || null,
   assignment_date: form.assignmentDate || null,
   case_date: form.caseDate || null,
+  lawsuit_subject: form.lawsuitSubject || null,
+  facts: form.facts || null,
+  claims: form.claims || null,
+  defenses: form.defenses || null,
+  legal_basis: form.legalBasis || null,
+  legal_articles: form.legalArticles || null,
+  claim_value: form.claimValue || null,
+  risk_level: form.riskLevel || null,
+  case_summary: form.caseSummary || null,
+  legal_strategy: form.legalStrategy || null,
   claim_type: form.claimType,
   estimated_fees: form.estimatedFees,
   consultation_fees: form.consultationFees,
@@ -238,6 +279,8 @@ const LIST_CASE_COLUMNS =
   "other_party_name,other_party_id,other_party_phone,other_party_address," +
   "parties,case_number,claim_subject,circuit_name," +
   "assignment_date,case_date,claim_type," +
+  "lawsuit_subject,facts,claims,defenses,legal_basis,legal_articles," +
+  "claim_value,risk_level,case_summary,legal_strategy," +
   "estimated_fees,consultation_fees,expected_court_fees," +
   "payment_status,payment_method,fees,fees_notes," +
   "start_date,expected_end_date," +
