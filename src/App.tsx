@@ -6,36 +6,66 @@ import { ThemeProvider } from "./context/ThemeContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/layout/Layout";
 
-// Lazy-load every route — drops the initial JS bundle from ~1.3 MB to
-// ~300 KB. Each route becomes its own async chunk and is fetched only
-// when the user navigates to it.
-const Login = lazy(() => import("./pages/Login"));
-const Dashboard = lazy(() => import("./pages/Dashboard"));
-const Clients = lazy(() => import("./pages/Clients"));
-const NewClient = lazy(() => import("./pages/NewClient"));
-const ClientProfile = lazy(() => import("./pages/ClientProfile"));
-const NewCase = lazy(() => import("./pages/cases/NewCase"));
-const CasesList = lazy(() => import("./pages/cases/CasesList"));
-const CaseDetail = lazy(() => import("./pages/cases/CaseDetail"));
-const Sessions = lazy(() => import("./pages/Sessions"));
-const Attachments = lazy(() => import("./pages/Attachments"));
-const Requests = lazy(() => import("./pages/cases/Requests"));
-const AvailableRequests = lazy(() => import("./pages/cases/AvailableRequests"));
-const MyRequests = lazy(() => import("./pages/cases/MyRequests"));
-const MyCases = lazy(() => import("./pages/cases/MyCases"));
-const Appointments = lazy(() => import("./pages/Appointments"));
-const CalendarPage = lazy(() => import("./pages/Calendar"));
-const Tasks = lazy(() => import("./pages/Tasks"));
-const Reports = lazy(() => import("./pages/Reports"));
-const Contracts = lazy(() => import("./pages/contracts/Contracts"));
-const NewContract = lazy(() => import("./pages/contracts/NewContract"));
-const Users = lazy(() => import("./pages/users/Users"));
-const NewUser = lazy(() => import("./pages/users/NewUser"));
-const Permissions = lazy(() => import("./pages/users/Permissions"));
-const Admin = lazy(() => import("./pages/Admin"));
-const Theme = lazy(() => import("./pages/Theme"));
-const Profile = lazy(() => import("./pages/Profile"));
-const DriveCallback = lazy(() => import("./pages/DriveCallback"));
+// When a new version is deployed, the user's open tab still references the
+// previous hashed chunk file names (e.g. `Sessions-7i7yOt_v.js`). Those files
+// no longer exist on Netlify, and the SPA fallback rewrites every unknown
+// path to `/index.html` — so the browser receives HTML instead of JS and
+// fails with "Failed to fetch dynamically imported module" → white screen.
+//
+// `retryLazy` catches that error and forces a one-time reload so the page
+// re-fetches `index.html`, picks up the new chunk hashes, and recovers.
+function retryLazy<T>(loader: () => Promise<T>): Promise<T> {
+  return loader().catch((err: unknown) => {
+    const msg = err instanceof Error ? err.message : String(err);
+    const looksLikeChunkError =
+      msg.includes("Failed to fetch dynamically imported module") ||
+      msg.includes("Loading chunk") ||
+      msg.includes("Importing a module script failed") ||
+      msg.includes("MIME type");
+    const KEY = "__chunk_reload_attempted__";
+    if (looksLikeChunkError && !sessionStorage.getItem(KEY)) {
+      sessionStorage.setItem(KEY, "1");
+      window.location.reload();
+      // Block React from rendering the error boundary while we reload.
+      return new Promise<T>(() => {});
+    }
+    throw err;
+  });
+}
+
+// Lazy-load every route — drops the initial JS bundle and lets each route
+// become its own async chunk fetched on demand.
+const Login = lazy(() => retryLazy(() => import("./pages/Login")));
+const Dashboard = lazy(() => retryLazy(() => import("./pages/Dashboard")));
+const Clients = lazy(() => retryLazy(() => import("./pages/Clients")));
+const NewClient = lazy(() => retryLazy(() => import("./pages/NewClient")));
+const ClientProfile = lazy(() => retryLazy(() => import("./pages/ClientProfile")));
+const NewCase = lazy(() => retryLazy(() => import("./pages/cases/NewCase")));
+const CasesList = lazy(() => retryLazy(() => import("./pages/cases/CasesList")));
+const CaseDetail = lazy(() => retryLazy(() => import("./pages/cases/CaseDetail")));
+const Sessions = lazy(() => retryLazy(() => import("./pages/Sessions")));
+const Attachments = lazy(() => retryLazy(() => import("./pages/Attachments")));
+const Requests = lazy(() => retryLazy(() => import("./pages/cases/Requests")));
+const AvailableRequests = lazy(() =>
+  retryLazy(() => import("./pages/cases/AvailableRequests"))
+);
+const MyRequests = lazy(() => retryLazy(() => import("./pages/cases/MyRequests")));
+const MyCases = lazy(() => retryLazy(() => import("./pages/cases/MyCases")));
+const Appointments = lazy(() => retryLazy(() => import("./pages/Appointments")));
+const CalendarPage = lazy(() => retryLazy(() => import("./pages/Calendar")));
+const Tasks = lazy(() => retryLazy(() => import("./pages/Tasks")));
+const Reports = lazy(() => retryLazy(() => import("./pages/Reports")));
+const Contracts = lazy(() => retryLazy(() => import("./pages/contracts/Contracts")));
+const NewContract = lazy(() =>
+  retryLazy(() => import("./pages/contracts/NewContract"))
+);
+const Users = lazy(() => retryLazy(() => import("./pages/users/Users")));
+const NewUser = lazy(() => retryLazy(() => import("./pages/users/NewUser")));
+const Permissions = lazy(() => retryLazy(() => import("./pages/users/Permissions")));
+const Admin = lazy(() => retryLazy(() => import("./pages/Admin")));
+const Theme = lazy(() => retryLazy(() => import("./pages/Theme")));
+const Profile = lazy(() => retryLazy(() => import("./pages/Profile")));
+const DriveCallback = lazy(() => retryLazy(() => import("./pages/DriveCallback")));
 
 function RouteFallback() {
   return (
