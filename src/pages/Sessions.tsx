@@ -286,7 +286,9 @@ export default function Sessions() {
               key={`${s.caseId}-${s.id}`}
               session={s}
               today={t}
-              onOpenCase={() => navigate(`/cases/${s.caseId}`)}
+              onOpenSession={() =>
+                navigate(`/sessions/${s.caseId}/${s.id}`)
+              }
               onEdit={() => {
                 setEditing({ caseId: s.caseId, session: s });
                 setOpenModal(true);
@@ -346,16 +348,20 @@ function Kpi({
 function SessionRow({
   session: s,
   today,
-  onOpenCase,
+  onOpenSession,
   onEdit,
   onDelete,
 }: {
   session: EnrichedSession;
   today: string;
-  onOpenCase: () => void;
+  onOpenSession: () => void;
   onEdit: () => void;
   onDelete: () => void;
 }) {
+  const stop = (fn: () => void) => (e: React.MouseEvent) => {
+    e.stopPropagation();
+    fn();
+  };
   const isOnline = s.mode === "online";
   const isPast = s.date < today;
   const isToday = s.date === today;
@@ -388,7 +394,10 @@ function SessionRow({
     : "";
 
   return (
-    <li className={`card p-3 transition ${cardCls}`}>
+    <li
+      onClick={onOpenSession}
+      className={`card p-3 transition cursor-pointer hover:shadow-md ${cardCls}`}
+    >
       {/* Top row: date pill + badges + actions */}
       <div className="flex items-start gap-2 mb-3">
         {/* Date pill */}
@@ -439,21 +448,21 @@ function SessionRow({
         {/* Actions (compact, horizontal) */}
         <div className="shrink-0 flex items-center gap-0.5">
           <button
-            onClick={onOpenCase}
-            title="فتح القضية"
+            onClick={stop(onOpenSession)}
+            title="فتح الجلسة"
             className="p-1 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded transition"
           >
             <Eye className="w-3.5 h-3.5" />
           </button>
           <button
-            onClick={onEdit}
+            onClick={stop(onEdit)}
             title="تعديل"
             className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition"
           >
             <Edit3 className="w-3.5 h-3.5" />
           </button>
           <button
-            onClick={onDelete}
+            onClick={stop(onDelete)}
             title="حذف"
             className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition"
           >
@@ -465,6 +474,7 @@ function SessionRow({
       {/* Title + case meta */}
       <Link
         to={`/cases/${s.caseId}`}
+        onClick={(e) => e.stopPropagation()}
         className="block text-sm font-bold text-slate-800 hover:text-brand-700 truncate text-right"
         title={s.caseTitle}
       >

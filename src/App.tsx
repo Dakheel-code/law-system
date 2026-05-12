@@ -44,6 +44,7 @@ const NewCase = lazy(() => retryLazy(() => import("./pages/cases/NewCase")));
 const CasesList = lazy(() => retryLazy(() => import("./pages/cases/CasesList")));
 const CaseDetail = lazy(() => retryLazy(() => import("./pages/cases/CaseDetail")));
 const Sessions = lazy(() => retryLazy(() => import("./pages/Sessions")));
+const SessionDetail = lazy(() => retryLazy(() => import("./pages/SessionDetail")));
 const Attachments = lazy(() => retryLazy(() => import("./pages/Attachments")));
 const Requests = lazy(() => retryLazy(() => import("./pages/cases/Requests")));
 const AvailableRequests = lazy(() =>
@@ -103,6 +104,10 @@ export default function App() {
 
                 {/* Sessions */}
                 <Route path="/sessions" element={<Sessions />} />
+                <Route
+                  path="/sessions/:caseId/:sessionId"
+                  element={<SessionDetail />}
+                />
 
                 {/* Attachments */}
                 <Route path="/attachments" element={<Attachments />} />
