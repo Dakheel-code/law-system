@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowRight,
@@ -19,12 +19,26 @@ import {
   Hash,
   ScrollText,
   ArrowRightCircle,
+  Paperclip,
+  Upload,
+  ExternalLink,
 } from "lucide-react";
-import { useCases, removeSession } from "../lib/caseStore";
+import {
+  useCases,
+  removeSession,
+  addAttachmentsToSession,
+  removeAttachmentFromSession,
+  type CaseRecord,
+  type CaseAttachment,
+} from "../lib/caseStore";
 import type { CaseSession, SessionStatus } from "../components/cases/caseFormTypes";
 import { toLocalISO } from "../lib/hijri";
-import { useState } from "react";
 import SessionFormModal from "../components/sessions/SessionFormModal";
+import {
+  uploadSessionFile,
+  DriveNotConnectedError,
+  DriveDisconnectedError,
+} from "../lib/drive";
 
 const statusMeta: Record<
   SessionStatus,
@@ -310,6 +324,8 @@ export default function SessionDetail() {
                 لإضافة محضر أو قرار أو الإجراء القادم.
               </div>
             )}
+
+          <SessionAttachments caseRec={caseRec} session={session} />
         </div>
 
         {/* Side column */}
@@ -493,6 +509,181 @@ function InfoCell({ label, value }: { label: string; value: string }) {
     <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-right">
       <div className="text-[10px] text-slate-500 mb-1">{label}</div>
       <div className="text-sm font-bold text-slate-800">{value}</div>
+    </div>
+  );
+}
+
+function sessionDisplayName(s: CaseSession): string {
+  const numPart = s.sessionNumber ? `جلسة ${s.sessionNumber}` : "جلسة";
+  const datePart = s.date || s.id.slice(0, 6);
+  return `${numPart} - ${datePart}`;
+}
+
+function caseDisplayName(c: CaseRecord): string {
+  return `${c.requestTitle || c.code} (${c.code})`;
+}
+
+function fmtBytes(n: number): string {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function SessionAttachments({
+  caseRec,
+  session,
+}: {
+  caseRec: CaseRecord;
+  session: CaseSession;
+}) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+
+  const attachments = session.attachments ?? [];
+
+  const handlePick = () => fileRef.current?.click();
+
+  const handleFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = "";
+    if (files.length === 0) return;
+    setUploading(true);
+    setError(null);
+    try {
+      const uploaded: CaseAttachment[] = [];
+      const sessName = sessionDisplayName(session);
+      const caseName = caseDisplayName(caseRec);
+      for (const f of files) {
+        const df = await uploadSessionFile(
+          caseRec.id,
+          caseName,
+          session.id,
+          sessName,
+          f,
+          (l, t) => setProgress(t > 0 ? Math.round((l / t) * 100) : 0)
+        );
+        uploaded.push({
+          name: f.name,
+          size: f.size,
+          type: f.type,
+          driveFileId: df.id,
+          webViewLink: df.webViewLink,
+          iconLink: df.iconLink,
+          thumbnailLink: df.thumbnailLink,
+          uploadedAt: new Date().toISOString(),
+        });
+      }
+      if (uploaded.length > 0)
+        await addAttachmentsToSession(caseRec.id, session.id, uploaded);
+    } catch (err) {
+      if (
+        err instanceof DriveNotConnectedError ||
+        err instanceof DriveDisconnectedError
+      ) {
+        setError("Drive غير متصل. اربطه من صفحة الإدارة.");
+      } else {
+        setError(err instanceof Error ? err.message : "فشل رفع الملف");
+      }
+    } finally {
+      setUploading(false);
+      setProgress(0);
+    }
+  };
+
+  const handleRemove = async (index: number, name: string) => {
+    if (!confirm(`إزالة المرفق "${name}"؟`)) return;
+    await removeAttachmentFromSession(caseRec.id, session.id, index);
+  };
+
+  return (
+    <div className="card p-5">
+      <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+        <button
+          onClick={handlePick}
+          disabled={uploading}
+          className="inline-flex items-center gap-2 px-3 py-1.5 bg-brand-50 text-brand-700 rounded-lg text-xs font-bold hover:bg-brand-100 disabled:opacity-60"
+        >
+          <Upload className="w-3.5 h-3.5" />
+          {uploading ? `جارٍ الرفع... ${progress}%` : "رفع ملف"}
+        </button>
+        <h3 className="text-sm font-extrabold text-slate-800 inline-flex items-center gap-2">
+          <Paperclip className="w-4 h-4 text-brand-500" />
+          مرفقات الجلسة ({attachments.length})
+        </h3>
+      </div>
+      <input
+        ref={fileRef}
+        type="file"
+        multiple
+        onChange={handleFiles}
+        className="hidden"
+      />
+      {error && (
+        <div className="p-2 mb-3 rounded-lg bg-rose-50 border border-rose-200 text-xs text-rose-700 text-right">
+          {error}
+        </div>
+      )}
+      {attachments.length === 0 ? (
+        <div className="text-center text-xs text-slate-400 py-6 border border-dashed border-slate-200 rounded-lg">
+          لا توجد مرفقات. ترفع الملفات في:{" "}
+          <span className="font-mono text-slate-500">
+            {caseDisplayName(caseRec)} / الجلسات / {sessionDisplayName(session)}
+          </span>
+        </div>
+      ) : (
+        <ul className="space-y-1.5">
+          {attachments.map((a, idx) => (
+            <li
+              key={`${a.name}-${idx}`}
+              className="flex items-center justify-between gap-2 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg"
+            >
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleRemove(idx, a.name)}
+                  className="p-1 text-rose-500 hover:bg-rose-50 rounded"
+                  title="إزالة"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+                {a.webViewLink && (
+                  <a
+                    href={a.webViewLink}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="p-1 text-sky-500 hover:bg-sky-50 rounded"
+                    title="فتح في Drive"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                )}
+              </div>
+              <div className="flex-1 min-w-0 text-right flex items-center justify-end gap-2">
+                <div className="min-w-0">
+                  <div className="text-xs font-bold text-slate-700 truncate">
+                    {a.name}
+                  </div>
+                  <div className="text-[10px] text-slate-400">
+                    {fmtBytes(a.size)}
+                  </div>
+                </div>
+                {a.thumbnailLink ? (
+                  <img
+                    src={a.thumbnailLink}
+                    alt=""
+                    className="w-8 h-8 rounded object-cover"
+                  />
+                ) : a.iconLink ? (
+                  <img src={a.iconLink} alt="" className="w-5 h-5" />
+                ) : (
+                  <Paperclip className="w-4 h-4 text-slate-400" />
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

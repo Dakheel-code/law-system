@@ -59,6 +59,8 @@ export type CaseSession = {
   minutes?: string;
   nextDate?: string;
   nextAction?: string;
+  // Drive-backed attachments stored under: قضية/<title>/الجلسات/<session>
+  attachments?: CaseAttachment[];
 };
 
 export type CaseRecord = {
@@ -471,6 +473,71 @@ export async function removeAttachmentFromCase(
     .eq("id", caseId);
   if (uerr) return false;
   return true;
+}
+
+export async function addAttachmentsToSession(
+  caseId: string,
+  sessionId: string,
+  files: CaseAttachment[]
+): Promise<boolean> {
+  if (!supabase || files.length === 0) return false;
+  const { data, error } = await supabase
+    .from("cases")
+    .select("sessions")
+    .eq("id", caseId)
+    .maybeSingle();
+  if (error || !data) return false;
+  const sessions = Array.isArray((data as { sessions: CaseSession[] }).sessions)
+    ? (data as { sessions: CaseSession[] }).sessions
+    : [];
+  const next = sessions.map((s) =>
+    s.id === sessionId
+      ? {
+          ...s,
+          attachments: [
+            ...(Array.isArray(s.attachments) ? s.attachments : []),
+            ...files,
+          ],
+        }
+      : s
+  );
+  const { error: uerr } = await supabase
+    .from("cases")
+    .update({ sessions: next })
+    .eq("id", caseId);
+  return !uerr;
+}
+
+export async function removeAttachmentFromSession(
+  caseId: string,
+  sessionId: string,
+  index: number
+): Promise<boolean> {
+  if (!supabase) return false;
+  const { data, error } = await supabase
+    .from("cases")
+    .select("sessions")
+    .eq("id", caseId)
+    .maybeSingle();
+  if (error || !data) return false;
+  const sessions = Array.isArray((data as { sessions: CaseSession[] }).sessions)
+    ? (data as { sessions: CaseSession[] }).sessions
+    : [];
+  const next = sessions.map((s) =>
+    s.id === sessionId
+      ? {
+          ...s,
+          attachments: (Array.isArray(s.attachments) ? s.attachments : []).filter(
+            (_, i) => i !== index
+          ),
+        }
+      : s
+  );
+  const { error: uerr } = await supabase
+    .from("cases")
+    .update({ sessions: next })
+    .eq("id", caseId);
+  return !uerr;
 }
 
 export async function removeSession(

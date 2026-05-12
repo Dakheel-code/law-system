@@ -40,6 +40,8 @@ export type SessionStatus =
   | "postponed"     // مؤجلة
   | "cancelled";    // ملغاة
 
+import type { AttachmentRecord } from "../../lib/clientStore";
+
 export type CaseSession = {
   id: string;
   mode: SessionMode;
@@ -57,6 +59,8 @@ export type CaseSession = {
   minutes?: string;        // محضر الجلسة
   nextDate?: string;       // موعد الجلسة القادمة (YYYY-MM-DD)
   nextAction?: string;     // الإجراء القادم
+  // Drive-backed attachments stored under: قضية/<title>/الجلسات/<session>
+  attachments?: AttachmentRecord[];
 };
 
 export type AssignmentRole = "primary" | "assistant" | "supervisor" | "custom";

@@ -291,6 +291,72 @@ async function ensureTasksFolder(): Promise<string> {
   return ensureFolder(TASKS_FOLDER_NAME, rootId);
 }
 
+const SESSIONS_FOLDER_NAME = "الجلسات";
+
+/**
+ * Get or create the per-session folder nested as:
+ *   <case folder> / الجلسات / <session display name>
+ * Cached in drive_folders with entity_type='session'.
+ */
+export async function ensureSessionFolder(
+  caseId: string,
+  caseDisplayName: string,
+  sessionId: string,
+  sessionDisplayName: string
+): Promise<string> {
+  if (!supabase) throw new Error("Supabase not configured");
+
+  const { data: existing } = await supabase
+    .from("drive_folders")
+    .select("folder_id")
+    .eq("entity_type", "session")
+    .eq("entity_id", sessionId)
+    .maybeSingle();
+
+  if (existing?.folder_id) {
+    if (await folderExists(existing.folder_id)) return existing.folder_id;
+    await supabase
+      .from("drive_folders")
+      .delete()
+      .eq("entity_type", "session")
+      .eq("entity_id", sessionId);
+  }
+
+  const caseFolderId = await ensureEntityFolder("case", caseId, caseDisplayName);
+  const sessionsRoot = await ensureFolder(SESSIONS_FOLDER_NAME, caseFolderId);
+  const sessionFolderId = await ensureFolder(sessionDisplayName, sessionsRoot);
+
+  const { error } = await supabase.from("drive_folders").insert({
+    entity_type: "session",
+    entity_id: sessionId,
+    folder_id: sessionFolderId,
+  });
+  if (error) {
+    // Non-fatal — caching only. The folder still exists in Drive.
+    console.warn("session folder cache insert failed:", error.message);
+  }
+
+  return sessionFolderId;
+}
+
+/** Upload a file into the per-session folder. */
+export async function uploadSessionFile(
+  caseId: string,
+  caseDisplayName: string,
+  sessionId: string,
+  sessionDisplayName: string,
+  file: File,
+  onProgress?: (loaded: number, total: number) => void
+): Promise<DriveFile> {
+  const folderId = await ensureSessionFolder(
+    caseId,
+    caseDisplayName,
+    sessionId,
+    sessionDisplayName
+  );
+  return uploadFile(folderId, file, onProgress);
+}
+
 /** Get or create the folder for a case/client/task. */
 export async function ensureEntityFolder(
   entityType: "case" | "client" | "task",
