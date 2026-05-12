@@ -36,6 +36,12 @@ export type CaseAssignment = {
   customTitle?: string;
 };
 
+export type SessionStatus =
+  | "scheduled"
+  | "held"
+  | "postponed"
+  | "cancelled";
+
 export type CaseSession = {
   id: string;
   mode: "in-person" | "online";
@@ -45,6 +51,14 @@ export type CaseSession = {
   location: string;
   link: string;
   details: string;
+  // Optional extended fields (no DB migration needed — stored in `sessions` jsonb):
+  sessionNumber?: string;
+  circuit?: string;
+  status?: SessionStatus;
+  decision?: string;
+  minutes?: string;
+  nextDate?: string;
+  nextAction?: string;
 };
 
 export type CaseRecord = {

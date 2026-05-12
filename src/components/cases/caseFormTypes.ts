@@ -34,16 +34,29 @@ export type CaseParty = {
 };
 
 export type SessionMode = "in-person" | "online";
+export type SessionStatus =
+  | "scheduled"     // مجدّولة
+  | "held"          // انعقدت
+  | "postponed"     // مؤجلة
+  | "cancelled";    // ملغاة
 
 export type CaseSession = {
   id: string;
   mode: SessionMode;
-  date: string;        // YYYY-MM-DD
-  time: string;        // HH:MM (24h)
+  date: string;          // YYYY-MM-DD
+  time: string;          // HH:MM (24h)
   court: string;
-  location: string;    // for in-person
-  link: string;        // for online
+  location: string;      // for in-person
+  link: string;          // for online
   details: string;
+  // Added by the session-data form expansion:
+  sessionNumber?: string;  // رقم الجلسة
+  circuit?: string;        // الدائرة
+  status?: SessionStatus;  // حالة الجلسة
+  decision?: string;       // القرار الصادر
+  minutes?: string;        // محضر الجلسة
+  nextDate?: string;       // موعد الجلسة القادمة (YYYY-MM-DD)
+  nextAction?: string;     // الإجراء القادم
 };
 
 export type AssignmentRole = "primary" | "assistant" | "supervisor" | "custom";

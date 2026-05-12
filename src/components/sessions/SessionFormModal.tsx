@@ -20,7 +20,15 @@ import {
   updateSessionOnCase,
   type CaseRecord,
   type CaseSession,
+  type SessionStatus,
 } from "../../lib/caseStore";
+
+const statusOptions: { value: SessionStatus; label: string }[] = [
+  { value: "scheduled", label: "مجدّولة" },
+  { value: "held", label: "انعقدت" },
+  { value: "postponed", label: "مؤجّلة" },
+  { value: "cancelled", label: "ملغاة" },
+];
 
 type Props = {
   // When set, modal is in edit mode for that session
@@ -56,6 +64,18 @@ export default function SessionFormModal({
   const [location, setLocation] = useState(initialSession?.location ?? "");
   const [link, setLink] = useState(initialSession?.link ?? "");
   const [details, setDetails] = useState(initialSession?.details ?? "");
+  // Extended fields
+  const [sessionNumber, setSessionNumber] = useState(
+    initialSession?.sessionNumber ?? ""
+  );
+  const [circuit, setCircuit] = useState(initialSession?.circuit ?? "");
+  const [status, setStatus] = useState<SessionStatus>(
+    initialSession?.status ?? "scheduled"
+  );
+  const [decision, setDecision] = useState(initialSession?.decision ?? "");
+  const [minutes, setMinutes] = useState(initialSession?.minutes ?? "");
+  const [nextDate, setNextDate] = useState(initialSession?.nextDate ?? "");
+  const [nextAction, setNextAction] = useState(initialSession?.nextAction ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -102,6 +122,13 @@ export default function SessionFormModal({
       location,
       link,
       details,
+      sessionNumber: sessionNumber || undefined,
+      circuit: circuit || undefined,
+      status,
+      decision: decision || undefined,
+      minutes: minutes || undefined,
+      nextDate: nextDate || undefined,
+      nextAction: nextAction || undefined,
     };
     setSaving(true);
     const ok = isEdit
@@ -283,12 +310,83 @@ export default function SessionFormModal({
               )}
             </div>
 
-            <Field label="تفاصيل الجلسة">
+            {/* Extended session fields */}
+            <div className="pt-3 border-t border-dashed border-slate-200 space-y-3">
+              <div className="text-xs font-bold text-slate-500 text-right">
+                بيانات الجلسة الإضافية
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <Field label="رقم الجلسة">
+                  <Input
+                    placeholder="مثال: 2026/45"
+                    value={sessionNumber}
+                    onChange={(e) => setSessionNumber(e.target.value)}
+                    dir="ltr"
+                    className="text-left"
+                  />
+                </Field>
+                <Field label="الدائرة">
+                  <Input
+                    placeholder="مثال: الدائرة التجارية الأولى"
+                    value={circuit}
+                    onChange={(e) => setCircuit(e.target.value)}
+                  />
+                </Field>
+                <Field label="حالة الجلسة">
+                  <select
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value as SessionStatus)}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-200 text-right"
+                  >
+                    {statusOptions.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="موعد الجلسة القادمة">
+                  <Input
+                    type="date"
+                    value={nextDate}
+                    onChange={(e) => setNextDate(e.target.value)}
+                    dir="ltr"
+                    className="text-left"
+                  />
+                </Field>
+              </div>
+
+              <Field label="القرار الصادر">
+                <Textarea
+                  placeholder="نص القرار الصادر عن المحكمة..."
+                  rows={2}
+                  value={decision}
+                  onChange={(e) => setDecision(e.target.value)}
+                />
+              </Field>
+              <Field label="محضر الجلسة">
+                <Textarea
+                  placeholder="ما تم في الجلسة..."
+                  rows={3}
+                  value={minutes}
+                  onChange={(e) => setMinutes(e.target.value)}
+                />
+              </Field>
+              <Field label="الإجراء القادم">
+                <Input
+                  placeholder="مثال: تقديم مذكرة الرد"
+                  value={nextAction}
+                  onChange={(e) => setNextAction(e.target.value)}
+                />
+              </Field>
+            </div>
+
+            <Field label="تفاصيل / ملاحظات إضافية">
               <div className="relative">
                 <FileText className="absolute right-3 top-3 w-4 h-4 text-slate-400 pointer-events-none" />
                 <Textarea
-                  placeholder="أي تفاصيل حول الجلسة..."
-                  rows={3}
+                  placeholder="أي تفاصيل أخرى..."
+                  rows={2}
                   value={details}
                   onChange={(e) => setDetails(e.target.value)}
                   className="pr-10"

@@ -949,12 +949,23 @@ function AssignmentChip({
   );
 }
 
+const sessionStatusStyles: Record<
+  string,
+  { label: string; cls: string }
+> = {
+  scheduled: { label: "مجدّولة", cls: "bg-sky-100 text-sky-700" },
+  held: { label: "انعقدت", cls: "bg-emerald-100 text-emerald-700" },
+  postponed: { label: "مؤجّلة", cls: "bg-amber-100 text-amber-700" },
+  cancelled: { label: "ملغاة", cls: "bg-rose-100 text-rose-700" },
+};
+
 function SessionRow({ session: s }: { session: CaseSession }) {
   const isOnline = s.mode === "online";
   const today = new Date().toISOString().slice(0, 10);
   const isPast = s.date && s.date < today;
   const isToday = s.date === today;
   const ModeIcon = isOnline ? Video : MapPin;
+  const statusInfo = s.status ? sessionStatusStyles[s.status] : null;
 
   // Date pill tone
   const dateTone = isToday
@@ -1017,9 +1028,16 @@ function SessionRow({ session: s }: { session: CaseSession }) {
                 اليوم
               </span>
             )}
-            {isPast && (
+            {isPast && !statusInfo && (
               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-200 text-slate-600">
                 منتهية
+              </span>
+            )}
+            {statusInfo && (
+              <span
+                className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold ${statusInfo.cls}`}
+              >
+                {statusInfo.label}
               </span>
             )}
           </div>
@@ -1032,17 +1050,27 @@ function SessionRow({ session: s }: { session: CaseSession }) {
         </div>
       </div>
 
-      {/* Full date for context */}
-      {d && (
-        <div className="text-[10px] text-slate-500 mb-2 text-right" dir="rtl">
-          {weekday}، {dayNum} {monthName} {yearShort}
-        </div>
-      )}
+      {/* Full date + session number for context */}
+      <div className="flex items-center justify-between mb-2 text-[10px] text-slate-500">
+        {s.sessionNumber && (
+          <span className="font-mono text-slate-600 font-bold" dir="ltr">
+            #{s.sessionNumber}
+          </span>
+        )}
+        {d && (
+          <span dir="rtl">
+            {weekday}، {dayNum} {monthName} {yearShort}
+          </span>
+        )}
+      </div>
 
       {/* Info rows */}
       <div className="space-y-1 pt-2 border-t border-slate-100">
         {s.court && (
           <SessionInfoLine icon={Briefcase} label="المحكمة" value={s.court} />
+        )}
+        {s.circuit && (
+          <SessionInfoLine icon={Briefcase} label="الدائرة" value={s.circuit} />
         )}
         {!isOnline && s.location && (
           <SessionInfoLine icon={MapPin} label="المكان" value={s.location} />
@@ -1055,12 +1083,55 @@ function SessionRow({ session: s }: { session: CaseSession }) {
             href={s.link}
           />
         )}
-        {!s.court && !s.location && !s.link && (
+        {!s.court && !s.circuit && !s.location && !s.link && (
           <div className="text-[10px] text-slate-400 text-right">
             لا توجد تفاصيل
           </div>
         )}
       </div>
+
+      {/* Decision / Minutes — only if filled */}
+      {(s.decision || s.minutes) && (
+        <div className="mt-2 pt-2 border-t border-slate-100 space-y-1.5">
+          {s.decision && (
+            <div className="text-right">
+              <div className="text-[9px] text-slate-400 mb-0.5">القرار الصادر</div>
+              <p
+                className="text-[11px] text-slate-700 leading-5 line-clamp-2"
+                title={s.decision}
+              >
+                {s.decision}
+              </p>
+            </div>
+          )}
+          {s.minutes && (
+            <div className="text-right">
+              <div className="text-[9px] text-slate-400 mb-0.5">محضر الجلسة</div>
+              <p
+                className="text-[11px] text-slate-600 leading-5 line-clamp-2"
+                title={s.minutes}
+              >
+                {s.minutes}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Next action */}
+      {(s.nextDate || s.nextAction) && (
+        <div className="mt-2 pt-2 border-t border-slate-100 text-right">
+          <div className="text-[9px] text-slate-400 mb-0.5">الإجراء القادم</div>
+          <div className="text-[11px] text-slate-700 flex items-center justify-start gap-1.5 flex-wrap">
+            {s.nextDate && (
+              <span className="font-mono bg-brand-50 text-brand-700 px-1.5 py-0.5 rounded font-bold" dir="ltr">
+                {s.nextDate}
+              </span>
+            )}
+            {s.nextAction && <span>{s.nextAction}</span>}
+          </div>
+        </div>
+      )}
 
       {s.details && (
         <div className="mt-2 pt-2 border-t border-slate-100 text-right">
