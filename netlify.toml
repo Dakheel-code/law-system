@@ -11,6 +11,24 @@
 [functions]
   node_bundler = "esbuild"
 
+# Cache hashed asset files aggressively — Vite already content-hashes them
+# so the filename changes on every change, and we want the browser to keep
+# them indefinitely.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# When a hashed asset doesn't exist (e.g. user has the previous deploy open
+# and clicks a route whose chunk got renamed), return a real 404 instead of
+# the SPA fallback HTML. That way the browser raises a clean "Failed to
+# fetch module" error which our retryLazy() helper can catch and trigger a
+# reload — rather than getting confusing "MIME type text/html" errors.
+[[redirects]]
+  from = "/assets/*"
+  status = 404
+  force = true
+
 # SPA fallback — must come AFTER functions are registered at /.netlify/functions/*
 [[redirects]]
   from = "/*"
