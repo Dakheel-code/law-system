@@ -59,6 +59,11 @@ export default function NewClient() {
     nationality: "",
     email: "",
     phone: "",
+    address: "",
+    city: "",
+    companyName: "",
+    commercialRegistry: "",
+    taxNumber: "",
     notes: "",
   });
 
@@ -85,6 +90,11 @@ export default function NewClient() {
         nationality: c.nationality,
         email: c.email,
         phone: c.phone,
+        address: c.address,
+        city: c.city,
+        companyName: c.companyName,
+        commercialRegistry: c.commercialRegistry,
+        taxNumber: c.taxNumber,
         notes: c.notes,
       });
     })();
@@ -125,6 +135,11 @@ export default function NewClient() {
       nationality: form.nationality,
       email: form.email,
       phone: form.phone,
+      address: form.address,
+      city: form.city,
+      companyName: form.companyName,
+      commercialRegistry: form.commercialRegistry,
+      taxNumber: form.taxNumber,
       attachments,
       notes: form.notes,
     };
@@ -260,7 +275,58 @@ export default function NewClient() {
                 className="text-left"
               />
             </Field>
+            <Field label="المدينة">
+              <Input
+                placeholder="مثلاً: الرياض"
+                value={form.city}
+                onChange={update("city")}
+              />
+            </Field>
+            <Field label="العنوان">
+              <Input
+                placeholder="الحي، الشارع..."
+                value={form.address}
+                onChange={update("address")}
+              />
+            </Field>
           </div>
+
+          {/* Institution fields — relevant when client type is not a natural person */}
+          {clientType !== "individual" && (
+            <div className="rounded-xl border border-slate-200 bg-slate-50/40 p-4 space-y-4">
+              <h3 className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-brand-500" />
+                بيانات الجهة / الشركة
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Field label="اسم الشركة / الجهة">
+                  <Input
+                    placeholder="الاسم الكامل للجهة"
+                    value={form.companyName}
+                    onChange={update("companyName")}
+                  />
+                </Field>
+                <Field label="السجل التجاري">
+                  <Input
+                    placeholder="رقم السجل التجاري"
+                    value={form.commercialRegistry}
+                    onChange={update("commercialRegistry")}
+                    dir="ltr"
+                    className="text-left"
+                  />
+                </Field>
+                <Field label="الرقم الضريبي">
+                  <Input
+                    placeholder="الرقم الضريبي"
+                    value={form.taxNumber}
+                    onChange={update("taxNumber")}
+                    dir="ltr"
+                    className="text-left"
+                  />
+                </Field>
+              </div>
+            </div>
+          )}
 
           <div className="rounded-xl bg-brand-50/50 border border-brand-200 p-4">
             <div className="flex items-start gap-3">

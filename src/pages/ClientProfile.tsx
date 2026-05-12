@@ -218,8 +218,45 @@ export default function ClientProfile() {
                 label="تاريخ التسجيل"
                 value={formatDate(client.createdAt)}
               />
+              {client.city && (
+                <InfoItem icon={Tag} label="المدينة" value={client.city} />
+              )}
+              {client.address && (
+                <InfoItem icon={Tag} label="العنوان" value={client.address} />
+              )}
             </div>
           </Section>
+
+          {/* Company info — only shown when present */}
+          {(client.companyName || client.commercialRegistry || client.taxNumber) && (
+            <Section title="بيانات الجهة / الشركة" icon={Briefcase}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+                {client.companyName && (
+                  <InfoItem
+                    icon={Briefcase}
+                    label="اسم الشركة / الجهة"
+                    value={client.companyName}
+                  />
+                )}
+                {client.commercialRegistry && (
+                  <InfoItem
+                    icon={Hash}
+                    label="السجل التجاري"
+                    value={client.commercialRegistry}
+                    mono
+                  />
+                )}
+                {client.taxNumber && (
+                  <InfoItem
+                    icon={Hash}
+                    label="الرقم الضريبي"
+                    value={client.taxNumber}
+                    mono
+                  />
+                )}
+              </div>
+            </Section>
+          )}
 
           {/* Linked cases */}
           <div className="card p-5">

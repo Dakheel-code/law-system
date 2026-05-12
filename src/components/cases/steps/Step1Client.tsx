@@ -238,6 +238,11 @@ export default function Step1Client({ data, update }: Props) {
                 nationality: "",
                 email: payload.email,
                 phone: payload.phone,
+                address: "",
+                city: "",
+                companyName: "",
+                commercialRegistry: "",
+                taxNumber: "",
                 attachments: [],
                 notes: "",
               });

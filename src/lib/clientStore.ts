@@ -29,6 +29,12 @@ export type ClientRecord = {
   nationality: string;
   email: string;
   phone: string;
+  // Added by migration 016_client_extra_fields:
+  address: string;
+  city: string;
+  companyName: string;
+  commercialRegistry: string;
+  taxNumber: string;
   attachments: AttachmentRecord[];
   notes: string;
   status: "active" | "inactive";
@@ -51,6 +57,11 @@ type ClientRow = {
   nationality: string | null;
   email: string | null;
   phone: string | null;
+  address: string | null;
+  city: string | null;
+  company_name: string | null;
+  commercial_registry: string | null;
+  tax_number: string | null;
   attachments: AttachmentRecord[] | null;
   notes: string | null;
   status: "active" | "inactive";
@@ -71,6 +82,11 @@ const fromRow = (row: ClientRow): ClientRecord => ({
   nationality: row.nationality ?? "",
   email: row.email ?? "",
   phone: row.phone ?? "",
+  address: row.address ?? "",
+  city: row.city ?? "",
+  companyName: row.company_name ?? "",
+  commercialRegistry: row.commercial_registry ?? "",
+  taxNumber: row.tax_number ?? "",
   attachments: row.attachments ?? [],
   notes: row.notes ?? "",
   status: row.status,
@@ -101,6 +117,11 @@ const toInsert = (
   nationality: c.nationality,
   email: c.email,
   phone: c.phone,
+  address: c.address,
+  city: c.city,
+  company_name: c.companyName,
+  commercial_registry: c.commercialRegistry,
+  tax_number: c.taxNumber,
   attachments: c.attachments,
   notes: c.notes,
   status: c.status ?? "active",
@@ -121,6 +142,12 @@ const toUpdate = (
   if (c.nationality !== undefined) out.nationality = c.nationality;
   if (c.email !== undefined) out.email = c.email;
   if (c.phone !== undefined) out.phone = c.phone;
+  if (c.address !== undefined) out.address = c.address;
+  if (c.city !== undefined) out.city = c.city;
+  if (c.companyName !== undefined) out.company_name = c.companyName;
+  if (c.commercialRegistry !== undefined)
+    out.commercial_registry = c.commercialRegistry;
+  if (c.taxNumber !== undefined) out.tax_number = c.taxNumber;
   if (c.attachments !== undefined) out.attachments = c.attachments;
   if (c.notes !== undefined) out.notes = c.notes;
   if (c.status !== undefined) out.status = c.status;
@@ -139,7 +166,9 @@ export function generateClientCode(): string {
 const LIST_CLIENT_COLUMNS =
   "id,client_code,client_type,contract_type," +
   "first_name,second_name,third_name,last_name,full_name," +
-  "id_number,nationality,email,phone,notes,status,created_at";
+  "id_number,nationality,email,phone," +
+  "address,city,company_name,commercial_registry,tax_number," +
+  "notes,status,created_at";
 
 export async function listClients(): Promise<ClientRecord[]> {
   if (!supabase) return [];
