@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
-import { X, Save, Users as UsersIcon, Check, Search } from "lucide-react";
+import { X, Save, Users as UsersIcon, Check, Search, Info } from "lucide-react";
 import { Field, Input, Textarea } from "../ui/Field";
 import Select from "../ui/Select";
-import { addTask } from "../../lib/taskStore";
+import { addTask, type TaskStatus } from "../../lib/taskStore";
 import { useUsers } from "../../lib/userStore";
 
 const priorityOptions = [
@@ -10,6 +10,14 @@ const priorityOptions = [
   { value: "medium", label: "متوسطة" },
   { value: "high", label: "عالية" },
   { value: "urgent", label: "عاجلة" },
+];
+
+const statusOptions: { value: TaskStatus; label: string }[] = [
+  { value: "todo", label: "للقيام بها" },
+  { value: "doing", label: "قيد التنفيذ" },
+  { value: "review", label: "قيد المراجعة" },
+  { value: "done", label: "مكتملة" },
+  { value: "cancelled", label: "ملغاة" },
 ];
 
 type Props = {
@@ -20,6 +28,7 @@ export default function NewTaskModal({ onClose }: Props) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState("medium");
+  const [status, setStatus] = useState<TaskStatus>("todo");
   const [startDate, setStartDate] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [assignees, setAssignees] = useState<string[]>([]);
@@ -40,7 +49,7 @@ export default function NewTaskModal({ onClose }: Props) {
     const created = await addTask({
       title,
       description,
-      status: "todo",
+      status,
       priority,
       startDate: startDate || null,
       dueDate: dueDate || null,
@@ -90,13 +99,22 @@ export default function NewTaskModal({ onClose }: Props) {
               />
             </Field>
 
-            <Field label="الأولوية">
-              <Select
-                options={priorityOptions}
-                value={priority}
-                onChange={(e) => setPriority(e.target.value)}
-              />
-            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="حالة المهمة">
+                <Select
+                  options={statusOptions}
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value as TaskStatus)}
+                />
+              </Field>
+              <Field label="الأولوية">
+                <Select
+                  options={priorityOptions}
+                  value={priority}
+                  onChange={(e) => setPriority(e.target.value)}
+                />
+              </Field>
+            </div>
 
             <div className="grid grid-cols-2 gap-3">
               <Field label="تاريخ البداية">
@@ -120,6 +138,13 @@ export default function NewTaskModal({ onClose }: Props) {
             </div>
 
             <AssigneesPicker value={assignees} onChange={setAssignees} />
+
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-sky-50 border border-sky-200 text-xs text-sky-700 text-right">
+              <Info className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>
+                المرفقات والتعليقات تُضاف بعد إنشاء المهمة. اضغط على بطاقة المهمة في لوحة Kanban لفتح التفاصيل وإدارة المرفقات والتعليقات.
+              </span>
+            </div>
 
             {error && (
               <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-sm text-rose-700 text-right">
