@@ -194,57 +194,61 @@ export default function CaseDetail() {
 
   // Grouped + ordered for the redesigned "تفاصيل القضية" section.
   //   1) Identification → 2) Court → 3) Subject → 4) Dates
-  const caseGroups: {
+  type CaseTone = "sky" | "violet" | "amber" | "emerald";
+  type CaseGroup = {
     label: string;
     value: string;
     mono?: boolean;
     icon: typeof Hash;
-    tone: "sky" | "violet" | "amber" | "emerald";
-  }[] = [
-    {
-      label: "رقم القضية",
-      value: c.caseNumber,
-      mono: true,
-      icon: Hash,
-      tone: "sky",
-    },
-    {
-      label: "نوع القضية",
-      value: labelFor(caseTypes, c.caseType),
-      icon: FileText,
-      tone: "sky",
-    },
-    {
-      label: "نوع المحكمة",
-      value: labelFor(courtTypes, c.courtType),
-      icon: Scale,
-      tone: "violet",
-    },
-    {
-      label: "اسم الدائرة",
-      value: c.circuitName,
-      icon: Scale,
-      tone: "violet",
-    },
-    {
-      label: "نوع المطالبة",
-      value: c.claimSubject,
-      icon: Gavel,
-      tone: "amber",
-    },
-    {
-      label: "تاريخ القضية",
-      value: fmtDate(c.caseDate),
-      icon: Calendar,
-      tone: "emerald",
-    },
-    {
-      label: "تاريخ تكليف القضية",
-      value: fmtDate(c.assignmentDate),
-      icon: Calendar,
-      tone: "emerald",
-    },
-  ].filter((e) => e.value);
+    tone: CaseTone;
+  };
+  const caseGroups: CaseGroup[] = (
+    [
+      {
+        label: "رقم القضية",
+        value: c.caseNumber,
+        mono: true,
+        icon: Hash,
+        tone: "sky",
+      },
+      {
+        label: "نوع القضية",
+        value: labelFor(caseTypes, c.caseType),
+        icon: FileText,
+        tone: "sky",
+      },
+      {
+        label: "نوع المحكمة",
+        value: labelFor(courtTypes, c.courtType),
+        icon: Scale,
+        tone: "violet",
+      },
+      {
+        label: "اسم الدائرة",
+        value: c.circuitName,
+        icon: Scale,
+        tone: "violet",
+      },
+      {
+        label: "نوع المطالبة",
+        value: c.claimSubject,
+        icon: Gavel,
+        tone: "amber",
+      },
+      {
+        label: "تاريخ القضية",
+        value: fmtDate(c.caseDate),
+        icon: Calendar,
+        tone: "emerald",
+      },
+      {
+        label: "تاريخ تكليف القضية",
+        value: fmtDate(c.assignmentDate),
+        icon: Calendar,
+        tone: "emerald",
+      },
+    ] as CaseGroup[]
+  ).filter((e) => e.value);
 
   const adminEntries = [
     ["تاريخ البدء", fmtDate(c.startDate), false],
