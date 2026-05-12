@@ -526,7 +526,11 @@ export default function CaseDetail() {
                 {[...c.sessions]
                   .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))
                   .map((s) => (
-                    <SessionRow key={s.id} session={s} />
+                    <SessionRow
+                      key={s.id}
+                      session={s}
+                      onOpen={() => navigate(`/sessions/${c.id}/${s.id}`)}
+                    />
                   ))}
               </ul>
             )}
@@ -959,7 +963,13 @@ const sessionStatusStyles: Record<
   cancelled: { label: "ملغاة", cls: "bg-rose-100 text-rose-700" },
 };
 
-function SessionRow({ session: s }: { session: CaseSession }) {
+function SessionRow({
+  session: s,
+  onOpen,
+}: {
+  session: CaseSession;
+  onOpen: () => void;
+}) {
   const isOnline = s.mode === "online";
   const today = new Date().toISOString().slice(0, 10);
   const isPast = s.date && s.date < today;
@@ -996,7 +1006,10 @@ function SessionRow({ session: s }: { session: CaseSession }) {
     : "";
 
   return (
-    <li className={`card p-3 transition ${cardCls}`}>
+    <li
+      onClick={onOpen}
+      className={`card p-3 transition cursor-pointer hover:shadow-md ${cardCls}`}
+    >
       {/* Top row: date pill + badges */}
       <div className="flex items-start gap-2 mb-2.5">
         <div
