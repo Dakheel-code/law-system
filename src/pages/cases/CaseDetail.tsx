@@ -425,7 +425,7 @@ export default function CaseDetail() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* ===== Main column (2/3) ===== */}
         <div className="lg:col-span-2 space-y-5">
-          {/* Parties */}
+          {/* Parties — two-column table: plaintiffs vs defendants */}
           <Section
             title={`أطراف القضية (${parties.length})`}
             icon={UserX}
@@ -433,11 +433,7 @@ export default function CaseDetail() {
             {parties.length === 0 ? (
               <Empty text="لم يتم إضافة أي طرف" />
             ) : (
-              <ul className="divide-y divide-slate-100">
-                {parties.map((p, i) => (
-                  <PartyRow key={p.id || i} party={p} index={i} />
-                ))}
-              </ul>
+              <PartiesTable parties={parties} />
             )}
           </Section>
 
@@ -900,34 +896,111 @@ function CaseInfoCard({
   );
 }
 
-// Compact single-line party row. Click to toggle full details inline.
-function PartyRow({
+// Two-column parties table: plaintiffs on the right, defendants on the left.
+type PartyLike = {
+  id?: string;
+  name: string;
+  role: string;
+  idNumber?: string;
+  phone?: string;
+  address?: string;
+  lawyer?: string;
+  companyName?: string;
+  commercialRegistry?: string;
+  taxNumber?: string;
+};
+
+function PartiesTable({ parties }: { parties: PartyLike[] }) {
+  const plaintiffs = parties.filter((p) => p.role === "plaintiff");
+  const defendants = parties.filter((p) => p.role !== "plaintiff");
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {/* Plaintiffs column — right side in RTL because it comes first */}
+      <PartyColumn
+        title="المدّعي"
+        count={plaintiffs.length}
+        tone="emerald"
+        parties={plaintiffs}
+      />
+      {/* Defendants column */}
+      <PartyColumn
+        title="المدّعى عليه"
+        count={defendants.length}
+        tone="rose"
+        parties={defendants}
+      />
+    </div>
+  );
+}
+
+const partyToneStyles = {
+  emerald: {
+    head: "bg-emerald-50 text-emerald-800 border-emerald-200",
+    chip: "bg-emerald-100 text-emerald-700",
+    avatar: "bg-emerald-100 text-emerald-700",
+    border: "border-emerald-100",
+    hover: "hover:bg-emerald-50/40",
+  },
+  rose: {
+    head: "bg-rose-50 text-rose-800 border-rose-200",
+    chip: "bg-rose-100 text-rose-700",
+    avatar: "bg-rose-100 text-rose-700",
+    border: "border-rose-100",
+    hover: "hover:bg-rose-50/40",
+  },
+} as const;
+
+function PartyColumn({
+  title,
+  count,
+  tone,
+  parties,
+}: {
+  title: string;
+  count: number;
+  tone: "emerald" | "rose";
+  parties: PartyLike[];
+}) {
+  const t = partyToneStyles[tone];
+  return (
+    <div className={`rounded-xl border ${t.border} bg-white overflow-hidden`}>
+      <div
+        className={`flex items-center justify-between px-3 py-2 border-b ${t.head}`}
+      >
+        <span
+          className={`inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full text-[11px] font-extrabold ${t.chip}`}
+        >
+          {count}
+        </span>
+        <h4 className="text-sm font-extrabold">{title}</h4>
+      </div>
+      {parties.length === 0 ? (
+        <div className="text-center text-[11px] text-slate-400 py-4">
+          لا يوجد
+        </div>
+      ) : (
+        <ul className="divide-y divide-slate-100">
+          {parties.map((p, i) => (
+            <PartyCell key={p.id || i} party={p} index={i} tone={tone} />
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function PartyCell({
   party,
   index,
+  tone,
 }: {
-  party: {
-    id?: string;
-    name: string;
-    role: string;
-    idNumber?: string;
-    phone?: string;
-    address?: string;
-    lawyer?: string;
-    companyName?: string;
-    commercialRegistry?: string;
-    taxNumber?: string;
-  };
+  party: PartyLike;
   index: number;
+  tone: "emerald" | "rose";
 }) {
   const [open, setOpen] = useState(false);
-  const isPlaintiff = party.role === "plaintiff";
-  const roleLabel = isPlaintiff ? "مدّعي" : "مدّعى عليه";
-  const roleClass = isPlaintiff
-    ? "bg-emerald-100 text-emerald-700"
-    : "bg-rose-100 text-rose-700";
-  const avatarClass = isPlaintiff
-    ? "bg-emerald-100 text-emerald-700"
-    : "bg-rose-100 text-rose-700";
+  const t = partyToneStyles[tone];
 
   const initial =
     party.name?.trim()?.[0]?.toUpperCase() || String(index + 1);
@@ -953,12 +1026,12 @@ function PartyRow({
       <button
         type="button"
         onClick={() => hasDetails && setOpen((v) => !v)}
-        className={`w-full flex items-center gap-3 py-2 px-2 -mx-2 rounded-lg text-right transition ${
-          hasDetails ? "hover:bg-slate-50 cursor-pointer" : "cursor-default"
+        className={`w-full flex items-center gap-2.5 px-3 py-2 text-right transition ${
+          hasDetails ? `${t.hover} cursor-pointer` : "cursor-default"
         }`}
       >
         <div
-          className={`w-8 h-8 rounded-full ${avatarClass} flex items-center justify-center text-xs font-bold shrink-0`}
+          className={`w-7 h-7 rounded-full ${t.avatar} flex items-center justify-center text-xs font-bold shrink-0`}
         >
           {initial}
         </div>
@@ -976,11 +1049,6 @@ function PartyRow({
             </div>
           )}
         </div>
-        <span
-          className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold shrink-0 ${roleClass}`}
-        >
-          {roleLabel}
-        </span>
         {hasDetails && (
           <span className="text-[10px] text-slate-400 shrink-0">
             {open ? "▾" : "◂"}
@@ -989,8 +1057,10 @@ function PartyRow({
       </button>
 
       {hasDetails && open && (
-        <div className="mt-1 mb-2 mx-9 p-3 rounded-lg bg-slate-50/60 border border-slate-100">
-          <KV entries={entries} columns={2} />
+        <div className="px-3 pb-3">
+          <div className="p-2.5 rounded-lg bg-slate-50/70 border border-slate-100">
+            <KV entries={entries} />
+          </div>
         </div>
       )}
     </li>
