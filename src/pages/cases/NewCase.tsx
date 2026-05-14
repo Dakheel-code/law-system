@@ -7,7 +7,6 @@ import Step1Client from "../../components/cases/steps/Step1Client";
 import Step2Details from "../../components/cases/steps/Step2Details";
 import Step3Assignment from "../../components/cases/steps/Step3Assignment";
 import Step4Sessions from "../../components/cases/steps/Step4Sessions";
-import Step5Duration from "../../components/cases/steps/Step5Duration";
 import Step6Attachments from "../../components/cases/steps/Step6Attachments";
 import { initialCase, type CaseFormState } from "../../components/cases/caseFormTypes";
 import { addCase, getCase, updateCase } from "../../lib/caseStore";
@@ -17,7 +16,6 @@ const steps: Step[] = [
   { title: "تفاصيل القضية", description: "الأطراف وتصنيف القضية" },
   { title: "إسناد القضية", description: "تعيين المحامين" },
   { title: "الجلسات", description: "مواعيد ومكان الجلسات" },
-  { title: "المدة والإدارة", description: "الأولوية والمواعيد" },
   { title: "المرفقات والملاحظات", description: "إتمام الطلب" },
 ];
 
@@ -181,8 +179,7 @@ export default function NewCase() {
         {current === 1 && <Step2Details {...stepProps} />}
         {current === 2 && <Step3Assignment {...stepProps} />}
         {current === 3 && <Step4Sessions {...stepProps} />}
-        {current === 4 && <Step5Duration {...stepProps} />}
-        {current === 5 && <Step6Attachments {...stepProps} />}
+        {current === 4 && <Step6Attachments {...stepProps} />}
 
         <div className="border-t border-slate-100 pt-4">
           <StepNav
