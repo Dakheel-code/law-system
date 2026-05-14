@@ -6,9 +6,58 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "./supabase";
+import type { AttachmentRecord } from "./clientStore";
 
 export type LeaveType = "leave" | "permission" | "delegation";
 export type LeaveStatus = "pending" | "approved" | "rejected";
+
+/**
+ * Sub-categorization of a leave (when type='leave').
+ * Each category controls whether it deducts from the annual balance.
+ */
+export type LeaveCategory =
+  | "annual"        // اعتيادية — تُخصم من الرصيد
+  | "sick"          // مرضية — لا تُخصم
+  | "maternity"     // أمومة — لا تُخصم
+  | "paternity"     // أبوة — لا تُخصم
+  | "emergency"     // اضطرارية — تُخصم
+  | "marriage"      // زواج — لا تُخصم
+  | "bereavement"   // وفاة — لا تُخصم
+  | "unpaid";       // بدون راتب — لا تُخصم
+
+export const leaveCategoryLabels: Record<LeaveCategory, string> = {
+  annual: "اعتيادية",
+  sick: "مرضية",
+  maternity: "أمومة",
+  paternity: "أبوة",
+  emergency: "اضطرارية",
+  marriage: "زواج",
+  bereavement: "وفاة",
+  unpaid: "بدون راتب",
+};
+
+export const leaveCategoryClasses: Record<LeaveCategory, string> = {
+  annual: "bg-violet-100 text-violet-700",
+  sick: "bg-rose-100 text-rose-700",
+  maternity: "bg-pink-100 text-pink-700",
+  paternity: "bg-sky-100 text-sky-700",
+  emergency: "bg-amber-100 text-amber-700",
+  marriage: "bg-emerald-100 text-emerald-700",
+  bereavement: "bg-slate-200 text-slate-700",
+  unpaid: "bg-slate-100 text-slate-600",
+};
+
+/** Whether this category counts against the annual leave balance. */
+export const leaveCategoryConsumesBalance: Record<LeaveCategory, boolean> = {
+  annual: true,
+  sick: false,
+  maternity: false,
+  paternity: false,
+  emergency: true,
+  marriage: false,
+  bereavement: false,
+  unpaid: false,
+};
 
 export const leaveTypeLabels: Record<LeaveType, string> = {
   leave: "إجازة",
@@ -38,6 +87,8 @@ export type LeaveRequest = {
   id: string;
   userId: string;
   type: LeaveType;
+  /** Sub-category — meaningful only when type='leave'. Defaults to 'annual'. */
+  category: LeaveCategory;
   startDate: string;          // YYYY-MM-DD
   endDate: string;
   startTime: string | null;   // HH:MM (only for permission)
@@ -47,6 +98,11 @@ export type LeaveRequest = {
   reason: string;
   /** Destination — used only when type='delegation' (e.g. مكتب فرعي، محكمة، عميل) */
   destination: string;
+  /** Optional: links the delegation to a specific case (and optionally session). */
+  caseId: string | null;
+  sessionId: string | null;
+  /** Drive-backed attachments (medical reports, tickets, ...) */
+  attachments: AttachmentRecord[];
   status: LeaveStatus;
   approvedBy: string | null;
   approvedAt: string | null;
@@ -58,6 +114,7 @@ type LeaveRow = {
   id: string;
   user_id: string;
   type: string;
+  leave_category: string | null;
   start_date: string;
   end_date: string;
   start_time: string | null;
@@ -66,6 +123,9 @@ type LeaveRow = {
   hours: number | null;
   reason: string | null;
   destination: string | null;
+  case_id: string | null;
+  session_id: string | null;
+  attachments: AttachmentRecord[] | null;
   status: string;
   approved_by: string | null;
   approved_at: string | null;
@@ -77,6 +137,7 @@ const fromRow = (r: LeaveRow): LeaveRequest => ({
   id: r.id,
   userId: r.user_id,
   type: (r.type as LeaveType) ?? "leave",
+  category: (r.leave_category as LeaveCategory) ?? "annual",
   startDate: r.start_date,
   endDate: r.end_date,
   startTime: r.start_time,
@@ -85,6 +146,9 @@ const fromRow = (r: LeaveRow): LeaveRequest => ({
   hours: r.hours,
   reason: r.reason ?? "",
   destination: r.destination ?? "",
+  caseId: r.case_id,
+  sessionId: r.session_id,
+  attachments: Array.isArray(r.attachments) ? r.attachments : [],
   status: (r.status as LeaveStatus) ?? "pending",
   approvedBy: r.approved_by,
   approvedAt: r.approved_at,
@@ -98,6 +162,8 @@ const fromRow = (r: LeaveRow): LeaveRequest => ({
 
 export type LeaveInput = {
   type: LeaveType;
+  /** Used when type='leave'; defaults to 'annual'. */
+  category?: LeaveCategory;
   startDate: string;
   endDate: string;
   startTime?: string | null;
@@ -105,6 +171,9 @@ export type LeaveInput = {
   reason?: string;
   /** Used only when type='delegation'. */
   destination?: string;
+  /** Optional: link delegation to a case (and optionally a session). */
+  caseId?: string | null;
+  sessionId?: string | null;
 };
 
 /** Calculate inclusive days between two YYYY-MM-DD dates. */
@@ -146,6 +215,7 @@ export async function addLeaveRequest(
     .insert({
       user_id: userId,
       type: input.type,
+      leave_category: isLeave ? input.category ?? "annual" : null,
       start_date: input.startDate,
       end_date: isPermission ? input.startDate : input.endDate,
       start_time: isPermission ? input.startTime ?? null : null,
@@ -154,6 +224,8 @@ export async function addLeaveRequest(
       hours,
       reason: input.reason ?? "",
       destination: isDelegation ? input.destination ?? "" : "",
+      case_id: isDelegation ? input.caseId ?? null : null,
+      session_id: isDelegation ? input.sessionId ?? null : null,
       status: "pending",
     })
     .select()
@@ -216,6 +288,58 @@ export async function cancelLeaveRequest(id: string): Promise<boolean> {
     .delete()
     .eq("id", id)
     .eq("status", "pending");
+  return !error;
+}
+
+// ============================================================
+// Attachment helpers
+// ============================================================
+
+export async function addLeaveAttachments(
+  leaveId: string,
+  files: AttachmentRecord[]
+): Promise<boolean> {
+  if (!supabase || files.length === 0) return false;
+  const { data } = await supabase
+    .from("leave_requests")
+    .select("attachments")
+    .eq("id", leaveId)
+    .maybeSingle();
+  if (!data) return false;
+  const current = Array.isArray(
+    (data as { attachments: AttachmentRecord[] }).attachments
+  )
+    ? (data as { attachments: AttachmentRecord[] }).attachments
+    : [];
+  const next = [...current, ...files];
+  const { error } = await supabase
+    .from("leave_requests")
+    .update({ attachments: next })
+    .eq("id", leaveId);
+  return !error;
+}
+
+export async function removeLeaveAttachment(
+  leaveId: string,
+  index: number
+): Promise<boolean> {
+  if (!supabase) return false;
+  const { data } = await supabase
+    .from("leave_requests")
+    .select("attachments")
+    .eq("id", leaveId)
+    .maybeSingle();
+  if (!data) return false;
+  const list = Array.isArray(
+    (data as { attachments: AttachmentRecord[] }).attachments
+  )
+    ? (data as { attachments: AttachmentRecord[] }).attachments
+    : [];
+  const next = list.filter((_, i) => i !== index);
+  const { error } = await supabase
+    .from("leave_requests")
+    .update({ attachments: next })
+    .eq("id", leaveId);
   return !error;
 }
 
@@ -407,6 +531,8 @@ export function calcLeaveBalance(
   let pending = 0;
   requests.forEach((r) => {
     if (r.type !== "leave") return;
+    // Only categories flagged as consuming balance count towards it.
+    if (!leaveCategoryConsumesBalance[r.category]) return;
     const requestYear = new Date(r.startDate + "T00:00:00").getFullYear();
     if (requestYear !== year) return;
     const days = r.days ?? 0;

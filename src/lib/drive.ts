@@ -292,6 +292,13 @@ async function ensureTasksFolder(): Promise<string> {
 }
 
 const SESSIONS_FOLDER_NAME = "الجلسات";
+const LEAVES_FOLDER_NAME = "إجازات";
+
+/** Get-or-create the top-level "إجازات" folder. */
+async function ensureLeavesFolder(): Promise<string> {
+  const { rootId } = await ensureOfficeFolders();
+  return ensureFolder(LEAVES_FOLDER_NAME, rootId);
+}
 
 /**
  * Get or create the per-session folder nested as:
@@ -357,9 +364,9 @@ export async function uploadSessionFile(
   return uploadFile(folderId, file, onProgress);
 }
 
-/** Get or create the folder for a case/client/task. */
+/** Get or create the folder for a case/client/task/leave. */
 export async function ensureEntityFolder(
-  entityType: "case" | "client" | "task",
+  entityType: "case" | "client" | "task" | "leave",
   entityId: string,
   displayName: string
 ): Promise<string> {
@@ -386,6 +393,8 @@ export async function ensureEntityFolder(
     parentId = (await ensureOfficeFolders()).casesId;
   } else if (entityType === "client") {
     parentId = (await ensureOfficeFolders()).clientsId;
+  } else if (entityType === "leave") {
+    parentId = await ensureLeavesFolder();
   } else {
     parentId = await ensureTasksFolder();
   }
@@ -466,7 +475,7 @@ export async function uploadFile(
  * (auto-creating that folder under the office hierarchy if needed).
  */
 export async function uploadEntityFile(
-  entityType: "case" | "client" | "task",
+  entityType: "case" | "client" | "task" | "leave",
   entityId: string,
   entityDisplayName: string,
   file: File,

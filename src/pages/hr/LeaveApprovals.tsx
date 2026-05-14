@@ -15,6 +15,8 @@ import {
   User as UserIcon,
   Briefcase,
   MapPin,
+  ExternalLink,
+  Paperclip,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useCurrentStaff, useUsers } from "../../lib/userStore";
@@ -27,6 +29,8 @@ import {
   leaveTypeLabels,
   leaveStatusLabels,
   leaveStatusClasses,
+  leaveCategoryLabels,
+  leaveCategoryClasses,
   type LeaveRequest,
   type LeaveStatus,
 } from "../../lib/leaveStore";
@@ -195,6 +199,13 @@ export default function LeaveApprovalsPage() {
                       >
                         {leaveStatusLabels[r.status]}
                       </span>
+                      {r.type === "leave" && r.category !== "annual" && (
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold ${leaveCategoryClasses[r.category]}`}
+                        >
+                          {leaveCategoryLabels[r.category]}
+                        </span>
+                      )}
                       <span
                         className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold ${
                           r.type === "leave"
@@ -242,6 +253,34 @@ export default function LeaveApprovalsPage() {
                       <div className="flex items-center justify-end gap-1 text-[11px] text-amber-700 font-bold mt-1.5">
                         <span>{r.destination}</span>
                         <MapPin className="w-3 h-3" />
+                      </div>
+                    )}
+                    {r.attachments.length > 0 && (
+                      <div className="flex items-center justify-end gap-1.5 mt-1.5 flex-wrap">
+                        {r.attachments.map((a, idx) =>
+                          a.webViewLink ? (
+                            <a
+                              key={idx}
+                              href={a.webViewLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold"
+                              title={a.name}
+                            >
+                              <ExternalLink className="w-2.5 h-2.5" />
+                              {a.name.slice(0, 30)}
+                              {a.name.length > 30 ? "..." : ""}
+                            </a>
+                          ) : (
+                            <span
+                              key={idx}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-bold"
+                            >
+                              <Paperclip className="w-2.5 h-2.5" />
+                              {a.name.slice(0, 30)}
+                            </span>
+                          )
+                        )}
                       </div>
                     )}
 
