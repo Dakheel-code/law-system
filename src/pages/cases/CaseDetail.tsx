@@ -433,43 +433,11 @@ export default function CaseDetail() {
             {parties.length === 0 ? (
               <Empty text="لم يتم إضافة أي طرف" />
             ) : (
-              <div className="space-y-3">
-                {parties.map((p, i) => {
-                  const entries = [
-                    ["رقم الهوية", p.idNumber, true],
-                    ["رقم الجوال", p.phone, true],
-                    ["العنوان", p.address, false],
-                    ["محامي الخصم", p.lawyer ?? "", false],
-                    ["اسم الشركة / الجهة", p.companyName ?? "", false],
-                    ["السجل التجاري", p.commercialRegistry ?? "", true],
-                    ["الرقم الضريبي", p.taxNumber ?? "", true],
-                  ].filter(([, v]) => v) as [string, string, boolean][];
-                  const roleLabel =
-                    p.role === "plaintiff" ? "مدّعي" : "مدّعى عليه";
-                  const roleClass =
-                    p.role === "plaintiff"
-                      ? "bg-emerald-100 text-emerald-700"
-                      : "bg-rose-100 text-rose-700";
-                  return (
-                    <div
-                      key={p.id || i}
-                      className="rounded-xl border border-slate-200 bg-slate-50/40 p-4"
-                    >
-                      <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
-                        <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold ${roleClass}`}
-                        >
-                          {roleLabel}
-                        </span>
-                        <div className="text-sm font-bold text-slate-800">
-                          {p.name || `الطرف ${i + 1}`}
-                        </div>
-                      </div>
-                      {entries.length > 0 && <KV entries={entries} />}
-                    </div>
-                  );
-                })}
-              </div>
+              <ul className="divide-y divide-slate-100">
+                {parties.map((p, i) => (
+                  <PartyRow key={p.id || i} party={p} index={i} />
+                ))}
+              </ul>
             )}
           </Section>
 
@@ -929,6 +897,103 @@ function CaseInfoCard({
         </div>
       </div>
     </div>
+  );
+}
+
+// Compact single-line party row. Click to toggle full details inline.
+function PartyRow({
+  party,
+  index,
+}: {
+  party: {
+    id?: string;
+    name: string;
+    role: string;
+    idNumber?: string;
+    phone?: string;
+    address?: string;
+    lawyer?: string;
+    companyName?: string;
+    commercialRegistry?: string;
+    taxNumber?: string;
+  };
+  index: number;
+}) {
+  const [open, setOpen] = useState(false);
+  const isPlaintiff = party.role === "plaintiff";
+  const roleLabel = isPlaintiff ? "مدّعي" : "مدّعى عليه";
+  const roleClass = isPlaintiff
+    ? "bg-emerald-100 text-emerald-700"
+    : "bg-rose-100 text-rose-700";
+  const avatarClass = isPlaintiff
+    ? "bg-emerald-100 text-emerald-700"
+    : "bg-rose-100 text-rose-700";
+
+  const initial =
+    party.name?.trim()?.[0]?.toUpperCase() || String(index + 1);
+
+  const meta = [party.phone, party.idNumber, party.companyName]
+    .filter((s) => s && s.trim())
+    .join(" · ");
+
+  const entries = [
+    ["رقم الهوية", party.idNumber ?? "", true],
+    ["رقم الجوال", party.phone ?? "", true],
+    ["العنوان", party.address ?? "", false],
+    ["محامي الخصم", party.lawyer ?? "", false],
+    ["اسم الشركة / الجهة", party.companyName ?? "", false],
+    ["السجل التجاري", party.commercialRegistry ?? "", true],
+    ["الرقم الضريبي", party.taxNumber ?? "", true],
+  ].filter(([, v]) => v) as [string, string, boolean][];
+
+  const hasDetails = entries.length > 0;
+
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={() => hasDetails && setOpen((v) => !v)}
+        className={`w-full flex items-center gap-3 py-2 px-2 -mx-2 rounded-lg text-right transition ${
+          hasDetails ? "hover:bg-slate-50 cursor-pointer" : "cursor-default"
+        }`}
+      >
+        <div
+          className={`w-8 h-8 rounded-full ${avatarClass} flex items-center justify-center text-xs font-bold shrink-0`}
+        >
+          {initial}
+        </div>
+        <div className="flex-1 min-w-0 text-right">
+          <div className="text-sm font-bold text-slate-800 truncate">
+            {party.name || `الطرف ${index + 1}`}
+          </div>
+          {meta && (
+            <div
+              className="text-[10px] text-slate-500 mt-0.5 truncate font-mono"
+              dir="ltr"
+              title={meta}
+            >
+              {meta}
+            </div>
+          )}
+        </div>
+        <span
+          className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold shrink-0 ${roleClass}`}
+        >
+          {roleLabel}
+        </span>
+        {hasDetails && (
+          <span className="text-[10px] text-slate-400 shrink-0">
+            {open ? "▾" : "◂"}
+          </span>
+        )}
+      </button>
+
+      {hasDetails && open && (
+        <div className="mt-1 mb-2 mx-9 p-3 rounded-lg bg-slate-50/60 border border-slate-100">
+          <KV entries={entries} columns={2} />
+        </div>
+      )}
+    </li>
   );
 }
 
