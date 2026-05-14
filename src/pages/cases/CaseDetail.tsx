@@ -22,7 +22,6 @@ import {
   Link as LinkIcon,
   Phone,
   Mail,
-  TrendingUp,
   FileText,
   Calendar,
   LayoutGrid,
@@ -42,17 +41,11 @@ import DriveBrowser from "../../components/drive/DriveBrowser";
 import { getClient, type ClientRecord } from "../../lib/clientStore";
 import { useUsers, type UserRecord } from "../../lib/userStore";
 import { useOffice } from "../../lib/officeStore";
-import { priorities, urgencyLevels } from "../../config/caseConfig";
+import { urgencyLevels } from "../../config/caseConfig";
 
 const labelFor = (opts: { value: string; label: string }[], v: string) =>
   opts.find((o) => o.value === v)?.label || v || "—";
 
-const priorityChip: Record<string, string> = {
-  low: "bg-slate-100 text-slate-700",
-  medium: "bg-sky-50 text-sky-700",
-  high: "bg-amber-50 text-amber-700",
-  urgent: "bg-rose-50 text-rose-700",
-};
 const urgencyChip: Record<string, string> = {
   normal: "bg-slate-100 text-slate-600",
   medium: "bg-sky-50 text-sky-700",
@@ -268,19 +261,9 @@ export default function CaseDetail() {
   // "financial" tab — the legacy financialEntries grid was removed.
 
   // ---- Derived stats for the hero strip
-  const daysSinceCreated = Math.max(
-    1,
-    Math.floor(
-      (Date.now() - new Date(c.createdAt).getTime()) / (1000 * 60 * 60 * 24)
-    )
-  );
   const upcomingSessions = c.sessions.filter(
     (s) => s.date && s.date >= new Date().toISOString().slice(0, 10)
   ).length;
-  const totalFees =
-    (c.estimatedFees || 0) +
-    (c.consultationFees || 0) +
-    (c.expectedCourtFees || 0);
 
   const initials = client?.fullName
     ?.split(" ")
@@ -330,13 +313,6 @@ export default function CaseDetail() {
               }`}
             >
               {statusLabel[c.status] ?? c.status}
-            </span>
-            <span
-              className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold ${
-                priorityChip[c.priority] ?? priorityChip.medium
-              }`}
-            >
-              {labelFor(priorities, c.priority)}
             </span>
             {(c.urgency === "high" || c.urgency === "critical") && (
               <span
@@ -397,7 +373,7 @@ export default function CaseDetail() {
       </div>
 
       {/* ============= Quick Stats Strip ============= */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Stat
           icon={Gavel}
           label="الجلسات"
@@ -411,20 +387,6 @@ export default function CaseDetail() {
           value={String(enrichedAssignments.length)}
           sub={enrichedAssignments.length > 0 ? "نشط" : "غير مُسند"}
           tint="violet"
-        />
-        <Stat
-          icon={Clock}
-          label="مدة القضية"
-          value={String(daysSinceCreated)}
-          sub="يوم منذ الإنشاء"
-          tint="amber"
-        />
-        <Stat
-          icon={TrendingUp}
-          label="إجمالي الأتعاب"
-          value={totalFees > 0 ? totalFees.toLocaleString("en-US") : "—"}
-          sub={totalFees > 0 ? "ر.س" : "لم تُحدّد"}
-          tint="emerald"
         />
       </div>
 
