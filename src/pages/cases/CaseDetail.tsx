@@ -25,7 +25,9 @@ import {
   TrendingUp,
   FileText,
   Calendar,
+  LayoutGrid,
 } from "lucide-react";
+import FinancialPanel from "../../components/cases/FinancialPanel";
 import {
   getCase,
   deleteCase,
@@ -84,6 +86,14 @@ const fmtDate = (iso: string | null) =>
 
 const fmtMoney = (n: number) => (n > 0 ? n.toLocaleString("en-US") + " ر.س" : "");
 
+type TabKey =
+  | "overview"
+  | "sessions"
+  | "financial"
+  | "legal"
+  | "attachments"
+  | "notes";
+
 export default function CaseDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -95,6 +105,7 @@ export default function CaseDetail() {
   const [client, setClient] = useState<ClientRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabKey>("overview");
 
   const refresh = async () => {
     if (!id) return;
@@ -426,7 +437,30 @@ export default function CaseDetail() {
         />
       </div>
 
-      {/* ============= 2-column main layout ============= */}
+      {/* ============= Tabs nav ============= */}
+      <CaseTabs
+        active={activeTab}
+        onChange={setActiveTab}
+        sessionsCount={c.sessions.length}
+        paymentsCount={c.payments?.length ?? 0}
+        attachmentsCount={c.attachments?.length ?? 0}
+        hasLegal={Boolean(
+          c.lawsuitSubject ||
+            c.facts ||
+            c.claims ||
+            c.defenses ||
+            c.legalBasis ||
+            c.legalArticles ||
+            c.claimValue > 0 ||
+            c.riskLevel > 0 ||
+            c.caseSummary ||
+            c.legalStrategy
+        )}
+        hasNotes={Boolean(c.finalNotes)}
+      />
+
+      {/* ============= Tab content ============= */}
+      {activeTab !== "overview" ? null : (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* ===== Main column (2/3) ===== */}
         <div className="lg:col-span-2 space-y-5">
@@ -488,124 +522,9 @@ export default function CaseDetail() {
               </div>
             </Section>
           )}
-
-          {/* Legal narrative — only shown if any field is filled */}
-          {(c.lawsuitSubject ||
-            c.facts ||
-            c.claims ||
-            c.defenses ||
-            c.legalBasis ||
-            c.legalArticles ||
-            c.claimValue > 0 ||
-            c.riskLevel > 0 ||
-            c.caseSummary ||
-            c.legalStrategy) && (
-            <Section title="التفاصيل القانونية" icon={Scale}>
-              <div className="space-y-4">
-                {/* Numeric stats row */}
-                {(c.claimValue > 0 || c.riskLevel > 0) && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {c.claimValue > 0 && (
-                      <div className="rounded-xl border border-slate-200 bg-slate-50/40 p-3 flex items-center justify-between">
-                        <div className="text-base font-extrabold text-slate-800">
-                          <bdi dir="ltr">
-                            {c.claimValue.toLocaleString("en-US")} ر.س
-                          </bdi>
-                        </div>
-                        <div className="text-xs text-slate-500">
-                          قيمة المطالبة
-                        </div>
-                      </div>
-                    )}
-                    {c.riskLevel > 0 && (
-                      <div className="rounded-xl border border-slate-200 bg-slate-50/40 p-3">
-                        <div className="flex items-center justify-between mb-1.5">
-                          <span
-                            className={`text-base font-extrabold ${
-                              c.riskLevel >= 70
-                                ? "text-rose-600"
-                                : c.riskLevel >= 40
-                                ? "text-amber-600"
-                                : "text-emerald-600"
-                            }`}
-                          >
-                            {c.riskLevel}%
-                          </span>
-                          <div className="text-xs text-slate-500">
-                            نسبة الخطورة
-                          </div>
-                        </div>
-                        <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full rounded-full ${
-                              c.riskLevel >= 70
-                                ? "bg-rose-500"
-                                : c.riskLevel >= 40
-                                ? "bg-amber-500"
-                                : "bg-emerald-500"
-                            }`}
-                            style={{ width: `${c.riskLevel}%` }}
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Narrative blocks */}
-                <NarrativeBlock title="موضوع الدعوى" value={c.lawsuitSubject} />
-                <NarrativeBlock title="الوقائع" value={c.facts} />
-                <NarrativeBlock title="الطلبات" value={c.claims} />
-                <NarrativeBlock title="الدفوع" value={c.defenses} />
-                <NarrativeBlock title="السند النظامي" value={c.legalBasis} />
-                <NarrativeBlock title="المواد القانونية" value={c.legalArticles} />
-                <NarrativeBlock title="ملخص القضية" value={c.caseSummary} />
-                <NarrativeBlock
-                  title="الاستراتيجية القانونية"
-                  value={c.legalStrategy}
-                />
-              </div>
-            </Section>
-          )}
-
-          {/* Sessions */}
-          <Section
-            title={`الجلسات (${c.sessions.length})`}
-            icon={Gavel}
-          >
-            {c.sessions.length === 0 ? (
-              <Empty text="لا توجد جلسات مسجّلة" />
-            ) : (
-              <ul className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2.5">
-                {[...c.sessions]
-                  .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))
-                  .map((s) => (
-                    <SessionRow
-                      key={s.id}
-                      session={s}
-                      onOpen={() => navigate(`/sessions/${c.id}/${s.id}`)}
-                    />
-                  ))}
-              </ul>
-            )}
-          </Section>
-
-          {/* Attachments */}
-          <Section title="المرفقات" icon={Paperclip}>
-            <CaseAttachmentsBrowser caseData={c} />
-          </Section>
-
-          {/* Notes */}
-          {c.finalNotes && (
-            <Section title="الملاحظات النهائية" icon={StickyNote}>
-              <p className="text-sm text-slate-700 leading-7 text-right whitespace-pre-line">
-                {c.finalNotes}
-              </p>
-            </Section>
-          )}
         </div>
 
-        {/* ===== Sidebar (1/3) — sticky on desktop ===== */}
+        {/* ===== Overview Sidebar (1/3) ===== */}
         <div className="space-y-5 lg:sticky lg:top-24 self-start">
           {/* Client card */}
           <div className="card p-5">
@@ -625,10 +544,7 @@ export default function CaseDetail() {
               </h3>
             </div>
             {client ? (
-              <Link
-                to={`/clients/${client.id}`}
-                className="block group"
-              >
+              <Link to={`/clients/${client.id}`} className="block group">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="text-right flex-1 min-w-0">
                     <div className="text-sm font-bold text-slate-800 truncate group-hover:text-brand-700">
@@ -647,28 +563,13 @@ export default function CaseDetail() {
                 </div>
                 <div className="space-y-1.5 text-xs">
                   {client.idNumber && (
-                    <InfoRow
-                      icon={Hash}
-                      label="رقم الهوية"
-                      value={client.idNumber}
-                      mono
-                    />
+                    <InfoRow icon={Hash} label="رقم الهوية" value={client.idNumber} mono />
                   )}
                   {client.phone && (
-                    <InfoRow
-                      icon={Phone}
-                      label="الجوال"
-                      value={client.phone}
-                      mono
-                    />
+                    <InfoRow icon={Phone} label="الجوال" value={client.phone} mono />
                   )}
                   {client.email && (
-                    <InfoRow
-                      icon={Mail}
-                      label="البريد"
-                      value={client.email}
-                      ltr
-                    />
+                    <InfoRow icon={Mail} label="البريد" value={client.email} ltr />
                   )}
                 </div>
               </Link>
@@ -709,18 +610,184 @@ export default function CaseDetail() {
               <KV entries={adminEntries} />
             </div>
           )}
-
-          {/* Financial */}
-          {financialEntries.length > 0 && (
-            <div className="card p-5">
-              <h3 className="flex items-center justify-start gap-2 text-sm font-bold text-slate-800 mb-4 pb-3 border-b border-slate-100">
-                المالية
-                <Wallet className="w-4 h-4 text-brand-500" />
-              </h3>
-              <KV entries={financialEntries} />
-            </div>
-          )}
         </div>
+      </div>
+      )}
+
+      {activeTab === "sessions" && (
+        <Section title={`الجلسات (${c.sessions.length})`} icon={Gavel}>
+          {c.sessions.length === 0 ? (
+            <Empty text="لا توجد جلسات مسجّلة" />
+          ) : (
+            <ul className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2.5">
+              {[...c.sessions]
+                .sort((a, b) =>
+                  (a.date + a.time).localeCompare(b.date + b.time)
+                )
+                .map((s) => (
+                  <SessionRow
+                    key={s.id}
+                    session={s}
+                    onOpen={() => navigate(`/sessions/${c.id}/${s.id}`)}
+                  />
+                ))}
+            </ul>
+          )}
+        </Section>
+      )}
+
+      {activeTab === "financial" && (
+        <Section title="المالية" icon={Wallet}>
+          <FinancialPanel caseData={c} onChanged={refresh} />
+        </Section>
+      )}
+
+      {activeTab === "legal" && (
+        <Section title="التفاصيل القانونية" icon={Scale}>
+          <div className="space-y-4">
+            {/* Numeric stats row */}
+            {(c.claimValue > 0 || c.riskLevel > 0) && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {c.claimValue > 0 && (
+                  <div className="rounded-xl border border-slate-200 bg-slate-50/40 p-3 flex items-center justify-between">
+                    <div className="text-base font-extrabold text-slate-800">
+                      <bdi dir="ltr">
+                        {c.claimValue.toLocaleString("en-US")} ر.س
+                      </bdi>
+                    </div>
+                    <div className="text-xs text-slate-500">قيمة المطالبة</div>
+                  </div>
+                )}
+                {c.riskLevel > 0 && (
+                  <div className="rounded-xl border border-slate-200 bg-slate-50/40 p-3">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span
+                        className={`text-base font-extrabold ${
+                          c.riskLevel >= 70
+                            ? "text-rose-600"
+                            : c.riskLevel >= 40
+                            ? "text-amber-600"
+                            : "text-emerald-600"
+                        }`}
+                      >
+                        {c.riskLevel}%
+                      </span>
+                      <div className="text-xs text-slate-500">نسبة الخطورة</div>
+                    </div>
+                    <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full ${
+                          c.riskLevel >= 70
+                            ? "bg-rose-500"
+                            : c.riskLevel >= 40
+                            ? "bg-amber-500"
+                            : "bg-emerald-500"
+                        }`}
+                        style={{ width: `${c.riskLevel}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            <NarrativeBlock title="موضوع الدعوى" value={c.lawsuitSubject} />
+            <NarrativeBlock title="الوقائع" value={c.facts} />
+            <NarrativeBlock title="الطلبات" value={c.claims} />
+            <NarrativeBlock title="الدفوع" value={c.defenses} />
+            <NarrativeBlock title="السند النظامي" value={c.legalBasis} />
+            <NarrativeBlock title="المواد القانونية" value={c.legalArticles} />
+            <NarrativeBlock title="ملخص القضية" value={c.caseSummary} />
+            <NarrativeBlock
+              title="الاستراتيجية القانونية"
+              value={c.legalStrategy}
+            />
+          </div>
+        </Section>
+      )}
+
+      {activeTab === "attachments" && (
+        <Section title="المرفقات" icon={Paperclip}>
+          <CaseAttachmentsBrowser caseData={c} />
+        </Section>
+      )}
+
+      {activeTab === "notes" && (
+        <Section title="الملاحظات النهائية" icon={StickyNote}>
+          {c.finalNotes ? (
+            <p className="text-sm text-slate-700 leading-7 text-right whitespace-pre-line">
+              {c.finalNotes}
+            </p>
+          ) : (
+            <Empty text="لا توجد ملاحظات" />
+          )}
+        </Section>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+// Tabs nav
+// ============================================================
+
+function CaseTabs({
+  active,
+  onChange,
+  sessionsCount,
+  paymentsCount,
+  attachmentsCount,
+  hasLegal,
+  hasNotes,
+}: {
+  active: TabKey;
+  onChange: (t: TabKey) => void;
+  sessionsCount: number;
+  paymentsCount: number;
+  attachmentsCount: number;
+  hasLegal: boolean;
+  hasNotes: boolean;
+}) {
+  const tabs: { key: TabKey; label: string; icon: typeof Hash; count?: number; show?: boolean }[] =
+    [
+      { key: "overview", label: "نظرة عامة", icon: LayoutGrid },
+      { key: "sessions", label: "الجلسات", icon: Gavel, count: sessionsCount },
+      { key: "financial", label: "المالية", icon: Wallet, count: paymentsCount || undefined },
+      { key: "legal", label: "التفاصيل القانونية", icon: Scale, show: hasLegal },
+      { key: "attachments", label: "المرفقات", icon: Paperclip, count: attachmentsCount || undefined },
+      { key: "notes", label: "الملاحظات", icon: StickyNote, show: hasNotes },
+    ];
+  return (
+    <div className="card p-1.5 overflow-x-auto">
+      <div className="flex items-center justify-end gap-1 min-w-max">
+        {tabs
+          .filter((t) => t.show !== false)
+          .map((t) => {
+            const isActive = active === t.key;
+            const Icon = t.icon;
+            return (
+              <button
+                key={t.key}
+                onClick={() => onChange(t.key)}
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition whitespace-nowrap ${
+                  isActive
+                    ? "bg-brand-500 text-white shadow"
+                    : "text-slate-600 hover:bg-slate-50"
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                {t.label}
+                {t.count !== undefined && t.count > 0 && (
+                  <span
+                    className={`inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold ${
+                      isActive ? "bg-white/30" : "bg-slate-200 text-slate-700"
+                    }`}
+                  >
+                    {t.count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
       </div>
     </div>
   );

@@ -63,6 +63,21 @@ export type CaseSession = {
   attachments?: CaseAttachment[];
 };
 
+export type CasePayment = {
+  id: string;            // p-xxxxx-yyyy
+  amount: number;        // amount in SAR
+  date: string;          // YYYY-MM-DD
+  method: string;        // cash | bank-transfer | cheque | card | other
+  notes: string;
+  createdAt: string;     // ISO timestamp
+};
+
+export type CaseFees = {
+  estimatedFees: number;
+  consultationFees: number;
+  expectedCourtFees: number;
+};
+
 export type CaseRecord = {
   id: string;            // UUID
   code: string;          // CSE-XXXXX
@@ -104,6 +119,7 @@ export type CaseRecord = {
   paymentMethod: string;
   fees: unknown[];
   feesNotes: string;
+  payments: CasePayment[];
   startDate: string | null;
   expectedEndDate: string | null;
   assignedLawyer: string | null;
@@ -157,6 +173,7 @@ type CaseRow = {
   payment_method: string | null;
   fees: unknown[] | null;
   fees_notes: string | null;
+  payments: CasePayment[] | null;
   start_date: string | null;
   expected_end_date: string | null;
   assigned_lawyer: string | null;
@@ -210,6 +227,7 @@ const fromRow = (r: CaseRow): CaseRecord => ({
   paymentMethod: r.payment_method ?? "",
   fees: r.fees ?? [],
   feesNotes: r.fees_notes ?? "",
+  payments: Array.isArray(r.payments) ? r.payments : [],
   startDate: r.start_date,
   expectedEndDate: r.expected_end_date,
   assignedLawyer: r.assigned_lawyer,
@@ -298,7 +316,7 @@ const LIST_CASE_COLUMNS =
   "lawsuit_subject,facts,claims,defenses,legal_basis,legal_articles," +
   "claim_value,risk_level,case_summary,legal_strategy," +
   "estimated_fees,consultation_fees,expected_court_fees," +
-  "payment_status,payment_method,fees,fees_notes," +
+  "payment_status,payment_method,fees,fees_notes,payments," +
   "start_date,expected_end_date," +
   "assigned_lawyer,assigned_lawyers,assignments,sessions," +
   "linked_contract,final_notes,status,created_at";
@@ -538,6 +556,83 @@ export async function removeAttachmentFromSession(
     .update({ sessions: next })
     .eq("id", caseId);
   return !uerr;
+}
+
+// ============================================================
+// Financial helpers — fees + payments
+// ============================================================
+
+export async function updateCaseFees(
+  caseId: string,
+  patch: Partial<CaseFees> & { feesNotes?: string }
+): Promise<boolean> {
+  if (!supabase) return false;
+  const row: Record<string, unknown> = {};
+  if (patch.estimatedFees !== undefined)
+    row.estimated_fees = patch.estimatedFees;
+  if (patch.consultationFees !== undefined)
+    row.consultation_fees = patch.consultationFees;
+  if (patch.expectedCourtFees !== undefined)
+    row.expected_court_fees = patch.expectedCourtFees;
+  if (patch.feesNotes !== undefined) row.fees_notes = patch.feesNotes;
+  if (Object.keys(row).length === 0) return true;
+  const { error } = await supabase.from("cases").update(row).eq("id", caseId);
+  return !error;
+}
+
+export async function addCasePayment(
+  caseId: string,
+  payment: Omit<CasePayment, "id" | "createdAt">
+): Promise<boolean> {
+  if (!supabase) return false;
+  const { data } = await supabase
+    .from("cases")
+    .select("payments")
+    .eq("id", caseId)
+    .maybeSingle();
+  if (!data) return false;
+  const current = Array.isArray((data as { payments: CasePayment[] }).payments)
+    ? (data as { payments: CasePayment[] }).payments
+    : [];
+  const next: CasePayment[] = [
+    ...current,
+    {
+      ...payment,
+      id:
+        "p-" +
+        Math.random().toString(36).slice(2, 8) +
+        "-" +
+        Date.now().toString(36),
+      createdAt: new Date().toISOString(),
+    },
+  ];
+  const { error } = await supabase
+    .from("cases")
+    .update({ payments: next })
+    .eq("id", caseId);
+  return !error;
+}
+
+export async function removeCasePayment(
+  caseId: string,
+  paymentId: string
+): Promise<boolean> {
+  if (!supabase) return false;
+  const { data } = await supabase
+    .from("cases")
+    .select("payments")
+    .eq("id", caseId)
+    .maybeSingle();
+  if (!data) return false;
+  const list = Array.isArray((data as { payments: CasePayment[] }).payments)
+    ? (data as { payments: CasePayment[] }).payments
+    : [];
+  const next = list.filter((p) => p.id !== paymentId);
+  const { error } = await supabase
+    .from("cases")
+    .update({ payments: next })
+    .eq("id", caseId);
+  return !error;
 }
 
 export async function removeSession(
