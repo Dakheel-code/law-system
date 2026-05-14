@@ -14,6 +14,7 @@ import {
   Paperclip,
   MapPin,
   CalendarOff,
+  Fingerprint,
   type LucideIcon,
 } from "lucide-react";
 
@@ -61,6 +62,7 @@ export const menu: MenuGroup[] = [
   {
     title: "الموارد البشرية",
     items: [
+      { label: "حضوري", icon: Fingerprint, to: "/hr/attendance" },
       { label: "مواقع المكاتب", icon: MapPin, to: "/hr/locations" },
       { label: "الإجازات الرسمية", icon: CalendarOff, to: "/hr/holidays" },
     ],
