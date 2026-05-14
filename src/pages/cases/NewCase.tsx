@@ -14,7 +14,7 @@ import { addCase, getCase, updateCase } from "../../lib/caseStore";
 
 const steps: Step[] = [
   { title: "معلومات العميل", description: "بيانات صاحب الطلب" },
-  { title: "تفاصيل الطلب", description: "الأطراف ونوع القضية" },
+  { title: "تفاصيل القضية", description: "الأطراف وتصنيف القضية" },
   { title: "إسناد القضية", description: "تعيين المحامين" },
   { title: "الجلسات", description: "مواعيد ومكان الجلسات" },
   { title: "المدة والإدارة", description: "الأولوية والمواعيد" },

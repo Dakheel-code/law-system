@@ -104,8 +104,8 @@ export default function Step2Details({ data, update }: Props) {
   return (
     <div className="space-y-6">
       <StepHeader
-        title="تفاصيل الطلب وأطراف القضية"
-        subtitle="معلومات أطراف القضية ونوع القضية"
+        title="تفاصيل القضية وأطرافها"
+        subtitle="معلومات أطراف القضية وتصنيفها"
       />
 
       <div className="border-t border-dashed border-slate-200 pt-5">
