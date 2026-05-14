@@ -37,7 +37,7 @@ const statusMeta: Record<
   }
 > = {
   todo: {
-    label: "للقيام بها",
+    label: "جديد",
     tone: "bg-slate-100 text-slate-700",
     accent: "bg-slate-300",
     icon: Circle,

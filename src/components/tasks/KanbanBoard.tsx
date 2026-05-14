@@ -25,7 +25,7 @@ import {
 import TaskDetailModal from "./TaskDetailModal";
 
 const columns: { key: TaskStatus; title: string; color: string; ringColor: string }[] = [
-  { key: "todo", title: "للقيام بها", color: "bg-slate-300 text-slate-700", ringColor: "ring-slate-400" },
+  { key: "todo", title: "جديد", color: "bg-slate-300 text-slate-700", ringColor: "ring-slate-400" },
   { key: "doing", title: "قيد التنفيذ", color: "bg-sky-500 text-white", ringColor: "ring-sky-400" },
   { key: "review", title: "قيد المراجعة", color: "bg-amber-400 text-white", ringColor: "ring-amber-400" },
   { key: "done", title: "مكتملة", color: "bg-emerald-500 text-white", ringColor: "ring-emerald-400" },

@@ -19,7 +19,7 @@ const sortOptions = [
 
 const statusOptions = [
   { value: "all", label: "كل الحالات" },
-  { value: "todo", label: "للقيام بها" },
+  { value: "todo", label: "جديد" },
   { value: "doing", label: "قيد التنفيذ" },
   { value: "review", label: "قيد المراجعة" },
   { value: "done", label: "مكتملة" },

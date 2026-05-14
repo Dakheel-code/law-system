@@ -22,7 +22,7 @@ const priorityOptions = [
 ];
 
 const statusOptions: { value: TaskStatus; label: string }[] = [
-  { value: "todo", label: "للقيام بها" },
+  { value: "todo", label: "جديد" },
   { value: "doing", label: "قيد التنفيذ" },
   { value: "review", label: "قيد المراجعة" },
   { value: "done", label: "مكتملة" },
