@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { Field, Input, Textarea } from "../ui/Field";
 import Select from "../ui/Select";
-import { addTask, type TaskStatus } from "../../lib/taskStore";
+import { addTask } from "../../lib/taskStore";
 import { useUsers } from "../../lib/userStore";
 import { useCases, type CaseRecord } from "../../lib/caseStore";
 
@@ -19,14 +19,6 @@ const priorityOptions = [
   { value: "medium", label: "متوسطة" },
   { value: "high", label: "عالية" },
   { value: "urgent", label: "عاجلة" },
-];
-
-const statusOptions: { value: TaskStatus; label: string }[] = [
-  { value: "todo", label: "جديد" },
-  { value: "doing", label: "قيد التنفيذ" },
-  { value: "review", label: "قيد المراجعة" },
-  { value: "done", label: "مكتملة" },
-  { value: "cancelled", label: "ملغاة" },
 ];
 
 type Props = {
@@ -41,7 +33,6 @@ export default function NewTaskModal({ onClose, initialCaseId, initialClientId }
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState("medium");
-  const [status, setStatus] = useState<TaskStatus>("todo");
   const [startDate, setStartDate] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [assignees, setAssignees] = useState<string[]>([]);
@@ -62,10 +53,10 @@ export default function NewTaskModal({ onClose, initialCaseId, initialClientId }
       return;
     }
     setSaving(true);
+    // New tasks always start in "جديد" status (the default in addTask).
     const created = await addTask({
       title,
       description,
-      status,
       priority,
       startDate: startDate || null,
       dueDate: dueDate || null,
@@ -117,22 +108,13 @@ export default function NewTaskModal({ onClose, initialCaseId, initialClientId }
               />
             </Field>
 
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="حالة المهمة">
-                <Select
-                  options={statusOptions}
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value as TaskStatus)}
-                />
-              </Field>
-              <Field label="الأولوية">
-                <Select
-                  options={priorityOptions}
-                  value={priority}
-                  onChange={(e) => setPriority(e.target.value)}
-                />
-              </Field>
-            </div>
+            <Field label="الأولوية">
+              <Select
+                options={priorityOptions}
+                value={priority}
+                onChange={(e) => setPriority(e.target.value)}
+              />
+            </Field>
 
             <div className="grid grid-cols-2 gap-3">
               <Field label="تاريخ البداية">
