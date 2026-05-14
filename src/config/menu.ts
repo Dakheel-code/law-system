@@ -12,6 +12,7 @@ import {
   Palette,
   Gavel,
   Paperclip,
+  MapPin,
   type LucideIcon,
 } from "lucide-react";
 
@@ -54,6 +55,12 @@ export const menu: MenuGroup[] = [
       { label: "الجلسات", icon: Gavel, to: "/sessions" },
       { label: "المرفقات", icon: Paperclip, to: "/attachments" },
       { label: "التعاقدات", icon: FileText, to: "/contracts" },
+    ],
+  },
+  {
+    title: "الموارد البشرية",
+    items: [
+      { label: "مواقع المكاتب", icon: MapPin, to: "/hr/locations" },
     ],
   },
   {
