@@ -18,6 +18,8 @@ export type CalendarEvent = {
   date: string; // YYYY-MM-DD
   color: string; // tailwind bg-class root (without -500 suffix), e.g. "violet"
   meta?: string;
+  /** Optional list of user IDs (used for task assignees). */
+  assigneeIds?: string[];
 };
 
 const colorMap: Record<CalendarEventType, string> = {
@@ -59,6 +61,7 @@ export function useCalendarEvents() {
         date: t.dueDate,
         color: colorMap.task,
         meta: t.priority,
+        assigneeIds: Array.isArray(t.assignees) ? t.assignees : [],
       });
     });
 

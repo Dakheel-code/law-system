@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import {
   Calendar,
   Briefcase,
@@ -5,12 +6,14 @@ import {
   FileText,
   CheckCircle2,
   X,
+  Users as UsersIcon,
 } from "lucide-react";
 import {
   eventTypeLabel,
   useCalendarEvents,
   type CalendarEventType,
 } from "../../lib/calendarEvents";
+import { useUsers, type UserRecord } from "../../lib/userStore";
 
 const iconMap: Record<CalendarEventType, React.ComponentType<{ className?: string }>> = {
   task: ListTodo,
@@ -56,6 +59,11 @@ type Props = {
 
 export default function SelectedDayEvents({ date, onClose }: Props) {
   const { byDate } = useCalendarEvents();
+  const { users } = useUsers();
+  const userById = useMemo(
+    () => new Map(users.map((u) => [u.id, u])),
+    [users]
+  );
 
   if (!date) {
     return (
@@ -103,6 +111,9 @@ export default function SelectedDayEvents({ date, onClose }: Props) {
         <ul className="space-y-2">
           {events.map((e) => {
             const Icon = iconMap[e.type];
+            const assignees = (e.assigneeIds ?? [])
+              .map((id) => userById.get(id))
+              .filter((u): u is UserRecord => !!u);
             return (
               <li
                 key={e.id}
@@ -116,6 +127,52 @@ export default function SelectedDayEvents({ date, onClose }: Props) {
                     {eventTypeLabel(e.type)}
                     {e.meta ? <span className="font-mono ml-1" dir="ltr">· {e.meta}</span> : null}
                   </div>
+                  {assignees.length > 0 && (
+                    <div className="flex items-center justify-end gap-1.5 mt-1.5 flex-wrap">
+                      <UsersIcon className="w-3 h-3 text-slate-400" />
+                      <div
+                        className="flex items-center -space-x-1.5 -space-x-reverse"
+                        dir="ltr"
+                      >
+                        {assignees.slice(0, 3).map((u) => (
+                          <span
+                            key={u.id}
+                            title={u.fullName || u.code}
+                            className="w-5 h-5 rounded-full ring-2 ring-white overflow-hidden shrink-0"
+                          >
+                            {u.avatarDataUrl ? (
+                              <img
+                                src={u.avatarDataUrl}
+                                alt={u.fullName}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <span className="w-full h-full bg-brand-100 text-brand-700 text-[9px] font-bold flex items-center justify-center">
+                                {(
+                                  u.firstName?.[0] ||
+                                  u.fullName?.[0] ||
+                                  "؟"
+                                ).toUpperCase()}
+                              </span>
+                            )}
+                          </span>
+                        ))}
+                        {assignees.length > 3 && (
+                          <span className="w-5 h-5 rounded-full ring-2 ring-white bg-slate-200 text-slate-600 text-[9px] font-bold flex items-center justify-center shrink-0">
+                            +{assignees.length - 3}
+                          </span>
+                        )}
+                      </div>
+                      <span
+                        className="text-[10px] text-slate-600 font-bold truncate"
+                        title={assignees.map((u) => u.fullName).join("، ")}
+                      >
+                        {assignees.length === 1
+                          ? assignees[0].fullName || assignees[0].code
+                          : `${assignees.length} مكلَّفون`}
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <div
                   className={`w-9 h-9 rounded-lg ${colorMap[e.color] ?? colorMap.violet} flex items-center justify-center shrink-0`}
