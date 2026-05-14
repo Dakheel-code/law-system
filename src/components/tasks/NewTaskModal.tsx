@@ -1,9 +1,18 @@
 import { useMemo, useState } from "react";
-import { X, Save, Users as UsersIcon, Check, Search, Info } from "lucide-react";
+import {
+  X,
+  Save,
+  Users as UsersIcon,
+  Check,
+  Search,
+  Info,
+  Briefcase,
+} from "lucide-react";
 import { Field, Input, Textarea } from "../ui/Field";
 import Select from "../ui/Select";
 import { addTask, type TaskStatus } from "../../lib/taskStore";
 import { useUsers } from "../../lib/userStore";
+import { useCases, type CaseRecord } from "../../lib/caseStore";
 
 const priorityOptions = [
   { value: "low", label: "منخفضة" },
@@ -36,6 +45,9 @@ export default function NewTaskModal({ onClose, initialCaseId, initialClientId }
   const [startDate, setStartDate] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [assignees, setAssignees] = useState<string[]>([]);
+  const [caseId, setCaseId] = useState<string>(initialCaseId ?? "");
+  const [clientId, setClientId] = useState<string | null>(initialClientId ?? null);
+  const caseLocked = Boolean(initialCaseId);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -58,8 +70,8 @@ export default function NewTaskModal({ onClose, initialCaseId, initialClientId }
       startDate: startDate || null,
       dueDate: dueDate || null,
       assignees,
-      caseId: initialCaseId ?? null,
-      clientId: initialClientId ?? null,
+      caseId: caseId || null,
+      clientId: clientId ?? null,
     });
     setSaving(false);
     if (created) onClose();
@@ -142,6 +154,15 @@ export default function NewTaskModal({ onClose, initialCaseId, initialClientId }
                 />
               </Field>
             </div>
+
+            <CasePicker
+              value={caseId}
+              onChange={(id, clId) => {
+                setCaseId(id);
+                if (clId !== undefined) setClientId(clId);
+              }}
+              locked={caseLocked}
+            />
 
             <AssigneesPicker value={assignees} onChange={setAssignees} />
 
@@ -337,6 +358,162 @@ function AssigneesPicker({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ============================================================
+// Case picker — searchable selector for linking a task to a case
+// ============================================================
+
+function CasePicker({
+  value,
+  onChange,
+  locked,
+}: {
+  value: string;
+  /**
+   * onChange receives the case id, and OPTIONALLY the clientId that should
+   * be auto-attached (when picking a case). Pass `clientId === undefined`
+   * to leave clientId untouched.
+   */
+  onChange: (caseId: string, clientId?: string | null) => void;
+  locked: boolean;
+}) {
+  const { cases } = useCases();
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+
+  const selectedCase = useMemo(
+    () => cases.find((c) => c.id === value) ?? null,
+    [cases, value]
+  );
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const list = !q
+      ? cases.slice(0, 12)
+      : cases.filter(
+          (c) =>
+            c.code.toLowerCase().includes(q) ||
+            (c.caseNumber ?? "").toLowerCase().includes(q) ||
+            (c.requestTitle ?? "").toLowerCase().includes(q) ||
+            (c.description ?? "").toLowerCase().includes(q)
+        );
+    return list.slice(0, 12);
+  }, [cases, search]);
+
+  return (
+    <div>
+      <label className="block text-xs font-bold text-slate-500 mb-1.5 text-right">
+        ربط بقضية (اختياري)
+      </label>
+
+      {selectedCase && !open ? (
+        <SelectedCaseChip
+          caseItem={selectedCase}
+          locked={locked}
+          onClear={() => {
+            onChange("", null);
+            setOpen(true);
+          }}
+        />
+      ) : (
+        <div className="space-y-2">
+          {value && (
+            // The selected id no longer points to a known case (e.g. cases
+            // still loading). Show a subtle hint plus a clear button.
+            <div className="text-[11px] text-slate-400 text-right">
+              جارٍ تحميل القضية المختارة...
+            </div>
+          )}
+          <div className="relative">
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="ابحث بكود/رقم/عنوان القضية..."
+              className="w-full pr-9 pl-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-200"
+            />
+          </div>
+          <div className="max-h-48 overflow-y-auto rounded-lg border border-slate-200">
+            {filtered.length === 0 ? (
+              <div className="text-center text-xs text-slate-400 py-6">
+                {cases.length === 0
+                  ? "لا توجد قضايا بعد"
+                  : "لا توجد قضايا مطابقة"}
+              </div>
+            ) : (
+              filtered.map((c) => (
+                <button
+                  type="button"
+                  key={c.id}
+                  onClick={() => {
+                    onChange(c.id, c.clientId);
+                    setOpen(false);
+                    setSearch("");
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-right hover:bg-brand-50/40 border-b border-slate-100 last:border-b-0 transition"
+                >
+                  <Briefcase className="w-4 h-4 text-brand-500 shrink-0" />
+                  <div className="flex-1 min-w-0 text-right">
+                    <div className="text-sm font-bold text-slate-700 truncate">
+                      {c.requestTitle || c.code}
+                    </div>
+                    <div
+                      className="text-[10px] text-slate-500 font-mono mt-0.5"
+                      dir="ltr"
+                    >
+                      {c.caseNumber
+                        ? `${c.caseNumber} · ${c.code}`
+                        : c.code}
+                    </div>
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SelectedCaseChip({
+  caseItem,
+  locked,
+  onClear,
+}: {
+  caseItem: CaseRecord;
+  locked: boolean;
+  onClear: () => void;
+}) {
+  return (
+    <div className="flex items-center gap-3 p-3 rounded-lg bg-emerald-50 border border-emerald-200">
+      {!locked && (
+        <button
+          type="button"
+          onClick={onClear}
+          className="p-1 rounded-md hover:bg-emerald-100 text-emerald-700"
+          title="إزالة الربط"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      )}
+      <div className="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+        <Briefcase className="w-4 h-4" />
+      </div>
+      <div className="flex-1 min-w-0 text-right">
+        <div className="text-sm font-bold text-emerald-800 flex items-center justify-start gap-1.5">
+          <Check className="w-3.5 h-3.5" />
+          {caseItem.requestTitle || caseItem.code}
+        </div>
+        <div className="text-[11px] text-emerald-700/80 mt-0.5 font-mono" dir="ltr">
+          {caseItem.caseNumber
+            ? `${caseItem.caseNumber} · ${caseItem.code}`
+            : caseItem.code}
+        </div>
+      </div>
     </div>
   );
 }
