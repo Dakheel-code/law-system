@@ -29,23 +29,41 @@ import TaskDetailModal from "../tasks/TaskDetailModal";
 
 const statusMeta: Record<
   TaskStatus,
-  { label: string; tone: string; icon: typeof Circle }
+  {
+    label: string;
+    tone: string;       // chip background + text
+    accent: string;     // left edge bar color
+    icon: typeof Circle;
+  }
 > = {
-  todo: { label: "للقيام بها", tone: "bg-slate-100 text-slate-700", icon: Circle },
-  doing: { label: "قيد التنفيذ", tone: "bg-sky-100 text-sky-700", icon: Clock },
+  todo: {
+    label: "للقيام بها",
+    tone: "bg-slate-100 text-slate-700",
+    accent: "bg-slate-300",
+    icon: Circle,
+  },
+  doing: {
+    label: "قيد التنفيذ",
+    tone: "bg-sky-100 text-sky-700",
+    accent: "bg-sky-500",
+    icon: Clock,
+  },
   review: {
     label: "قيد المراجعة",
     tone: "bg-amber-100 text-amber-700",
+    accent: "bg-amber-500",
     icon: AlertOctagon,
   },
   done: {
     label: "مكتملة",
     tone: "bg-emerald-100 text-emerald-700",
+    accent: "bg-emerald-500",
     icon: CheckCircle2,
   },
   cancelled: {
     label: "ملغاة",
     tone: "bg-slate-200 text-slate-600",
+    accent: "bg-slate-400",
     icon: XCircle,
   },
 };
@@ -235,106 +253,147 @@ function TaskCard({
   const StatusIcon = sm.icon;
   const attachmentsCount = task.attachments?.length ?? 0;
   const commentsCount = task.comments?.length ?? 0;
+  const isDone = task.status === "done";
 
   return (
     <li
       onClick={onOpen}
-      className={`bg-white rounded-xl border p-3 shadow-sm transition cursor-pointer hover:shadow-md select-none ${
+      className={`relative overflow-hidden bg-white rounded-xl border shadow-sm transition cursor-pointer hover:shadow-md select-none flex flex-col ${
         overdue
           ? "border-rose-300 ring-1 ring-rose-100"
+          : isDone
+          ? "border-emerald-200"
           : "border-slate-200 hover:border-brand-300"
       }`}
     >
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <span
-          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold ${sm.tone}`}
-        >
-          <StatusIcon className="w-3 h-3" />
-          {sm.label}
-        </span>
-        <h4 className="flex-1 text-sm font-bold text-slate-800 text-right line-clamp-2">
-          {task.title}
-        </h4>
-      </div>
+      {/* Status accent bar on the right edge (RTL = leading) */}
+      <span
+        aria-hidden
+        className={`absolute top-0 right-0 bottom-0 w-1.5 ${
+          overdue ? "bg-rose-500" : sm.accent
+        }`}
+      />
 
-      {task.description && (
-        <p className="text-xs text-slate-500 leading-5 line-clamp-2 text-right mb-2">
-          {task.description}
-        </p>
-      )}
-
-      {overdue && (
-        <div className="inline-flex items-center gap-1 px-2 py-0.5 mb-2 rounded-md bg-rose-50 text-rose-600 text-[10px] font-bold border border-rose-200">
-          <Flame className="w-3 h-3" />
-          متأخرة
+      <div className="p-3.5 pr-4 flex-1 flex flex-col">
+        {/* Header: status chip + code */}
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <span
+            className="text-[9px] font-mono text-slate-400 tracking-tight"
+            dir="ltr"
+          >
+            {task.code}
+          </span>
+          <span
+            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold ${sm.tone}`}
+          >
+            <StatusIcon className="w-3 h-3" />
+            {sm.label}
+          </span>
         </div>
-      )}
 
-      <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-        <div className="flex items-center gap-1.5">
-          {(attachmentsCount > 0 || commentsCount > 0) && (
-            <span className="inline-flex items-center gap-2 text-[10px] text-slate-500">
-              {commentsCount > 0 && (
-                <span className="inline-flex items-center gap-0.5">
-                  {commentsCount}
-                  <MessageSquare className="w-3 h-3" />
-                </span>
-              )}
-              {attachmentsCount > 0 && (
-                <span className="inline-flex items-center gap-0.5">
-                  {attachmentsCount}
-                  <Paperclip className="w-3 h-3" />
-                </span>
-              )}
-            </span>
-          )}
-          {due && (
-            <span
-              className={`inline-flex items-center gap-1 text-[11px] ${
-                overdue ? "text-rose-600 font-bold" : "text-slate-500"
-              }`}
-            >
-              {due}
-              <Calendar className="w-3 h-3" />
-            </span>
-          )}
-        </div>
-        <span
-          className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded font-bold ${
-            priorityChip[task.priority] ?? priorityChip.medium
+        {/* Title */}
+        <h4
+          className={`text-sm font-extrabold text-right leading-6 line-clamp-2 mb-1 ${
+            isDone
+              ? "text-slate-500 line-through decoration-emerald-400"
+              : "text-slate-800"
           }`}
         >
-          {task.priority === "urgent" && <AlertOctagon className="w-3 h-3" />}
-          {priorityLabel[task.priority] ?? task.priority}
-        </span>
+          {task.title}
+        </h4>
+
+        {/* Description */}
+        {task.description && (
+          <p className="text-xs text-slate-500 leading-5 line-clamp-2 text-right mb-2.5">
+            {task.description}
+          </p>
+        )}
+
+        {/* Overdue banner */}
+        {overdue && (
+          <div className="inline-flex items-center gap-1 self-start px-2 py-0.5 mb-2.5 rounded-md bg-rose-50 text-rose-600 text-[10px] font-bold border border-rose-200">
+            <Flame className="w-3 h-3" />
+            متأخرة
+          </div>
+        )}
+
+        {/* Pills row — date + priority + counts */}
+        <div className="flex items-center justify-end gap-1.5 flex-wrap mt-auto">
+          {due && (
+            <span
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                overdue
+                  ? "bg-rose-50 text-rose-700 border border-rose-200"
+                  : "bg-sky-50 text-sky-700 border border-sky-100"
+              }`}
+            >
+              <Calendar className="w-3 h-3" />
+              {due}
+            </span>
+          )}
+          <span
+            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold border ${
+              priorityChip[task.priority] ?? priorityChip.medium
+            } ${
+              task.priority === "urgent" ? "border-rose-200" : "border-transparent"
+            }`}
+          >
+            {task.priority === "urgent" && <AlertOctagon className="w-3 h-3" />}
+            {priorityLabel[task.priority] ?? task.priority}
+          </span>
+          {commentsCount > 0 && (
+            <span
+              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-violet-50 text-violet-700 border border-violet-100 text-[10px] font-bold"
+              title={`${commentsCount} تعليق`}
+            >
+              <MessageSquare className="w-3 h-3" />
+              {commentsCount}
+            </span>
+          )}
+          {attachmentsCount > 0 && (
+            <span
+              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-100 text-[10px] font-bold"
+              title={`${attachmentsCount} مرفق`}
+            >
+              <Paperclip className="w-3 h-3" />
+              {attachmentsCount}
+            </span>
+          )}
+        </div>
       </div>
 
+      {/* Footer with assignees */}
       {assignees.length > 0 && (
-        <div className="flex items-center -space-x-1.5 -space-x-reverse mt-2" dir="ltr">
-          {assignees.slice(0, 3).map((u) => (
-            <span
-              key={u.id}
-              title={u.fullName || u.code}
-              className="w-6 h-6 rounded-full ring-2 ring-white overflow-hidden shrink-0"
-            >
-              {u.avatarDataUrl ? (
-                <img
-                  src={u.avatarDataUrl}
-                  alt={u.fullName}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <span className="w-full h-full bg-brand-100 text-brand-700 text-[10px] font-bold flex items-center justify-center">
-                  {(u.firstName?.[0] || u.fullName?.[0] || "؟").toUpperCase()}
-                </span>
+        <div className="flex items-center justify-between gap-2 px-3.5 py-2 border-t border-slate-100 bg-slate-50/60">
+          <span className="text-[10px] text-slate-500 font-bold">
+            {assignees.length === 1 ? "المكلَّف" : `المكلَّفون (${assignees.length})`}
+          </span>
+          <div className="flex items-center -space-x-1.5 -space-x-reverse" dir="ltr">
+            {assignees.slice(0, 4).map((u) => (
+              <span
+                key={u.id}
+                title={u.fullName || u.code}
+                className="w-7 h-7 rounded-full ring-2 ring-white overflow-hidden shrink-0"
+              >
+                {u.avatarDataUrl ? (
+                  <img
+                    src={u.avatarDataUrl}
+                    alt={u.fullName}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="w-full h-full bg-brand-100 text-brand-700 text-[10px] font-bold flex items-center justify-center">
+                    {(u.firstName?.[0] || u.fullName?.[0] || "؟").toUpperCase()}
+                  </span>
               )}
             </span>
           ))}
-          {assignees.length > 3 && (
-            <span className="w-6 h-6 rounded-full ring-2 ring-white bg-slate-200 text-slate-600 text-[10px] font-bold flex items-center justify-center shrink-0">
-              +{assignees.length - 3}
-            </span>
-          )}
+            {assignees.length > 4 && (
+              <span className="w-7 h-7 rounded-full ring-2 ring-white bg-slate-200 text-slate-600 text-[10px] font-bold flex items-center justify-center shrink-0">
+                +{assignees.length - 4}
+              </span>
+            )}
+          </div>
         </div>
       )}
     </li>
