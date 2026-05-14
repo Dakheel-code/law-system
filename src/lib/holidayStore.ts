@@ -7,17 +7,19 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "./supabase";
 import { weekDayOf, type OfficeLocation } from "./locationStore";
 
-export type HolidayType = "official" | "local" | "custom";
+export type HolidayType = "ramadan" | "eid" | "private" | "national";
 
 export const holidayTypeLabels: Record<HolidayType, string> = {
-  official: "رسمية",
-  local: "محلية",
-  custom: "خاصة",
+  ramadan: "رمضان",
+  eid: "أعياد",
+  private: "إجازة خاصة",
+  national: "إجازة وطنية",
 };
 
 export type Holiday = {
   id: string;
-  date: string;          // YYYY-MM-DD
+  startDate: string;       // YYYY-MM-DD
+  endDate: string;         // YYYY-MM-DD (= startDate if single day)
   name: string;
   type: HolidayType;
   notes: string;
@@ -28,7 +30,8 @@ export type Holiday = {
 
 type HolidayRow = {
   id: string;
-  date: string;
+  start_date: string;
+  end_date: string;
   name: string;
   type: string | null;
   notes: string | null;
@@ -38,9 +41,10 @@ type HolidayRow = {
 
 const fromRow = (r: HolidayRow): Holiday => ({
   id: r.id,
-  date: r.date,
+  startDate: r.start_date,
+  endDate: r.end_date ?? r.start_date,
   name: r.name,
-  type: (r.type as HolidayType) ?? "official",
+  type: (r.type as HolidayType) ?? "national",
   notes: r.notes ?? "",
   locationIds: r.location_ids,
   createdAt: r.created_at,
@@ -55,7 +59,7 @@ export async function listHolidays(): Promise<Holiday[]> {
   const { data, error } = await supabase
     .from("holidays")
     .select("*")
-    .order("date", { ascending: true });
+    .order("start_date", { ascending: true });
   if (error) {
     console.error("listHolidays", error);
     return [];
@@ -64,7 +68,8 @@ export async function listHolidays(): Promise<Holiday[]> {
 }
 
 export type HolidayInput = {
-  date: string;
+  startDate: string;
+  endDate: string;
   name: string;
   type?: HolidayType;
   notes?: string;
@@ -78,9 +83,10 @@ export async function addHoliday(
   const { data, error } = await supabase
     .from("holidays")
     .insert({
-      date: input.date,
+      start_date: input.startDate,
+      end_date: input.endDate,
       name: input.name,
-      type: input.type ?? "official",
+      type: input.type ?? "national",
       notes: input.notes ?? "",
       location_ids: input.locationIds && input.locationIds.length > 0
         ? input.locationIds
@@ -101,7 +107,8 @@ export async function updateHoliday(
 ): Promise<boolean> {
   if (!supabase) return false;
   const row: Record<string, unknown> = {};
-  if (patch.date !== undefined) row.date = patch.date;
+  if (patch.startDate !== undefined) row.start_date = patch.startDate;
+  if (patch.endDate !== undefined) row.end_date = patch.endDate;
   if (patch.name !== undefined) row.name = patch.name;
   if (patch.type !== undefined) row.type = patch.type;
   if (patch.notes !== undefined) row.notes = patch.notes;
@@ -156,13 +163,26 @@ export function useHolidays() {
     };
   }, []);
 
-  // Quick lookup by date string
+  // Quick lookup by date string — a multi-day holiday adds an entry on
+  // every YYYY-MM-DD it covers.
   const byDate = useMemo(() => {
     const m = new Map<string, Holiday[]>();
     holidays.forEach((h) => {
-      const arr = m.get(h.date) ?? [];
-      arr.push(h);
-      m.set(h.date, arr);
+      const start = new Date(h.startDate + "T00:00:00");
+      const end = new Date(h.endDate + "T00:00:00");
+      for (
+        let d = new Date(start);
+        d <= end;
+        d.setDate(d.getDate() + 1)
+      ) {
+        const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
+          2,
+          "0"
+        )}-${String(d.getDate()).padStart(2, "0")}`;
+        const arr = m.get(iso) ?? [];
+        arr.push(h);
+        m.set(iso, arr);
+      }
     });
     return m;
   }, [holidays]);
@@ -195,11 +215,13 @@ export function getDayStatus(
     date.getMonth() + 1
   ).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
-  // Holiday check first (overrides working hours)
+  // Holiday check first (overrides working hours) — supports date ranges
   const dayHolidays = holidays.filter(
     (h) =>
-      h.date === isoDate &&
-      (!h.locationIds || h.locationIds.length === 0 ||
+      isoDate >= h.startDate &&
+      isoDate <= h.endDate &&
+      (!h.locationIds ||
+        h.locationIds.length === 0 ||
         h.locationIds.includes(location.id))
   );
   if (dayHolidays.length > 0) {

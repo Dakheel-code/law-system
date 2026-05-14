@@ -42,10 +42,17 @@ const fmtDate = (iso: string) => {
   }
 };
 
+const calcDays = (start: string, end: string) => {
+  const a = new Date(start + "T00:00:00").getTime();
+  const b = new Date(end + "T00:00:00").getTime();
+  return Math.max(1, Math.round((b - a) / 86400000) + 1);
+};
+
 const typeChip: Record<HolidayType, string> = {
-  official: "bg-rose-50 text-rose-700 border-rose-200",
-  local: "bg-amber-50 text-amber-700 border-amber-200",
-  custom: "bg-sky-50 text-sky-700 border-sky-200",
+  ramadan: "bg-violet-50 text-violet-700 border-violet-200",
+  eid: "bg-amber-50 text-amber-700 border-amber-200",
+  private: "bg-sky-50 text-sky-700 border-sky-200",
+  national: "bg-rose-50 text-rose-700 border-rose-200",
 };
 
 export default function HolidaysPage() {
@@ -63,13 +70,21 @@ export default function HolidaysPage() {
 
   const years = useMemo(() => {
     const set = new Set<number>([new Date().getFullYear()]);
-    holidays.forEach((h) => set.add(new Date(h.date).getFullYear()));
+    holidays.forEach((h) => {
+      set.add(new Date(h.startDate).getFullYear());
+      set.add(new Date(h.endDate).getFullYear());
+    });
     return [...set].sort((a, b) => b - a);
   }, [holidays]);
 
   const visible = useMemo(
     () =>
-      holidays.filter((h) => new Date(h.date).getFullYear() === filterYear),
+      holidays.filter((h) => {
+        // Include any holiday whose range overlaps the selected year
+        const startY = new Date(h.startDate).getFullYear();
+        const endY = new Date(h.endDate).getFullYear();
+        return startY <= filterYear && endY >= filterYear;
+      }),
     [holidays, filterYear]
   );
 
@@ -188,9 +203,22 @@ export default function HolidaysPage() {
                   </div>
 
                   <div className="space-y-1.5 text-xs">
-                    <div className="flex items-center justify-end gap-1.5 text-slate-700">
-                      <span className="font-bold">{fmtDate(h.date)}</span>
-                      <Calendar className="w-3 h-3 text-slate-400" />
+                    <div className="flex items-start justify-end gap-1.5 text-slate-700">
+                      <div className="text-right leading-5">
+                        {h.startDate === h.endDate ? (
+                          <span className="font-bold">{fmtDate(h.startDate)}</span>
+                        ) : (
+                          <>
+                            <span className="font-bold">{fmtDate(h.startDate)}</span>
+                            <span className="text-slate-400 mx-1">←</span>
+                            <span className="font-bold">{fmtDate(h.endDate)}</span>
+                            <span className="block text-[10px] text-emerald-600 font-bold mt-0.5">
+                              {calcDays(h.startDate, h.endDate)} أيام
+                            </span>
+                          </>
+                        )}
+                      </div>
+                      <Calendar className="w-3 h-3 text-slate-400 shrink-0 mt-0.5" />
                     </div>
                     {locNames && locNames.length > 0 && (
                       <div className="flex items-start justify-end gap-1.5 text-slate-600">
@@ -245,9 +273,10 @@ function HolidayFormModal({
   const isEdit = !!initial;
   const { locations } = useLocations();
 
-  const [date, setDate] = useState(initial?.date ?? "");
+  const [startDate, setStartDate] = useState(initial?.startDate ?? "");
+  const [endDate, setEndDate] = useState(initial?.endDate ?? "");
   const [name, setName] = useState(initial?.name ?? "");
-  const [type, setType] = useState<HolidayType>(initial?.type ?? "official");
+  const [type, setType] = useState<HolidayType>(initial?.type ?? "national");
   const [notes, setNotes] = useState(initial?.notes ?? "");
   const [scope, setScope] = useState<"all" | "specific">(
     initial?.locationIds && initial.locationIds.length > 0 ? "specific" : "all"
@@ -269,8 +298,13 @@ function HolidayFormModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!date) {
-      setError("اختر تاريخ الإجازة");
+    if (!startDate) {
+      setError("اختر تاريخ بداية الإجازة");
+      return;
+    }
+    const finalEnd = endDate || startDate;
+    if (finalEnd < startDate) {
+      setError("تاريخ النهاية يجب أن يكون بعد تاريخ البداية أو نفسه");
       return;
     }
     if (!name.trim()) {
@@ -280,7 +314,8 @@ function HolidayFormModal({
     setSaving(true);
     setError(null);
     const payload = {
-      date,
+      startDate,
+      endDate: finalEnd,
       name: name.trim(),
       type,
       notes: notes.trim(),
@@ -319,27 +354,49 @@ function HolidayFormModal({
 
           <div className="p-5 space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Field label="التاريخ *">
+              <Field label="من تاريخ *">
                 <Input
                   type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
+                  value={startDate}
+                  onChange={(e) => {
+                    setStartDate(e.target.value);
+                    // Auto-fill end date if empty
+                    if (!endDate) setEndDate(e.target.value);
+                  }}
                   dir="ltr"
                   className="text-left"
                 />
               </Field>
-              <Field label="نوع الإجازة">
-                <select
-                  value={type}
-                  onChange={(e) => setType(e.target.value as HolidayType)}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-200 text-right"
-                >
-                  <option value="official">رسمية</option>
-                  <option value="local">محلية</option>
-                  <option value="custom">خاصة</option>
-                </select>
+              <Field label="إلى تاريخ *">
+                <Input
+                  type="date"
+                  value={endDate}
+                  min={startDate || undefined}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  dir="ltr"
+                  className="text-left"
+                />
               </Field>
             </div>
+
+            <Field label="نوع الإجازة">
+              <select
+                value={type}
+                onChange={(e) => setType(e.target.value as HolidayType)}
+                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-200 text-right"
+              >
+                <option value="ramadan">رمضان</option>
+                <option value="eid">أعياد</option>
+                <option value="private">إجازة خاصة</option>
+                <option value="national">إجازة وطنية</option>
+              </select>
+            </Field>
+
+            {startDate && endDate && startDate <= endDate && (
+              <div className="text-[11px] text-emerald-700 font-bold text-right bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
+                المدة: {calcDays(startDate, endDate)} {calcDays(startDate, endDate) === 1 ? "يوم" : "أيام"}
+              </div>
+            )}
 
             <Field label="اسم الإجازة *">
               <Input
