@@ -4,7 +4,6 @@ import { Field, Input, Textarea } from "../../ui/Field";
 import Select from "../../ui/Select";
 import StepHeader from "../StepHeader";
 import type { CaseFormState, CaseParty } from "../caseFormTypes";
-import { urgencyLevels } from "../../../config/caseConfig";
 import { useOffice } from "../../../lib/officeStore";
 
 type Props = {
@@ -28,7 +27,6 @@ const newParty = (): CaseParty => ({
 export default function Step2Details({ data, update }: Props) {
   const { office } = useOffice();
   const caseTypes = office?.caseTypes ?? [];
-  const courtTypes = office?.courtTypes ?? [];
 
   // Track which parties are in edit mode locally. A party is in edit mode if
   // it's brand-new (just added) or the user explicitly clicked "edit".
@@ -195,45 +193,29 @@ export default function Step2Details({ data, update }: Props) {
             />
           </Field>
 
-          <Field label="اسم الدائرة">
+          <Field label="رقم الدائرة">
             <Input
-              placeholder="مثال: الدائرة التجارية الأولى"
+              placeholder="مثال: 12"
               value={data.circuitName}
               onChange={(e) => update("circuitName", e.target.value)}
+              dir="ltr"
+              className="text-left"
             />
           </Field>
-          <Field label="نوع القضية *">
+          <Field label="تصنيف القضية *">
             <Select
               options={caseTypes}
               value={data.caseType}
               onChange={(e) => update("caseType", e.target.value)}
-              placeholder="اختر نوع القضية..."
+              placeholder="اختر تصنيف القضية..."
             />
           </Field>
 
-          <Field label="نوع المحكمة">
-            <Select
-              options={courtTypes}
+          <Field label="المحكمة">
+            <Input
+              placeholder="مثال: المحكمة العمالية بالرياض"
               value={data.courtType}
               onChange={(e) => update("courtType", e.target.value)}
-              placeholder="اختر نوع المحكمة..."
-            />
-          </Field>
-          <Field label="درجة الاستعجال *">
-            <Select
-              options={urgencyLevels}
-              value={data.urgency}
-              onChange={(e) => update("urgency", e.target.value)}
-            />
-          </Field>
-
-          <Field label="تاريخ تكليف القضية">
-            <Input
-              type="date"
-              value={data.assignmentDate}
-              onChange={(e) => update("assignmentDate", e.target.value)}
-              dir="ltr"
-              className="text-left"
             />
           </Field>
           <Field label="تاريخ القضية">
@@ -246,34 +228,33 @@ export default function Step2Details({ data, update }: Props) {
             />
           </Field>
 
-          <Field label="عنوان الطلب *">
+          <Field label="تاريخ تكليف القضية">
             <Input
-              placeholder="عنوان مختصر للطلب"
+              type="date"
+              value={data.assignmentDate}
+              onChange={(e) => update("assignmentDate", e.target.value)}
+              dir="ltr"
+              className="text-left"
+            />
+          </Field>
+          <Field label="عنوان القضية *">
+            <Input
+              placeholder="عنوان مختصر للقضية"
               value={data.requestTitle}
               onChange={(e) => update("requestTitle", e.target.value)}
             />
           </Field>
         </div>
 
-        <div className="mt-4">
-          <Field label="وصف الطلب">
+        <div className="mt-4 grid grid-cols-1 gap-4">
+          <Field label="وصف القضية">
             <Textarea
-              placeholder="وصف تفصيلي للقضية والطلب..."
-              rows={4}
+              placeholder="وصف تفصيلي للقضية..."
+              rows={3}
               value={data.description}
               onChange={(e) => update("description", e.target.value)}
             />
           </Field>
-        </div>
-      </div>
-
-      {/* ============= Legal details ============= */}
-      <div className="border-t border-dashed border-slate-200 pt-5">
-        <h3 className="text-base font-bold text-slate-700 text-right mb-4">
-          التفاصيل القانونية
-        </h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Field label="موضوع الدعوى">
             <Textarea
               placeholder="موضوع الدعوى بتفصيل..."
@@ -282,94 +263,12 @@ export default function Step2Details({ data, update }: Props) {
               onChange={(e) => update("lawsuitSubject", e.target.value)}
             />
           </Field>
-          <Field label="الوقائع">
-            <Textarea
-              placeholder="الوقائع المتعلقة بالقضية..."
-              rows={3}
-              value={data.facts}
-              onChange={(e) => update("facts", e.target.value)}
-            />
-          </Field>
           <Field label="الطلبات">
             <Textarea
               placeholder="الطلبات المقدّمة للمحكمة..."
               rows={3}
               value={data.claims}
               onChange={(e) => update("claims", e.target.value)}
-            />
-          </Field>
-          <Field label="الدفوع">
-            <Textarea
-              placeholder="الدفوع والردود..."
-              rows={3}
-              value={data.defenses}
-              onChange={(e) => update("defenses", e.target.value)}
-            />
-          </Field>
-          <Field label="السند النظامي">
-            <Textarea
-              placeholder="الأنظمة والقوانين المستند إليها..."
-              rows={3}
-              value={data.legalBasis}
-              onChange={(e) => update("legalBasis", e.target.value)}
-            />
-          </Field>
-          <Field label="المواد القانونية">
-            <Textarea
-              placeholder="مواد قانونية محددة..."
-              rows={3}
-              value={data.legalArticles}
-              onChange={(e) => update("legalArticles", e.target.value)}
-            />
-          </Field>
-
-          <Field label="قيمة المطالبة (ر.س)">
-            <Input
-              type="number"
-              min={0}
-              step="any"
-              placeholder="0"
-              value={data.claimValue || ""}
-              onChange={(e) => update("claimValue", Number(e.target.value) || 0)}
-              dir="ltr"
-              className="text-left"
-            />
-          </Field>
-          <Field label="نسبة الخطورة (%)">
-            <Input
-              type="number"
-              min={0}
-              max={100}
-              step={1}
-              placeholder="0 - 100"
-              value={data.riskLevel || ""}
-              onChange={(e) =>
-                update(
-                  "riskLevel",
-                  Math.max(0, Math.min(100, Number(e.target.value) || 0))
-                )
-              }
-              dir="ltr"
-              className="text-left"
-            />
-          </Field>
-        </div>
-
-        <div className="mt-4 grid grid-cols-1 gap-4">
-          <Field label="ملخص القضية">
-            <Textarea
-              placeholder="ملخص شامل للقضية..."
-              rows={4}
-              value={data.caseSummary}
-              onChange={(e) => update("caseSummary", e.target.value)}
-            />
-          </Field>
-          <Field label="الاستراتيجية القانونية">
-            <Textarea
-              placeholder="الخطة القانونية ومراحل التقاضي..."
-              rows={4}
-              value={data.legalStrategy}
-              onChange={(e) => update("legalStrategy", e.target.value)}
             />
           </Field>
         </div>
