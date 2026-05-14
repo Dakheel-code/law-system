@@ -68,6 +68,7 @@ const Theme = lazy(() => retryLazy(() => import("./pages/Theme")));
 const Profile = lazy(() => retryLazy(() => import("./pages/Profile")));
 const DriveCallback = lazy(() => retryLazy(() => import("./pages/DriveCallback")));
 const HrLocations = lazy(() => retryLazy(() => import("./pages/hr/Locations")));
+const HrHolidays = lazy(() => retryLazy(() => import("./pages/hr/Holidays")));
 
 function RouteFallback() {
   return (
@@ -138,6 +139,7 @@ export default function App() {
 
                 {/* HR / Attendance */}
                 <Route path="/hr/locations" element={<HrLocations />} />
+                <Route path="/hr/holidays" element={<HrHolidays />} />
               </Route>
             </Routes>
           </Suspense>

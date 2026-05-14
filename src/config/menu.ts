@@ -13,6 +13,7 @@ import {
   Gavel,
   Paperclip,
   MapPin,
+  CalendarOff,
   type LucideIcon,
 } from "lucide-react";
 
@@ -61,6 +62,7 @@ export const menu: MenuGroup[] = [
     title: "الموارد البشرية",
     items: [
       { label: "مواقع المكاتب", icon: MapPin, to: "/hr/locations" },
+      { label: "الإجازات الرسمية", icon: CalendarOff, to: "/hr/holidays" },
     ],
   },
   {
