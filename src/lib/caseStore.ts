@@ -307,6 +307,12 @@ const buildInsert = (form: CaseFormState): Record<string, unknown> => ({
 // guards us against legacy base64 payloads ballooning the response past
 // the proxy/JSON limit. Attachments are loaded on demand on the detail page
 // via the Drive API.
+// NOTE: `payments` and `attachments` are intentionally OMITTED from the
+// listing query.
+//   - attachments: omitted to prevent JSON truncation on large rows
+//   - payments:    omitted so the listing keeps working even before the
+//                  migration 020_case_payments.sql has been applied
+// Both columns are filled with [] in the post-processing step below.
 const LIST_CASE_COLUMNS =
   "id,case_code,client_id,client_role,opponent_role,case_type,court_type," +
   "request_title,description,urgency,priority," +
@@ -316,7 +322,7 @@ const LIST_CASE_COLUMNS =
   "lawsuit_subject,facts,claims,defenses,legal_basis,legal_articles," +
   "claim_value,risk_level,case_summary,legal_strategy," +
   "estimated_fees,consultation_fees,expected_court_fees," +
-  "payment_status,payment_method,fees,fees_notes,payments," +
+  "payment_status,payment_method,fees,fees_notes," +
   "start_date,expected_end_date," +
   "assigned_lawyer,assigned_lawyers,assignments,sessions," +
   "linked_contract,final_notes,status,created_at";
@@ -331,9 +337,12 @@ export async function listCases(): Promise<CaseRecord[]> {
     console.error("listCases", error);
     return [];
   }
-  // attachments is intentionally omitted from the list query — fill with [].
-  const rows = data as unknown as Omit<CaseRow, "attachments">[];
-  return rows.map((r) => fromRow({ ...r, attachments: [] } as CaseRow));
+  // attachments + payments are intentionally omitted from the list query —
+  // fill with [].
+  const rows = data as unknown as Omit<CaseRow, "attachments" | "payments">[];
+  return rows.map((r) =>
+    fromRow({ ...r, attachments: [], payments: [] } as CaseRow)
+  );
 }
 
 export async function getCase(id: string): Promise<CaseRecord | null> {
