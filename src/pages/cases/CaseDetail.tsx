@@ -7,6 +7,7 @@ import {
   Trash2,
   Briefcase,
   Building2,
+  Users as UsersIcon,
   User as UserIcon,
   UserX,
   CalendarDays,
@@ -20,6 +21,7 @@ import {
   Video,
   MapPin,
   Clock,
+  Eye,
   Link as LinkIcon,
   Phone,
   Mail,
@@ -34,9 +36,11 @@ import { useTasks, isTaskOverdue } from "../../lib/taskStore";
 import {
   getCase,
   deleteCase,
+  removeSession,
   type CaseRecord,
   type CaseSession,
 } from "../../lib/caseStore";
+import SessionFormModal from "../../components/sessions/SessionFormModal";
 import { ensureEntityFolder } from "../../lib/drive";
 import DriveBrowser from "../../components/drive/DriveBrowser";
 import { getClient, type ClientRecord } from "../../lib/clientStore";
@@ -96,6 +100,7 @@ export default function CaseDetail() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
+  const [editingSession, setEditingSession] = useState<CaseSession | null>(null);
   const { tasks } = useTasks();
 
   const refresh = async () => {
@@ -560,12 +565,45 @@ export default function CaseDetail() {
                   <SessionRow
                     key={s.id}
                     session={s}
+                    caseTitle={c.requestTitle || c.code}
+                    caseCode={c.code}
+                    caseNumber={c.caseNumber ?? ""}
+                    clientName={client?.fullName ?? ""}
+                    partyNames={parties
+                      .map((p) => p.name)
+                      .filter((n) => n && n.trim())}
                     onOpen={() => navigate(`/sessions/${c.id}/${s.id}`)}
+                    onEdit={() => setEditingSession(s)}
+                    onDelete={async () => {
+                      if (
+                        confirm(
+                          `حذف جلسة ${
+                            s.sessionNumber ? `رقم ${s.sessionNumber}` : "بتاريخ " + s.date
+                          }؟`
+                        )
+                      ) {
+                        const ok = await removeSession(c.id, s.id);
+                        if (ok) refresh();
+                      }
+                    }}
                   />
                 ))}
             </ul>
           )}
         </Section>
+      )}
+
+      {editingSession && (
+        <SessionFormModal
+          initialCaseId={c.id}
+          initialSession={editingSession}
+          lockCase
+          onClose={() => setEditingSession(null)}
+          onSaved={() => {
+            refresh();
+            setEditingSession(null);
+          }}
+        />
       )}
 
       {activeTab === "financial" && (
@@ -1284,16 +1322,34 @@ const sessionStatusStyles: Record<
   cancelled: { label: "ملغاة", cls: "bg-rose-100 text-rose-700" },
 };
 
-// SessionRow — unified visual design with the main /sessions page card.
-// The case meta block (title + case number + client + parties) is omitted
-// because this card is already rendered inside the case detail page.
+// SessionRow — visually identical to the card on /sessions page.
+// Receives case meta (title/code/number, client, parties) from the parent
+// since we're already inside CaseDetail and have direct access to all of it.
 function SessionRow({
   session: s,
+  caseTitle,
+  caseCode,
+  caseNumber,
+  clientName,
+  partyNames,
   onOpen,
+  onEdit,
+  onDelete,
 }: {
   session: CaseSession;
+  caseTitle: string;
+  caseCode: string;
+  caseNumber: string;
+  clientName: string;
+  partyNames: string[];
   onOpen: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
 }) {
+  const stop = (fn: () => void) => (e: React.MouseEvent) => {
+    e.stopPropagation();
+    fn();
+  };
   const isOnline = s.mode === "online";
   const today = new Date().toISOString().slice(0, 10);
   const isPast = s.date && s.date < today;
@@ -1384,15 +1440,78 @@ function SessionRow({
             </div>
           )}
         </div>
+
+        {/* Actions */}
+        <div className="shrink-0 flex items-center gap-0.5">
+          <button
+            onClick={stop(onOpen)}
+            title="فتح الجلسة"
+            className="p-1 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded transition"
+          >
+            <Eye className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={stop(onEdit)}
+            title="تعديل"
+            className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition"
+          >
+            <Edit3 className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={stop(onDelete)}
+            title="حذف"
+            className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
 
-      {/* Session number (if any) */}
-      {s.sessionNumber && (
-        <div
-          className="text-[10px] font-mono text-slate-500 mb-1 text-right"
-          dir="ltr"
-        >
-          جلسة #{s.sessionNumber}
+      {/* Case title (clicking only opens the session — parent <li> handles nav) */}
+      <div
+        className="block text-sm font-bold text-slate-800 truncate text-right"
+        title={caseTitle}
+      >
+        {caseTitle}
+      </div>
+      <div
+        className="flex items-center justify-end gap-1.5 text-[10px] text-slate-500 mt-0.5 font-mono flex-wrap"
+        dir="ltr"
+      >
+        {caseNumber && (
+          <span
+            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-sky-50 text-sky-700"
+            title="رقم القضية في المحكمة"
+          >
+            <Hash className="w-2.5 h-2.5" />
+            {caseNumber}
+          </span>
+        )}
+        <span className="text-slate-400">{caseCode}</span>
+        {s.sessionNumber && (
+          <span
+            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700"
+            title="رقم الجلسة"
+          >
+            <Hash className="w-2.5 h-2.5" />
+            {s.sessionNumber}
+          </span>
+        )}
+      </div>
+
+      {/* Client + parties */}
+      {(clientName || partyNames.length > 0) && (
+        <div className="mt-2 space-y-1">
+          {clientName && (
+            <SessionInfoLine icon={UserIcon} label="العميل" value={clientName} />
+          )}
+          {partyNames.length > 0 && (
+            <SessionInfoLine
+              icon={UsersIcon}
+              label={partyNames.length > 1 ? "الأطراف" : "الطرف"}
+              value={partyNames.join("، ")}
+            />
+          )}
         </div>
       )}
 
