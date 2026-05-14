@@ -6,9 +6,7 @@ import {
   Users as UsersIcon,
   Home,
   Briefcase,
-  MessageSquare,
   FileText,
-  DollarSign,
   Users2,
   CheckCircle2,
   XCircle,
@@ -20,6 +18,14 @@ import {
   X,
   Loader2,
   AlertCircle,
+  Gavel,
+  LayoutGrid,
+  Paperclip,
+  Calendar,
+  Clock,
+  BarChart3,
+  UserCog,
+  Palette,
 } from "lucide-react";
 import {
   permissionGroups,
@@ -48,11 +54,17 @@ const groupIcons: Record<
 > = {
   general: Home,
   cases: Briefcase,
-  consultations: MessageSquare,
-  contracts: FileText,
+  sessions: Gavel,
+  tasks: LayoutGrid,
   clients: UsersIcon,
-  finance: DollarSign,
+  contracts: FileText,
+  attachments: Paperclip,
+  calendar: Calendar,
+  appointments: Clock,
+  reports: BarChart3,
   hr: Users2,
+  admin: UserCog,
+  theme: Palette,
 };
 
 const allPermissionKeys = () =>
