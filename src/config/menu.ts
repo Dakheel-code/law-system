@@ -12,11 +12,8 @@ import {
   Palette,
   Gavel,
   Paperclip,
-  MapPin,
-  CalendarOff,
   Fingerprint,
-  CalendarRange,
-  CheckCheck,
+  Settings2,
   type LucideIcon,
 } from "lucide-react";
 
@@ -64,12 +61,8 @@ export const menu: MenuGroup[] = [
   {
     title: "الموارد البشرية",
     items: [
-      { label: "حضوري", icon: Fingerprint, to: "/hr/attendance" },
-      { label: "إجازاتي", icon: CalendarRange, to: "/hr/leaves" },
-      { label: "موافقات الإجازات", icon: CheckCheck, to: "/hr/leave-approvals" },
-      { label: "تقارير الحضور", icon: BarChart3, to: "/hr/attendance-reports" },
-      { label: "مواقع المكاتب", icon: MapPin, to: "/hr/locations" },
-      { label: "الإجازات الرسمية", icon: CalendarOff, to: "/hr/holidays" },
+      { label: "بياناتي", icon: Fingerprint, to: "/hr/me" },
+      { label: "إدارة الموارد البشرية", icon: Settings2, to: "/hr/admin" },
     ],
   },
   {

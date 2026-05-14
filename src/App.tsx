@@ -79,6 +79,8 @@ const HrLeaveApprovals = lazy(() =>
 const HrAttendanceReports = lazy(() =>
   retryLazy(() => import("./pages/hr/AttendanceReports"))
 );
+const HrAdmin = lazy(() => retryLazy(() => import("./pages/hr/HrAdmin")));
+const HrMyHr = lazy(() => retryLazy(() => import("./pages/hr/MyHr")));
 
 function RouteFallback() {
   return (
@@ -147,7 +149,12 @@ export default function App() {
                 <Route path="/theme" element={<Theme />} />
                 <Route path="/profile" element={<Profile />} />
 
-                {/* HR / Attendance */}
+                {/* HR / Attendance — consolidated entry points */}
+                <Route path="/hr/me" element={<HrMyHr />} />
+                <Route path="/hr/admin" element={<HrAdmin />} />
+
+                {/* Legacy direct routes — kept for any existing bookmarks
+                    but hidden from the sidebar. */}
                 <Route path="/hr/locations" element={<HrLocations />} />
                 <Route path="/hr/holidays" element={<HrHolidays />} />
                 <Route path="/hr/attendance" element={<HrMyAttendance />} />
