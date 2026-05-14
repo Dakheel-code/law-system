@@ -119,7 +119,7 @@ export default function SessionCard({
         onOpen ? "cursor-pointer hover:shadow-md" : ""
       } ${cardCls}`}
     >
-      {/* Top row: date pill + badges + actions */}
+      {/* Top row: date pill + time pill + badges + actions */}
       <div className="flex items-start gap-2 mb-3">
         {/* Date pill */}
         <div
@@ -134,42 +134,51 @@ export default function SessionCard({
           <div className="text-[9px] opacity-90">{monthName}</div>
         </div>
 
-        {/* Badges + time */}
-        <div className="flex-1 min-w-0 flex flex-col items-end gap-1.5">
-          <div className="flex items-center justify-start gap-1 flex-wrap">
-            <span
-              className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold ${
-                isOnline
-                  ? "bg-violet-100 text-violet-700"
-                  : "bg-sky-100 text-sky-700"
-              }`}
+        {/* Time pill — mirrors the date pill shape */}
+        {s.time && (
+          <div
+            className="shrink-0 w-14 rounded-lg flex flex-col items-center py-1.5 bg-slate-50 text-slate-700 border border-slate-200"
+            title="وقت الجلسة"
+          >
+            <Clock className="w-3 h-3 text-slate-400 mb-0.5" />
+            <div
+              className="text-sm font-extrabold leading-none font-mono"
+              dir="ltr"
             >
-              <ModeIcon className="w-2.5 h-2.5" />
-              {isOnline ? "أون لاين" : "حضوري"}
-            </span>
-            {isToday && (
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-brand-100 text-brand-700">
-                اليوم
-              </span>
-            )}
-            {isPast && !statusInfo && (
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-200 text-slate-600">
-                منتهية
-              </span>
-            )}
-            {statusInfo && (
-              <span
-                className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold ${statusInfo.cls}`}
-              >
-                {statusInfo.label}
-              </span>
-            )}
-          </div>
-          {s.time && (
-            <div className="inline-flex items-center gap-1 text-[10px] font-mono text-slate-500">
-              <Clock className="w-2.5 h-2.5" />
-              <bdi dir="ltr">{s.time}</bdi>
+              {s.time}
             </div>
+            <div className="text-[9px] opacity-80 mt-0.5">الوقت</div>
+          </div>
+        )}
+
+        {/* Badges */}
+        <div className="flex-1 min-w-0 flex items-start justify-start gap-1 flex-wrap">
+          <span
+            className={`inline-flex items-center justify-center w-6 h-6 rounded-md ${
+              isOnline
+                ? "bg-violet-100 text-violet-700"
+                : "bg-sky-100 text-sky-700"
+            }`}
+            title={isOnline ? "أون لاين" : "حضوري"}
+          >
+            <ModeIcon className="w-3.5 h-3.5" />
+          </span>
+          {isToday && (
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-brand-100 text-brand-700">
+              اليوم
+            </span>
+          )}
+          {isPast && !statusInfo && (
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-200 text-slate-600">
+              منتهية
+            </span>
+          )}
+          {statusInfo && (
+            <span
+              className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold ${statusInfo.cls}`}
+            >
+              {statusInfo.label}
+            </span>
           )}
         </div>
 
