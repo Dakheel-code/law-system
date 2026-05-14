@@ -6,6 +6,7 @@ import {
   Edit3,
   Trash2,
   Briefcase,
+  Building2,
   User as UserIcon,
   UserX,
   CalendarDays,
@@ -1283,6 +1284,9 @@ const sessionStatusStyles: Record<
   cancelled: { label: "ملغاة", cls: "bg-rose-100 text-rose-700" },
 };
 
+// SessionRow — unified visual design with the main /sessions page card.
+// The case meta block (title + case number + client + parties) is omitted
+// because this card is already rendered inside the case detail page.
 function SessionRow({
   session: s,
   onOpen,
@@ -1297,14 +1301,14 @@ function SessionRow({
   const ModeIcon = isOnline ? Video : MapPin;
   const statusInfo = s.status ? sessionStatusStyles[s.status] : null;
 
-  // Date pill tone
+  // Date column styling — colored pill that conveys state at a glance
   const dateTone = isToday
     ? "bg-gradient-to-br from-brand-500 to-brand-600 text-white shadow-md"
     : isPast
     ? "bg-slate-100 text-slate-500 border border-slate-200"
     : "bg-white text-slate-700 border border-slate-200";
 
-  // Card accent
+  // Card border accent
   const cardCls = isToday
     ? "border-brand-300 ring-1 ring-brand-200"
     : isPast
@@ -1321,9 +1325,6 @@ function SessionRow({
   const monthName = d
     ? d.toLocaleDateString("ar-EG-u-nu-latn", { month: "short" })
     : "";
-  const yearShort = d
-    ? d.toLocaleDateString("ar-EG-u-nu-latn", { year: "numeric" })
-    : "";
 
   return (
     <li
@@ -1331,20 +1332,22 @@ function SessionRow({
       className={`card p-3 transition cursor-pointer hover:shadow-md ${cardCls}`}
     >
       {/* Top row: date pill + badges */}
-      <div className="flex items-start gap-2 mb-2.5">
+      <div className="flex items-start gap-2 mb-3">
+        {/* Date pill */}
         <div
-          className={`shrink-0 w-12 rounded-lg flex flex-col items-center py-1.5 ${dateTone}`}
+          className={`shrink-0 w-14 rounded-lg flex flex-col items-center py-1.5 ${dateTone}`}
         >
           <div className="text-[9px] font-bold opacity-90">
             {isToday ? "اليوم" : weekday}
           </div>
-          <div className="text-lg font-extrabold leading-none my-0.5">
+          <div className="text-xl font-extrabold leading-none my-0.5">
             <bdi dir="ltr">{dayNum}</bdi>
           </div>
           <div className="text-[9px] opacity-90">{monthName}</div>
         </div>
 
-        <div className="flex-1 min-w-0 flex flex-col items-end gap-1">
+        {/* Badges */}
+        <div className="flex-1 min-w-0 flex flex-col items-end gap-1.5">
           <div className="flex items-center justify-start gap-1 flex-wrap">
             <span
               className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold ${
@@ -1383,27 +1386,23 @@ function SessionRow({
         </div>
       </div>
 
-      {/* Full date + session number for context */}
-      <div className="flex items-center justify-between mb-2 text-[10px] text-slate-500">
-        {s.sessionNumber && (
-          <span className="font-mono text-slate-600 font-bold" dir="ltr">
-            #{s.sessionNumber}
-          </span>
-        )}
-        {d && (
-          <span dir="rtl">
-            {weekday}، {dayNum} {monthName} {yearShort}
-          </span>
-        )}
-      </div>
+      {/* Session number (if any) */}
+      {s.sessionNumber && (
+        <div
+          className="text-[10px] font-mono text-slate-500 mb-1 text-right"
+          dir="ltr"
+        >
+          جلسة #{s.sessionNumber}
+        </div>
+      )}
 
-      {/* Info rows */}
-      <div className="space-y-1 pt-2 border-t border-slate-100">
+      {/* Info rows — same style as /sessions page */}
+      <div className="mt-2.5 pt-2.5 border-t border-slate-100 space-y-1">
         {s.court && (
-          <SessionInfoLine icon={Briefcase} label="المحكمة" value={s.court} />
+          <SessionInfoLine icon={Building2} label="المحكمة" value={s.court} />
         )}
         {s.circuit && (
-          <SessionInfoLine icon={Briefcase} label="الدائرة" value={s.circuit} />
+          <SessionInfoLine icon={Building2} label="الدائرة" value={s.circuit} />
         )}
         {!isOnline && s.location && (
           <SessionInfoLine icon={MapPin} label="المكان" value={s.location} />
@@ -1418,56 +1417,13 @@ function SessionRow({
         )}
         {!s.court && !s.circuit && !s.location && !s.link && (
           <div className="text-[10px] text-slate-400 text-right">
-            لا توجد تفاصيل
+            لا توجد تفاصيل مكان
           </div>
         )}
       </div>
 
-      {/* Decision / Minutes — only if filled */}
-      {(s.decision || s.minutes) && (
-        <div className="mt-2 pt-2 border-t border-slate-100 space-y-1.5">
-          {s.decision && (
-            <div className="text-right">
-              <div className="text-[9px] text-slate-400 mb-0.5">القرار الصادر</div>
-              <p
-                className="text-[11px] text-slate-700 leading-5 line-clamp-2"
-                title={s.decision}
-              >
-                {s.decision}
-              </p>
-            </div>
-          )}
-          {s.minutes && (
-            <div className="text-right">
-              <div className="text-[9px] text-slate-400 mb-0.5">محضر الجلسة</div>
-              <p
-                className="text-[11px] text-slate-600 leading-5 line-clamp-2"
-                title={s.minutes}
-              >
-                {s.minutes}
-              </p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Next action */}
-      {(s.nextDate || s.nextAction) && (
-        <div className="mt-2 pt-2 border-t border-slate-100 text-right">
-          <div className="text-[9px] text-slate-400 mb-0.5">الإجراء القادم</div>
-          <div className="text-[11px] text-slate-700 flex items-center justify-start gap-1.5 flex-wrap">
-            {s.nextDate && (
-              <span className="font-mono bg-brand-50 text-brand-700 px-1.5 py-0.5 rounded font-bold" dir="ltr">
-                {s.nextDate}
-              </span>
-            )}
-            {s.nextAction && <span>{s.nextAction}</span>}
-          </div>
-        </div>
-      )}
-
       {s.details && (
-        <div className="mt-2 pt-2 border-t border-slate-100 text-right">
+        <div className="mt-2.5 pt-2.5 border-t border-slate-100 text-right">
           <p
             className="text-[11px] text-slate-600 leading-5 line-clamp-2 whitespace-pre-line"
             title={s.details}
