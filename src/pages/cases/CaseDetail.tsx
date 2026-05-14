@@ -39,13 +39,7 @@ import DriveBrowser from "../../components/drive/DriveBrowser";
 import { getClient, type ClientRecord } from "../../lib/clientStore";
 import { useUsers, type UserRecord } from "../../lib/userStore";
 import { useOffice } from "../../lib/officeStore";
-import {
-  claimTypes,
-  paymentStatus,
-  paymentMethods,
-  priorities,
-  urgencyLevels,
-} from "../../config/caseConfig";
+import { priorities, urgencyLevels } from "../../config/caseConfig";
 
 const labelFor = (opts: { value: string; label: string }[], v: string) =>
   opts.find((o) => o.value === v)?.label || v || "—";
@@ -83,8 +77,6 @@ const fmtDate = (iso: string | null) =>
         year: "numeric",
       })
     : "";
-
-const fmtMoney = (n: number) => (n > 0 ? n.toLocaleString("en-US") + " ر.س" : "");
 
 type TabKey =
   | "overview"
