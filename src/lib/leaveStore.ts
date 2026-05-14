@@ -4,7 +4,7 @@
 //   public.leave_requests (user_id, type, start_date, end_date, days/hours, status...)
 //   public.hr_settings    (annual_leave_days)
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "./supabase";
 
 export type LeaveType = "leave" | "permission";
