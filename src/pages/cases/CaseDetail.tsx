@@ -267,14 +267,8 @@ export default function CaseDetail() {
     ["العقد المرتبط", c.linkedContract, false],
   ].filter(([, v]) => v) as [string, string, boolean][];
 
-  const financialEntries = [
-    ["نوع المطالبة", c.claimType ? labelFor(claimTypes, c.claimType) : "", false],
-    ["التكلفة المقدرة للأتعاب", fmtMoney(c.estimatedFees), false],
-    ["رسوم الاستشارة", fmtMoney(c.consultationFees), false],
-    ["الرسوم القضائية المتوقعة", fmtMoney(c.expectedCourtFees), false],
-    ["حالة الدفع", c.paymentStatus ? labelFor(paymentStatus, c.paymentStatus) : "", false],
-    ["طريقة الدفع", c.paymentMethod ? labelFor(paymentMethods, c.paymentMethod) : "", false],
-  ].filter(([, v]) => v) as [string, string, boolean][];
+  // Financial overview now lives in the new FinancialPanel under the
+  // "financial" tab — the legacy financialEntries grid was removed.
 
   // ---- Derived stats for the hero strip
   const daysSinceCreated = Math.max(
