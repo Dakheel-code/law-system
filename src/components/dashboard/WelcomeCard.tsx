@@ -41,17 +41,19 @@ export default function WelcomeCard() {
       <div className="absolute -left-16 -top-16 w-48 h-48 rounded-full bg-white/10" />
 
       <div className="relative flex items-center justify-between gap-3 flex-wrap">
-        <p className="text-brand-50/90 text-xs">
+        {/* Greeting — appears on the RIGHT in RTL (first child) */}
+        <div className="flex items-center justify-start gap-2 text-right">
+          <GreetIcon className="w-5 h-5" />
+          <h1 className="text-lg sm:text-xl font-extrabold">
+            {greeting}، {displayName}
+          </h1>
+        </div>
+        {/* Date — appears on the LEFT in RTL (last child) */}
+        <p className="text-brand-50/90 text-xs text-left">
           <bdi dir="rtl">{todayLabel}</bdi>
           <span className="mx-2 opacity-60">|</span>
           <bdi dir="rtl">{todayHijri}</bdi>
         </p>
-        <div className="flex items-center gap-2">
-          <h1 className="text-lg sm:text-xl font-extrabold">
-            {greeting}، {displayName}
-          </h1>
-          <GreetIcon className="w-5 h-5" />
-        </div>
       </div>
     </div>
   );
