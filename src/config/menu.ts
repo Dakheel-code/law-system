@@ -15,6 +15,8 @@ import {
   MapPin,
   CalendarOff,
   Fingerprint,
+  CalendarRange,
+  CheckCheck,
   type LucideIcon,
 } from "lucide-react";
 
@@ -63,6 +65,8 @@ export const menu: MenuGroup[] = [
     title: "الموارد البشرية",
     items: [
       { label: "حضوري", icon: Fingerprint, to: "/hr/attendance" },
+      { label: "إجازاتي", icon: CalendarRange, to: "/hr/leaves" },
+      { label: "موافقات الإجازات", icon: CheckCheck, to: "/hr/leave-approvals" },
       { label: "مواقع المكاتب", icon: MapPin, to: "/hr/locations" },
       { label: "الإجازات الرسمية", icon: CalendarOff, to: "/hr/holidays" },
     ],
