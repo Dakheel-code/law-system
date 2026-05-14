@@ -17,16 +17,22 @@ import {
   RotateCcw,
   CheckCircle2,
   AlertCircle,
+  User as UserIcon,
+  Users as UsersIcon,
+  Hash,
 } from "lucide-react";
 import { useCases, removeSession, type CaseSession } from "../lib/caseStore";
+import { useClients } from "../lib/clientStore";
 import SessionFormModal from "../components/sessions/SessionFormModal";
 import { toLocalISO } from "../lib/hijri";
 
 type EnrichedSession = CaseSession & {
   caseId: string;
   caseCode: string;
-  caseNumber: string;
-  caseTitle: string;
+  caseNumber: string;       // رقم القضية في المحكمة
+  caseTitle: string;        // عنوان القضية
+  clientName: string;       // اسم العميل
+  partyNames: string[];     // أسماء الأطراف
 };
 
 const todayStr = () => toLocalISO(new Date());
@@ -44,6 +50,7 @@ const fmtDate = (iso: string) => {
 
 export default function Sessions() {
   const { cases, loading } = useCases();
+  const { clients } = useClients();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [scope, setScope] = useState<"upcoming" | "past" | "all">("upcoming");
@@ -56,10 +63,24 @@ export default function Sessions() {
     session: CaseSession;
   } | null>(null);
 
+  const clientById = useMemo(
+    () => new Map(clients.map((c) => [c.id, c])),
+    [clients]
+  );
+
   // Flatten sessions from all cases
   const allSessions = useMemo<EnrichedSession[]>(() => {
     const list: EnrichedSession[] = [];
     cases.forEach((c) => {
+      const client = c.clientId ? clientById.get(c.clientId) : null;
+      const clientName = client?.fullName || "";
+      const partyNames = (c.parties ?? [])
+        .map((p) => p.name)
+        .filter((n) => n && n.trim());
+      // Legacy single-opponent fallback
+      if (partyNames.length === 0 && c.otherPartyName) {
+        partyNames.push(c.otherPartyName);
+      }
       (c.sessions ?? []).forEach((s) => {
         list.push({
           ...s,
@@ -67,13 +88,15 @@ export default function Sessions() {
           caseCode: c.code,
           caseNumber: c.caseNumber ?? "",
           caseTitle: c.requestTitle || c.code,
+          clientName,
+          partyNames,
         });
       });
     });
     return list.sort((a, b) =>
       (a.date + a.time).localeCompare(b.date + b.time)
     );
-  }, [cases]);
+  }, [cases, clientById]);
 
   const t = todayStr();
   const upcomingCount = allSessions.filter((s) => s.date >= t).length;
@@ -91,6 +114,8 @@ export default function Sessions() {
           s.caseTitle,
           s.caseCode,
           s.caseNumber,
+          s.clientName,
+          ...s.partyNames,
           s.court,
           s.location,
           s.details,
@@ -480,9 +505,34 @@ function SessionRow({
       >
         {s.caseTitle}
       </Link>
-      <div className="text-[10px] text-slate-500 mt-0.5 font-mono text-right" dir="ltr">
-        {s.caseNumber ? `${s.caseNumber} · ${s.caseCode}` : s.caseCode}
+      <div className="flex items-center justify-end gap-1.5 text-[10px] text-slate-500 mt-0.5 font-mono flex-wrap" dir="ltr">
+        {s.caseNumber && (
+          <span
+            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-sky-50 text-sky-700"
+            title="رقم القضية في المحكمة"
+          >
+            <Hash className="w-2.5 h-2.5" />
+            {s.caseNumber}
+          </span>
+        )}
+        <span className="text-slate-400">{s.caseCode}</span>
       </div>
+
+      {/* Client + parties */}
+      {(s.clientName || s.partyNames.length > 0) && (
+        <div className="mt-2 space-y-1">
+          {s.clientName && (
+            <InfoLine icon={UserIcon} label="العميل" value={s.clientName} />
+          )}
+          {s.partyNames.length > 0 && (
+            <InfoLine
+              icon={UsersIcon}
+              label={s.partyNames.length > 1 ? "الأطراف" : "الطرف"}
+              value={s.partyNames.join("، ")}
+            />
+          )}
+        </div>
+      )}
 
       {/* Info rows */}
       <div className="mt-2.5 pt-2.5 border-t border-slate-100 space-y-1">
