@@ -26,8 +26,11 @@ import {
   FileText,
   Calendar,
   LayoutGrid,
+  ListChecks,
 } from "lucide-react";
 import FinancialPanel from "../../components/cases/FinancialPanel";
+import CaseTasksPanel from "../../components/cases/CaseTasksPanel";
+import { useTasks, isTaskOverdue } from "../../lib/taskStore";
 import {
   getCase,
   deleteCase,
@@ -81,6 +84,7 @@ const fmtDate = (iso: string | null) =>
 type TabKey =
   | "overview"
   | "sessions"
+  | "tasks"
   | "financial"
   | "legal"
   | "attachments"
@@ -98,6 +102,7 @@ export default function CaseDetail() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
+  const { tasks } = useTasks();
 
   const refresh = async () => {
     if (!id) return;
@@ -428,6 +433,14 @@ export default function CaseDetail() {
         active={activeTab}
         onChange={setActiveTab}
         sessionsCount={c.sessions.length}
+        tasksCount={
+          tasks.filter((t) => t.caseId === c.id && !t.archived).length
+        }
+        tasksOverdueCount={
+          tasks.filter(
+            (t) => t.caseId === c.id && !t.archived && isTaskOverdue(t)
+          ).length
+        }
         paymentsCount={c.payments?.length ?? 0}
         attachmentsCount={c.attachments?.length ?? 0}
         hasLegal={Boolean(
@@ -600,6 +613,12 @@ export default function CaseDetail() {
       </div>
       )}
 
+      {activeTab === "tasks" && (
+        <Section title="المهام" icon={ListChecks}>
+          <CaseTasksPanel caseId={c.id} clientId={c.clientId} />
+        </Section>
+      )}
+
       {activeTab === "sessions" && (
         <Section title={`الجلسات (${c.sessions.length})`} icon={Gavel}>
           {c.sessions.length === 0 ? (
@@ -720,6 +739,8 @@ function CaseTabs({
   active,
   onChange,
   sessionsCount,
+  tasksCount,
+  tasksOverdueCount,
   paymentsCount,
   attachmentsCount,
   hasLegal,
@@ -728,44 +749,81 @@ function CaseTabs({
   active: TabKey;
   onChange: (t: TabKey) => void;
   sessionsCount: number;
+  tasksCount: number;
+  tasksOverdueCount: number;
   paymentsCount: number;
   attachmentsCount: number;
   hasLegal: boolean;
   hasNotes: boolean;
 }) {
-  const tabs: { key: TabKey; label: string; icon: typeof Hash; count?: number; show?: boolean }[] =
-    [
-      { key: "overview", label: "نظرة عامة", icon: LayoutGrid },
-      { key: "sessions", label: "الجلسات", icon: Gavel, count: sessionsCount },
-      { key: "financial", label: "المالية", icon: Wallet, count: paymentsCount || undefined },
-      { key: "legal", label: "التفاصيل القانونية", icon: Scale, show: hasLegal },
-      { key: "attachments", label: "المرفقات", icon: Paperclip, count: attachmentsCount || undefined },
-      { key: "notes", label: "الملاحظات", icon: StickyNote, show: hasNotes },
-    ];
+  const tabs: {
+    key: TabKey;
+    label: string;
+    icon: typeof Hash;
+    count?: number;
+    show?: boolean;
+    accent?: "danger";
+  }[] = [
+    { key: "overview", label: "نظرة عامة", icon: LayoutGrid },
+    { key: "sessions", label: "الجلسات", icon: Gavel, count: sessionsCount },
+    {
+      key: "tasks",
+      label: "المهام",
+      icon: ListChecks,
+      count: tasksCount || undefined,
+      accent: tasksOverdueCount > 0 ? "danger" : undefined,
+    },
+    {
+      key: "financial",
+      label: "المالية",
+      icon: Wallet,
+      count: paymentsCount || undefined,
+    },
+    {
+      key: "legal",
+      label: "التفاصيل القانونية",
+      icon: Scale,
+      show: hasLegal,
+    },
+    {
+      key: "attachments",
+      label: "المرفقات",
+      icon: Paperclip,
+      count: attachmentsCount || undefined,
+    },
+    { key: "notes", label: "الملاحظات", icon: StickyNote, show: hasNotes },
+  ];
   return (
-    <div className="card p-1.5 overflow-x-auto">
-      <div className="flex items-center justify-end gap-1 min-w-max">
+    <div className="card p-2 overflow-x-auto">
+      <div className="flex items-center justify-start gap-2 min-w-max">
         {tabs
           .filter((t) => t.show !== false)
           .map((t) => {
             const isActive = active === t.key;
             const Icon = t.icon;
+            const danger = t.accent === "danger";
             return (
               <button
                 key={t.key}
                 onClick={() => onChange(t.key)}
-                className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition whitespace-nowrap ${
+                className={`inline-flex items-center gap-2.5 px-5 py-3 rounded-xl text-sm font-bold transition whitespace-nowrap border ${
                   isActive
-                    ? "bg-brand-500 text-white shadow"
-                    : "text-slate-600 hover:bg-slate-50"
+                    ? "bg-brand-500 text-white border-brand-500 shadow-md"
+                    : danger
+                    ? "bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100"
+                    : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:border-brand-200"
                 }`}
               >
-                <Icon className="w-3.5 h-3.5" />
+                <Icon className="w-4 h-4" />
                 {t.label}
                 {t.count !== undefined && t.count > 0 && (
                   <span
-                    className={`inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold ${
-                      isActive ? "bg-white/30" : "bg-slate-200 text-slate-700"
+                    className={`inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full text-[11px] font-extrabold ${
+                      isActive
+                        ? "bg-white/25 text-white"
+                        : danger
+                        ? "bg-rose-200 text-rose-800"
+                        : "bg-brand-100 text-brand-700"
                     }`}
                   >
                     {t.count}

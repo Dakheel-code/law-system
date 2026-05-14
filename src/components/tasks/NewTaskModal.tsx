@@ -22,9 +22,13 @@ const statusOptions: { value: TaskStatus; label: string }[] = [
 
 type Props = {
   onClose: () => void;
+  /** Pre-link the new task to a case (e.g. when opened from CaseDetail). */
+  initialCaseId?: string;
+  /** Pre-link the new task to a client (e.g. when opened from ClientProfile). */
+  initialClientId?: string;
 };
 
-export default function NewTaskModal({ onClose }: Props) {
+export default function NewTaskModal({ onClose, initialCaseId, initialClientId }: Props) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState("medium");
@@ -54,6 +58,8 @@ export default function NewTaskModal({ onClose }: Props) {
       startDate: startDate || null,
       dueDate: dueDate || null,
       assignees,
+      caseId: initialCaseId ?? null,
+      clientId: initialClientId ?? null,
     });
     setSaving(false);
     if (created) onClose();

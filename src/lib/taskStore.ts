@@ -89,6 +89,8 @@ export type TaskInput = {
   startDate?: string | null;
   dueDate?: string | null;
   assignees?: string[];
+  caseId?: string | null;
+  clientId?: string | null;
 };
 
 export async function listTasks(): Promise<TaskRecord[]> {
@@ -120,6 +122,8 @@ export async function addTask(input: TaskInput): Promise<TaskRecord | null> {
       start_date: input.startDate || null,
       due_date: input.dueDate || null,
       assignees,
+      case_id: input.caseId ?? null,
+      client_id: input.clientId ?? null,
     })
     .select()
     .single();
