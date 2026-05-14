@@ -334,16 +334,16 @@ function TaskCard({
 
 function AssigneesStack({ users }: { users: UserRecord[] }) {
   if (users.length === 0) return <span />;
-  const shown = users.slice(0, 3);
-  const extra = users.length - shown.length;
-  return (
-    <div className="flex items-center -space-x-1.5 -space-x-reverse" dir="ltr">
-      {shown.map((u) => (
-        <span
-          key={u.id}
-          title={u.fullName || u.code}
-          className="w-6 h-6 rounded-full ring-2 ring-white overflow-hidden shrink-0"
-        >
+
+  // Single assignee → show avatar + full name inline
+  if (users.length === 1) {
+    const u = users[0];
+    return (
+      <div
+        className="flex items-center gap-1.5 min-w-0"
+        title={u.fullName || u.code}
+      >
+        <span className="w-6 h-6 rounded-full overflow-hidden shrink-0 ring-2 ring-white">
           {u.avatarDataUrl ? (
             <img
               src={u.avatarDataUrl}
@@ -356,15 +356,62 @@ function AssigneesStack({ users }: { users: UserRecord[] }) {
             </span>
           )}
         </span>
-      ))}
-      {extra > 0 && (
-        <span
-          title={`+${extra} آخرين`}
-          className="w-6 h-6 rounded-full ring-2 ring-white bg-slate-200 text-slate-600 text-[10px] font-bold flex items-center justify-center shrink-0"
-        >
-          +{extra}
+        <span className="text-[11px] font-bold text-slate-700 truncate">
+          {u.fullName || u.code}
         </span>
-      )}
+      </div>
+    );
+  }
+
+  // Multiple assignees → stacked avatars + count label with full names on hover
+  const shown = users.slice(0, 3);
+  const extra = users.length - shown.length;
+  const allNames = users.map((u) => u.fullName || u.code).join("، ");
+  return (
+    <div
+      className="flex items-center gap-1.5 min-w-0"
+      title={allNames}
+    >
+      <div
+        className="flex items-center -space-x-1.5 -space-x-reverse shrink-0"
+        dir="ltr"
+      >
+        {shown.map((u) => (
+          <span
+            key={u.id}
+            title={u.fullName || u.code}
+            className="w-6 h-6 rounded-full ring-2 ring-white overflow-hidden shrink-0"
+          >
+            {u.avatarDataUrl ? (
+              <img
+                src={u.avatarDataUrl}
+                alt={u.fullName}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <span className="w-full h-full bg-brand-100 text-brand-700 text-[10px] font-bold flex items-center justify-center">
+                {(u.firstName?.[0] || u.fullName?.[0] || "؟").toUpperCase()}
+              </span>
+            )}
+          </span>
+        ))}
+        {extra > 0 && (
+          <span
+            title={`+${extra} آخرين`}
+            className="w-6 h-6 rounded-full ring-2 ring-white bg-slate-200 text-slate-600 text-[10px] font-bold flex items-center justify-center shrink-0"
+          >
+            +{extra}
+          </span>
+        )}
+      </div>
+      <span className="text-[11px] font-bold text-slate-700 truncate">
+        {users[0].fullName || users[0].code}
+        {users.length > 1 && (
+          <span className="text-slate-400 font-normal mr-1">
+            +{users.length - 1}
+          </span>
+        )}
+      </span>
     </div>
   );
 }
