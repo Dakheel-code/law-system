@@ -13,6 +13,8 @@ import {
   Save,
   Settings,
   User as UserIcon,
+  Briefcase,
+  MapPin,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useCurrentStaff, useUsers } from "../../lib/userStore";
@@ -197,11 +199,15 @@ export default function LeaveApprovalsPage() {
                         className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold ${
                           r.type === "leave"
                             ? "bg-violet-100 text-violet-700"
+                            : r.type === "delegation"
+                            ? "bg-amber-100 text-amber-700"
                             : "bg-sky-100 text-sky-700"
                         }`}
                       >
                         {r.type === "leave" ? (
                           <Calendar className="w-3 h-3" />
+                        ) : r.type === "delegation" ? (
+                          <Briefcase className="w-3 h-3" />
                         ) : (
                           <Clock className="w-3 h-3" />
                         )}
@@ -213,15 +219,7 @@ export default function LeaveApprovalsPage() {
                     </div>
 
                     <div className="text-xs text-slate-600">
-                      {r.type === "leave" ? (
-                        <span>
-                          {fmtDate(r.startDate)}
-                          {r.startDate !== r.endDate &&
-                            ` → ${fmtDate(r.endDate)}`}
-                          {" · "}
-                          <strong>{r.days} يوم</strong>
-                        </span>
-                      ) : (
+                      {r.type === "permission" ? (
                         <span>
                           {fmtDate(r.startDate)} ·{" "}
                           <bdi dir="ltr">
@@ -230,8 +228,22 @@ export default function LeaveApprovalsPage() {
                           {" · "}
                           <strong>{r.hours?.toFixed(1)} ساعة</strong>
                         </span>
+                      ) : (
+                        <span>
+                          {fmtDate(r.startDate)}
+                          {r.startDate !== r.endDate &&
+                            ` → ${fmtDate(r.endDate)}`}
+                          {" · "}
+                          <strong>{r.days} يوم</strong>
+                        </span>
                       )}
                     </div>
+                    {r.type === "delegation" && r.destination && (
+                      <div className="flex items-center justify-end gap-1 text-[11px] text-amber-700 font-bold mt-1.5">
+                        <span>{r.destination}</span>
+                        <MapPin className="w-3 h-3" />
+                      </div>
+                    )}
 
                     {r.reason && (
                       <p className="text-[11px] text-slate-500 mt-1.5 leading-5 line-clamp-2">

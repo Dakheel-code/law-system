@@ -22,6 +22,7 @@ import {
   Clock,
   LogIn,
   CalendarDays,
+  Briefcase,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useCurrentStaff, useUsers } from "../../lib/userStore";
@@ -334,10 +335,29 @@ function isOnLeave(
   isoDate: string,
   leaves: LeaveRequest[]
 ): LeaveRequest | null {
+  // Only counts approved 'leave' requests — delegations are tracked separately.
   return (
     leaves.find(
       (l) =>
         l.userId === userId &&
+        l.type === "leave" &&
+        l.status === "approved" &&
+        isoDate >= l.startDate &&
+        isoDate <= l.endDate
+    ) ?? null
+  );
+}
+
+function isOnDelegation(
+  userId: string,
+  isoDate: string,
+  leaves: LeaveRequest[]
+): LeaveRequest | null {
+  return (
+    leaves.find(
+      (l) =>
+        l.userId === userId &&
+        l.type === "delegation" &&
         l.status === "approved" &&
         isoDate >= l.startDate &&
         isoDate <= l.endDate
@@ -378,21 +398,31 @@ function DailyView({
     return users.map((u) => {
       const r = recordByUser.get(u.id);
       const leave = !r ? isOnLeave(u.id, date, leaveRequests) : null;
+      const delegation = !r ? isOnDelegation(u.id, date, leaveRequests) : null;
       const status: string = r
         ? r.status === "late"
           ? "late"
           : "present"
         : leave
         ? "leave"
+        : delegation
+        ? "delegation"
         : isOffDay
         ? "off"
         : "absent";
-      return { user: u, record: r, leave, status };
+      return { user: u, record: r, leave, delegation, status };
     });
   }, [users, records, date, leaveRequests, isOffDay]);
 
   const counts = useMemo(() => {
-    const c = { present: 0, late: 0, absent: 0, leave: 0, off: 0 };
+    const c = {
+      present: 0,
+      late: 0,
+      absent: 0,
+      leave: 0,
+      delegation: 0,
+      off: 0,
+    };
     rows.forEach((row) => {
       c[row.status as keyof typeof c]++;
     });
@@ -433,11 +463,12 @@ function DailyView({
   return (
     <div className="space-y-5">
       {/* KPIs */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <KPI label="حاضر" value={counts.present} tone="emerald" icon={CheckCircle2} />
         <KPI label="متأخر" value={counts.late} tone="amber" icon={AlertCircle} />
         <KPI label="غائب" value={counts.absent} tone="rose" icon={XCircle} />
         <KPI label="إجازة" value={counts.leave} tone="violet" icon={CalendarDays} />
+        <KPI label="منتدب" value={counts.delegation} tone="amber" icon={Briefcase} />
         <KPI label="إجازة رسمية" value={counts.off} tone="slate" icon={Calendar} />
       </div>
 
@@ -544,11 +575,10 @@ function DailyView({
                       <td className="py-2 px-2 text-center">
                         <StatusBadge
                           status={row.status}
-                          leaveName={
-                            row.status === "leave"
-                              ? row.leave?.type === "leave"
-                                ? "إجازة"
-                                : "استئذان"
+                          extra={
+                            row.status === "delegation" &&
+                            row.delegation?.destination
+                              ? row.delegation.destination
                               : undefined
                           }
                         />
@@ -592,7 +622,7 @@ function MonthlyView({
   const refLocation =
     locations.find((l) => l.id === locationFilter) || locations[0];
 
-  // Per user: working days, present, late, absent, leave, hours
+  // Per user: working days, present, late, absent, leave, delegation, hours
   const summaries = useMemo(() => {
     return users.map((u) => {
       let workingDays = 0;
@@ -600,6 +630,7 @@ function MonthlyView({
       let late = 0;
       let absent = 0;
       let leaveDays = 0;
+      let delegationDays = 0;
       let totalMinutes = 0;
       for (let d = 1; d <= daysInMonth; d++) {
         const isoDate = `${monthStr}-${String(d).padStart(2, "0")}`;
@@ -618,6 +649,8 @@ function MonthlyView({
           totalMinutes += durationMin(rec.checkInAt, rec.checkOutAt);
         } else if (isOnLeave(u.id, isoDate, leaveRequests)) {
           leaveDays++;
+        } else if (isOnDelegation(u.id, isoDate, leaveRequests)) {
+          delegationDays++;
         } else if (dateObj <= new Date()) {
           absent++;
         }
@@ -629,6 +662,7 @@ function MonthlyView({
         late,
         absent,
         leaveDays,
+        delegationDays,
         totalMinutes,
       };
     });
@@ -651,9 +685,10 @@ function MonthlyView({
         late: acc.late + s.late,
         absent: acc.absent + s.absent,
         leave: acc.leave + s.leaveDays,
+        delegation: acc.delegation + s.delegationDays,
         totalMin: acc.totalMin + s.totalMinutes,
       }),
-      { present: 0, late: 0, absent: 0, leave: 0, totalMin: 0 }
+      { present: 0, late: 0, absent: 0, leave: 0, delegation: 0, totalMin: 0 }
     );
   }, [summaries]);
 
@@ -666,6 +701,7 @@ function MonthlyView({
       "تأخر",
       "غياب",
       "إجازات",
+      "انتدابات",
       "إجمالي الساعات",
     ];
     const csvRows = summaries.map((s) => [
@@ -676,6 +712,7 @@ function MonthlyView({
       s.late,
       s.absent,
       s.leaveDays,
+      s.delegationDays,
       (s.totalMinutes / 60).toFixed(1),
     ]);
     downloadCSV(`attendance-${monthStr}.csv`, [headers, ...csvRows]);
@@ -683,11 +720,17 @@ function MonthlyView({
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <KPI label="إجمالي الحضور" value={totals.present} tone="emerald" icon={LogIn} />
         <KPI label="تأخر" value={totals.late} tone="amber" icon={AlertCircle} />
         <KPI label="غياب" value={totals.absent} tone="rose" icon={XCircle} />
         <KPI label="إجازات" value={totals.leave} tone="violet" icon={CalendarDays} />
+        <KPI
+          label="انتدابات"
+          value={totals.delegation}
+          tone="amber"
+          icon={Briefcase}
+        />
         <KPI
           label="ساعات العمل"
           value={Math.round(totals.totalMin / 60)}
@@ -725,6 +768,7 @@ function MonthlyView({
                   <th className="py-2 px-2 text-center font-bold">تأخر</th>
                   <th className="py-2 px-2 text-center font-bold">غياب</th>
                   <th className="py-2 px-2 text-center font-bold">إجازات</th>
+                  <th className="py-2 px-2 text-center font-bold">انتدابات</th>
                   <th className="py-2 px-2 text-center font-bold">إجمالي الساعات</th>
                   <th className="py-2 px-2 text-center font-bold">نسبة الحضور</th>
                 </tr>
@@ -778,6 +822,9 @@ function MonthlyView({
                       </td>
                       <td className="py-2 px-2 text-center font-mono text-xs text-violet-700">
                         {s.leaveDays}
+                      </td>
+                      <td className="py-2 px-2 text-center font-mono text-xs text-amber-700">
+                        {s.delegationDays}
                       </td>
                       <td className="py-2 px-2 text-center font-mono text-xs text-sky-700" dir="ltr">
                         {(s.totalMinutes / 60).toFixed(1)} س
@@ -1004,6 +1051,7 @@ function statusLabel(status: string): string {
       late: "متأخر",
       absent: "غائب",
       leave: "إجازة",
+      delegation: "منتدب",
       off: "إجازة رسمية",
     }[status] ?? status
   );
@@ -1011,10 +1059,10 @@ function statusLabel(status: string): string {
 
 function StatusBadge({
   status,
-  leaveName,
+  extra,
 }: {
   status: string;
-  leaveName?: string;
+  extra?: string;
 }) {
   const map: Record<
     string,
@@ -1032,9 +1080,14 @@ function StatusBadge({
     },
     absent: { label: "غائب", cls: "bg-rose-100 text-rose-700", icon: XCircle },
     leave: {
-      label: leaveName ?? "إجازة",
+      label: "إجازة",
       cls: "bg-violet-100 text-violet-700",
       icon: CalendarDays,
+    },
+    delegation: {
+      label: "منتدب",
+      cls: "bg-amber-100 text-amber-700",
+      icon: Briefcase,
     },
     off: {
       label: "إجازة رسمية",
@@ -1047,9 +1100,11 @@ function StatusBadge({
   return (
     <span
       className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold ${m.cls}`}
+      title={extra}
     >
       <Icon className="w-3 h-3" />
       {m.label}
+      {extra && <span className="opacity-70 mr-1 truncate max-w-[80px]">· {extra}</span>}
     </span>
   );
 }

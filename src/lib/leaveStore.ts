@@ -7,12 +7,19 @@
 import { useEffect, useState } from "react";
 import { supabase } from "./supabase";
 
-export type LeaveType = "leave" | "permission";
+export type LeaveType = "leave" | "permission" | "delegation";
 export type LeaveStatus = "pending" | "approved" | "rejected";
 
 export const leaveTypeLabels: Record<LeaveType, string> = {
   leave: "إجازة",
   permission: "استئذان",
+  delegation: "انتداب",
+};
+
+export const leaveTypeClasses: Record<LeaveType, string> = {
+  leave: "bg-violet-100 text-violet-700",
+  permission: "bg-sky-100 text-sky-700",
+  delegation: "bg-amber-100 text-amber-700",
 };
 
 export const leaveStatusLabels: Record<LeaveStatus, string> = {
@@ -38,6 +45,8 @@ export type LeaveRequest = {
   days: number | null;
   hours: number | null;
   reason: string;
+  /** Destination — used only when type='delegation' (e.g. مكتب فرعي، محكمة، عميل) */
+  destination: string;
   status: LeaveStatus;
   approvedBy: string | null;
   approvedAt: string | null;
@@ -56,6 +65,7 @@ type LeaveRow = {
   days: number | null;
   hours: number | null;
   reason: string | null;
+  destination: string | null;
   status: string;
   approved_by: string | null;
   approved_at: string | null;
@@ -74,6 +84,7 @@ const fromRow = (r: LeaveRow): LeaveRequest => ({
   days: r.days,
   hours: r.hours,
   reason: r.reason ?? "",
+  destination: r.destination ?? "",
   status: (r.status as LeaveStatus) ?? "pending",
   approvedBy: r.approved_by,
   approvedAt: r.approved_at,
@@ -92,6 +103,8 @@ export type LeaveInput = {
   startTime?: string | null;
   endTime?: string | null;
   reason?: string;
+  /** Used only when type='delegation'. */
+  destination?: string;
 };
 
 /** Calculate inclusive days between two YYYY-MM-DD dates. */
@@ -115,10 +128,16 @@ export async function addLeaveRequest(
 ): Promise<LeaveRequest | null> {
   if (!supabase) return null;
 
+  const isPermission = input.type === "permission";
   const isLeave = input.type === "leave";
-  const days = isLeave ? calcDays(input.startDate, input.endDate) : null;
+  const isDelegation = input.type === "delegation";
+  // Both leave and delegation use full days; only permission uses hours
+  const days =
+    isLeave || isDelegation
+      ? calcDays(input.startDate, input.endDate)
+      : null;
   const hours =
-    !isLeave && input.startTime && input.endTime
+    isPermission && input.startTime && input.endTime
       ? calcHours(input.startTime, input.endTime)
       : null;
 
@@ -128,12 +147,13 @@ export async function addLeaveRequest(
       user_id: userId,
       type: input.type,
       start_date: input.startDate,
-      end_date: isLeave ? input.endDate : input.startDate,
-      start_time: isLeave ? null : input.startTime ?? null,
-      end_time: isLeave ? null : input.endTime ?? null,
+      end_date: isPermission ? input.startDate : input.endDate,
+      start_time: isPermission ? input.startTime ?? null : null,
+      end_time: isPermission ? input.endTime ?? null : null,
       days,
       hours,
       reason: input.reason ?? "",
+      destination: isDelegation ? input.destination ?? "" : "",
       status: "pending",
     })
     .select()
