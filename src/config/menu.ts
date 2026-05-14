@@ -67,6 +67,7 @@ export const menu: MenuGroup[] = [
       { label: "حضوري", icon: Fingerprint, to: "/hr/attendance" },
       { label: "إجازاتي", icon: CalendarRange, to: "/hr/leaves" },
       { label: "موافقات الإجازات", icon: CheckCheck, to: "/hr/leave-approvals" },
+      { label: "تقارير الحضور", icon: BarChart3, to: "/hr/attendance-reports" },
       { label: "مواقع المكاتب", icon: MapPin, to: "/hr/locations" },
       { label: "الإجازات الرسمية", icon: CalendarOff, to: "/hr/holidays" },
     ],
