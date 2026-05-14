@@ -3,7 +3,6 @@ import {
   Trash2,
   Gavel,
   MapPin,
-  Video,
   Link as LinkIcon,
   Calendar,
   Clock,
@@ -12,11 +11,7 @@ import {
 } from "lucide-react";
 import { Field, Input, Textarea } from "../../ui/Field";
 import StepHeader from "../StepHeader";
-import type {
-  CaseFormState,
-  CaseSession,
-  SessionMode,
-} from "../caseFormTypes";
+import type { CaseFormState, CaseSession } from "../caseFormTypes";
 
 type Props = {
   data: CaseFormState;
@@ -142,14 +137,8 @@ function SessionCard({
   onChange: (patch: Partial<CaseSession>) => void;
   onRemove: () => void;
 }) {
-  const isOnline = session.mode === "online";
-
   return (
-    <div
-      className={`rounded-xl border p-4 ${
-        isOnline ? "border-violet-200 bg-violet-50/30" : "border-sky-200 bg-sky-50/30"
-      }`}
-    >
+    <div className="rounded-xl border border-slate-200 bg-slate-50/40 p-4">
       <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
         <button
           type="button"
@@ -159,25 +148,9 @@ function SessionCard({
           <Trash2 className="w-3.5 h-3.5" />
           إزالة
         </button>
-        <div className="flex items-center justify-start gap-2 flex-wrap">
-          <ModeButton
-            label="حضوري"
-            icon={MapPin}
-            active={!isOnline}
-            color="sky"
-            onClick={() => onChange({ mode: "in-person" as SessionMode })}
-          />
-          <ModeButton
-            label="أون لاين"
-            icon={Video}
-            active={isOnline}
-            color="violet"
-            onClick={() => onChange({ mode: "online" as SessionMode })}
-          />
-          <span className="text-xs font-bold text-slate-700 mr-1">
-            الجلسة {index}
-          </span>
-        </div>
+        <span className="text-xs font-bold text-slate-700">
+          الجلسة {index}
+        </span>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -218,8 +191,20 @@ function SessionCard({
           </div>
         </Field>
 
-        {isOnline ? (
-          <Field label="رابط الجلسة">
+        <Field label="المكان">
+          <div className="relative">
+            <MapPin className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+            <Input
+              placeholder="القاعة، الدور، الباب..."
+              value={session.location}
+              onChange={(e) => onChange({ location: e.target.value })}
+              className="pr-10"
+            />
+          </div>
+        </Field>
+
+        <div className="md:col-span-2">
+          <Field label="رابط الجلسة (اختياري)">
             <div className="relative">
               <LinkIcon className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
               <Input
@@ -231,19 +216,7 @@ function SessionCard({
               />
             </div>
           </Field>
-        ) : (
-          <Field label="المكان">
-            <div className="relative">
-              <MapPin className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-              <Input
-                placeholder="القاعة، الدور، الباب..."
-                value={session.location}
-                onChange={(e) => onChange({ location: e.target.value })}
-                className="pr-10"
-              />
-            </div>
-          </Field>
-        )}
+        </div>
       </div>
 
       <div className="mt-3">
@@ -261,38 +234,5 @@ function SessionCard({
         </Field>
       </div>
     </div>
-  );
-}
-
-function ModeButton({
-  label,
-  icon: Icon,
-  active,
-  color,
-  onClick,
-}: {
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-  active: boolean;
-  color: "sky" | "violet";
-  onClick: () => void;
-}) {
-  const activeCls =
-    color === "sky"
-      ? "bg-sky-500 text-white border-sky-500"
-      : "bg-violet-500 text-white border-violet-500";
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-2 text-xs font-bold transition ${
-        active
-          ? activeCls
-          : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
-      }`}
-    >
-      <Icon className="w-3.5 h-3.5" />
-      {label}
-    </button>
   );
 }

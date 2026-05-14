@@ -3,7 +3,6 @@ import {
   X,
   Save,
   MapPin,
-  Video,
   Link as LinkIcon,
   Calendar,
   Clock,
@@ -20,15 +19,7 @@ import {
   updateSessionOnCase,
   type CaseRecord,
   type CaseSession,
-  type SessionStatus,
 } from "../../lib/caseStore";
-
-const statusOptions: { value: SessionStatus; label: string }[] = [
-  { value: "scheduled", label: "مجدّولة" },
-  { value: "held", label: "انعقدت" },
-  { value: "postponed", label: "مؤجّلة" },
-  { value: "cancelled", label: "ملغاة" },
-];
 
 type Props = {
   // When set, modal is in edit mode for that session
@@ -55,27 +46,12 @@ export default function SessionFormModal({
   const [caseId, setCaseId] = useState<string>(initialCaseId ?? "");
   const [caseSearch, setCaseSearch] = useState("");
   const [caseListOpen, setCaseListOpen] = useState(!initialCaseId);
-  const [mode, setMode] = useState<"in-person" | "online">(
-    initialSession?.mode ?? "in-person"
-  );
   const [date, setDate] = useState(initialSession?.date ?? "");
   const [time, setTime] = useState(initialSession?.time ?? "");
   const [court, setCourt] = useState(initialSession?.court ?? "");
   const [location, setLocation] = useState(initialSession?.location ?? "");
   const [link, setLink] = useState(initialSession?.link ?? "");
   const [details, setDetails] = useState(initialSession?.details ?? "");
-  // Extended fields
-  const [sessionNumber, setSessionNumber] = useState(
-    initialSession?.sessionNumber ?? ""
-  );
-  const [circuit, setCircuit] = useState(initialSession?.circuit ?? "");
-  const [status, setStatus] = useState<SessionStatus>(
-    initialSession?.status ?? "scheduled"
-  );
-  const [decision, setDecision] = useState(initialSession?.decision ?? "");
-  const [minutes, setMinutes] = useState(initialSession?.minutes ?? "");
-  const [nextDate, setNextDate] = useState(initialSession?.nextDate ?? "");
-  const [nextAction, setNextAction] = useState(initialSession?.nextAction ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -104,8 +80,6 @@ export default function SessionFormModal({
       .slice(0, 12);
   }, [cases, caseSearch]);
 
-  const isOnline = mode === "online";
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -113,22 +87,18 @@ export default function SessionFormModal({
     if (!date) return setError("أدخل تاريخ الجلسة");
     if (!time) return setError("أدخل وقت الجلسة");
 
+    // Preserve any extended fields on the existing session so we don't drop
+    // data from older sessions whose form was once richer.
     const session: CaseSession = {
+      ...(initialSession ?? {}),
       id: initialSession?.id ?? newSessionId(),
-      mode,
+      mode: initialSession?.mode ?? "in-person",
       date,
       time,
       court,
       location,
       link,
       details,
-      sessionNumber: sessionNumber || undefined,
-      circuit: circuit || undefined,
-      status,
-      decision: decision || undefined,
-      minutes: minutes || undefined,
-      nextDate: nextDate || undefined,
-      nextAction: nextAction || undefined,
     };
     setSaving(true);
     const ok = isEdit
@@ -221,29 +191,6 @@ export default function SessionFormModal({
               )}
             </Field>
 
-            {/* Mode + date + time */}
-            <div>
-              <label className="block text-xs font-bold text-slate-500 mb-2 text-right">
-                نوع الجلسة
-              </label>
-              <div className="flex items-center justify-start gap-2">
-                <ModeButton
-                  label="حضوري"
-                  icon={MapPin}
-                  active={!isOnline}
-                  color="sky"
-                  onClick={() => setMode("in-person")}
-                />
-                <ModeButton
-                  label="أون لاين"
-                  icon={Video}
-                  active={isOnline}
-                  color="violet"
-                  onClick={() => setMode("online")}
-                />
-              </div>
-            </div>
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <Field label="التاريخ *">
                 <div className="relative">
@@ -282,8 +229,20 @@ export default function SessionFormModal({
                 </div>
               </Field>
 
-              {isOnline ? (
-                <Field label="رابط الجلسة">
+              <Field label="المكان">
+                <div className="relative">
+                  <MapPin className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                  <Input
+                    placeholder="القاعة، الدور، الباب..."
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    className="pr-10"
+                  />
+                </div>
+              </Field>
+
+              <div className="md:col-span-2">
+                <Field label="رابط الجلسة (اختياري)">
                   <div className="relative">
                     <LinkIcon className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                     <Input
@@ -295,90 +254,7 @@ export default function SessionFormModal({
                     />
                   </div>
                 </Field>
-              ) : (
-                <Field label="المكان">
-                  <div className="relative">
-                    <MapPin className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                    <Input
-                      placeholder="القاعة، الدور، الباب..."
-                      value={location}
-                      onChange={(e) => setLocation(e.target.value)}
-                      className="pr-10"
-                    />
-                  </div>
-                </Field>
-              )}
-            </div>
-
-            {/* Extended session fields */}
-            <div className="pt-3 border-t border-dashed border-slate-200 space-y-3">
-              <div className="text-xs font-bold text-slate-500 text-right">
-                بيانات الجلسة الإضافية
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <Field label="رقم الجلسة">
-                  <Input
-                    placeholder="مثال: 2026/45"
-                    value={sessionNumber}
-                    onChange={(e) => setSessionNumber(e.target.value)}
-                    dir="ltr"
-                    className="text-left"
-                  />
-                </Field>
-                <Field label="الدائرة">
-                  <Input
-                    placeholder="مثال: الدائرة التجارية الأولى"
-                    value={circuit}
-                    onChange={(e) => setCircuit(e.target.value)}
-                  />
-                </Field>
-                <Field label="حالة الجلسة">
-                  <select
-                    value={status}
-                    onChange={(e) => setStatus(e.target.value as SessionStatus)}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-200 text-right"
-                  >
-                    {statusOptions.map((o) => (
-                      <option key={o.value} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                <Field label="موعد الجلسة القادمة">
-                  <Input
-                    type="date"
-                    value={nextDate}
-                    onChange={(e) => setNextDate(e.target.value)}
-                    dir="ltr"
-                    className="text-left"
-                  />
-                </Field>
-              </div>
-
-              <Field label="القرار الصادر">
-                <Textarea
-                  placeholder="نص القرار الصادر عن المحكمة..."
-                  rows={2}
-                  value={decision}
-                  onChange={(e) => setDecision(e.target.value)}
-                />
-              </Field>
-              <Field label="محضر الجلسة">
-                <Textarea
-                  placeholder="ما تم في الجلسة..."
-                  rows={3}
-                  value={minutes}
-                  onChange={(e) => setMinutes(e.target.value)}
-                />
-              </Field>
-              <Field label="الإجراء القادم">
-                <Input
-                  placeholder="مثال: تقديم مذكرة الرد"
-                  value={nextAction}
-                  onChange={(e) => setNextAction(e.target.value)}
-                />
-              </Field>
             </div>
 
             <Field label="تفاصيل / ملاحظات إضافية">
@@ -463,35 +339,3 @@ function CaseChip({
   );
 }
 
-function ModeButton({
-  label,
-  icon: Icon,
-  active,
-  color,
-  onClick,
-}: {
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-  active: boolean;
-  color: "sky" | "violet";
-  onClick: () => void;
-}) {
-  const activeCls =
-    color === "sky"
-      ? "bg-sky-500 text-white border-sky-500"
-      : "bg-violet-500 text-white border-violet-500";
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-2 text-xs font-bold transition ${
-        active
-          ? activeCls
-          : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
-      }`}
-    >
-      <Icon className="w-3.5 h-3.5" />
-      {label}
-    </button>
-  );
-}
