@@ -16,19 +16,16 @@ import {
   Calendar,
   LayoutGrid,
   CalendarRange,
-  Users as UsersIcon,
-  Building2,
   CheckCircle2,
   AlertCircle,
   XCircle,
   Clock,
   LogIn,
-  LogOut,
   CalendarDays,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useCurrentStaff, useUsers } from "../../lib/userStore";
-import { useLocations, weekDayOf } from "../../lib/locationStore";
+import { useLocations } from "../../lib/locationStore";
 import { useHolidays, getDayStatus } from "../../lib/holidayStore";
 import { useAllAttendance } from "../../lib/attendanceStore";
 import { useAllLeaveRequests } from "../../lib/leaveStore";
