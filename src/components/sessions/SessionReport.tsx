@@ -297,15 +297,10 @@ export default function SessionReport({
         {/* Report header — logo top-left, no company name text */}
         <header className="report-header relative px-8 pt-8 pb-6 border-b-2 border-brand-500">
           <div className="flex items-start justify-between gap-4">
-            {/* Right side intentionally blank to keep the layout clean.
-                The logo carries the brand identity. */}
+            {/* Right side intentionally blank to keep the layout clean. */}
             <div className="flex-1" />
-            <img
-              src="https://nasserlaw.org/wp-content/uploads/2024/06/footerlogo.png"
-              alt={office?.officeName || "شعار المكتب"}
-              className="h-20 object-contain shrink-0"
-              loading="eager"
-              crossOrigin="anonymous"
+            <ReportLogo
+              officeName={office?.officeName ?? "شركة ناصر طريد للمحاماة"}
             />
           </div>
         </header>
@@ -553,5 +548,50 @@ export default function SessionReport({
         }
       `}</style>
     </div>
+  );
+}
+
+// ============================================================
+// ReportLogo — tries multiple sources, falls back to a styled text logo
+// ============================================================
+
+function ReportLogo({ officeName }: { officeName: string }) {
+  const sources = [
+    "https://nasserlaw.org/wp-content/uploads/2024/06/footerlogo.png",
+    "/logo.png",
+    "/footerlogo.png",
+  ];
+  const [idx, setIdx] = useState(0);
+  const [failed, setFailed] = useState(false);
+
+  if (failed) {
+    // Styled text logo — looks acceptable on print too
+    return (
+      <div className="text-left">
+        <div className="text-lg font-extrabold text-brand-700 leading-tight">
+          {officeName}
+        </div>
+        <div className="text-[10px] text-slate-500 mt-0.5">
+          للمحاماة والاستشارات القانونية
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <img
+      key={sources[idx]}
+      src={sources[idx]}
+      alt={officeName}
+      className="h-20 object-contain shrink-0"
+      loading="eager"
+      onError={() => {
+        if (idx + 1 < sources.length) {
+          setIdx(idx + 1);
+        } else {
+          setFailed(true);
+        }
+      }}
+    />
   );
 }
