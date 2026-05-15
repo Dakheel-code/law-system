@@ -495,9 +495,22 @@ export default function SessionReport({
           </div>
         </main>
 
-        {/* Footer — fixed company data per request */}
+        {/* Footer — company info on the right (visual), contact on the left (visual).
+            In RTL with justify-between: first child = right, last child = left. */}
         <footer className="report-footer px-8 py-5 border-t-2 border-brand-500 bg-slate-50/50 flex items-start justify-between gap-4 text-[11px] text-slate-700 leading-6">
-          {/* Left column — contact (LTR) */}
+          {/* Right column (visual) — company info (RTL) — FIRST in DOM */}
+          <div className="text-right">
+            <div>شركة مهنية ذات مسؤولية محدودة</div>
+            <div className="mt-0.5">
+              رأس المال :{" "}
+              <bdi dir="ltr">10,000,000</bdi> ريال سعودي
+            </div>
+            <div className="mt-0.5">
+              {office?.address || "الرياض الدائري الشمالي مخرج ٥"}
+            </div>
+          </div>
+
+          {/* Left column (visual) — contact (LTR) — LAST in DOM */}
           <div className="text-left" dir="ltr">
             <div className="font-mono font-bold tracking-wider">
               {office?.website?.toUpperCase() || "WWW.NASSERLAW.ORG"}
@@ -507,18 +520,6 @@ export default function SessionReport({
             </div>
             <div className="font-mono mt-0.5">
               {office?.email || "info@nasserlaw.org"}
-            </div>
-          </div>
-
-          {/* Right column — company info (RTL) */}
-          <div className="text-right">
-            <div>شركة مهنية ذات مسؤولية محدودة</div>
-            <div className="mt-0.5">
-              رأس المال :{" "}
-              <bdi dir="ltr">10,000,000</bdi> ريال سعودي
-            </div>
-            <div className="mt-0.5">
-              {office?.address || "الرياض الدائري الشمالي مخرج ٥"}
             </div>
           </div>
         </footer>
