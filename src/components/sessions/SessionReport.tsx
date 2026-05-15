@@ -10,7 +10,7 @@
 // PDF that matches the on-screen template exactly.
 
 import { useMemo, useState } from "react";
-import { FileText, Printer, Save, Loader2, Edit3 } from "lucide-react";
+import { Printer, Save, Loader2, Edit3 } from "lucide-react";
 import type { CaseRecord } from "../../lib/caseStore";
 import type { CaseSession } from "../../lib/caseStore";
 import type { ClientRecord } from "../../lib/clientStore";
@@ -278,20 +278,19 @@ export default function SessionReport({
 
       {/* Printable report */}
       <div className="session-report bg-white border border-slate-200 rounded-xl overflow-hidden">
-        {/* Report header */}
+        {/* Report header — logo top-left, no company name text */}
         <header className="report-header relative px-8 pt-8 pb-6 border-b-2 border-brand-500">
           <div className="flex items-start justify-between gap-4">
-            <div className="text-right">
-              <h1 className="text-xl sm:text-2xl font-extrabold text-slate-800 leading-tight">
-                {office?.officeName || "شركة المحاماة"}
-              </h1>
-              <p className="text-[11px] text-slate-500 mt-1">
-                للمحاماة والاستشارات القانونية
-              </p>
-            </div>
-            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-brand-600 to-brand-400 flex items-center justify-center text-white shrink-0">
-              <FileText className="w-7 h-7" strokeWidth={1.5} />
-            </div>
+            {/* Right side intentionally blank to keep the layout clean.
+                The logo carries the brand identity. */}
+            <div className="flex-1" />
+            <img
+              src="https://nasserlaw.org/wp-content/uploads/2024/06/footerlogo.png"
+              alt={office?.officeName || "شعار المكتب"}
+              className="h-20 object-contain shrink-0"
+              loading="eager"
+              crossOrigin="anonymous"
+            />
           </div>
         </header>
 
