@@ -487,12 +487,13 @@ export default function SessionReport({
 
           {/* Signature block — left-aligned (heading + tagline + stamp all on the left) */}
           <div className="mt-8" dir="ltr" style={{ textAlign: "left" }}>
-            <h4 className="text-base font-extrabold text-slate-800" dir="rtl">
+            <h4 className="text-2xl font-black text-slate-900 leading-tight" dir="rtl">
               إدارة القضايا
             </h4>
-            <p className="text-xs text-slate-500 mt-1" dir="rtl">
-              {office?.officeName || "شركة المحاماة"} للمحاماة والاستشارات
-              القانونية
+            <p className="text-sm text-slate-700 mt-1.5 leading-6" dir="rtl">
+              شركة ناصِر بن طريّد وشركاؤه
+              <br />
+              للمحاماة والاستشارات القانونية
             </p>
             {office?.stampDataUrl ? (
               <img
