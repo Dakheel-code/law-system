@@ -34,11 +34,14 @@ import {
 import type { CaseSession, SessionStatus } from "../components/cases/caseFormTypes";
 import { toLocalISO } from "../lib/hijri";
 import SessionFormModal from "../components/sessions/SessionFormModal";
+import SessionReport from "../components/sessions/SessionReport";
 import {
   uploadSessionFile,
   DriveNotConnectedError,
   DriveDisconnectedError,
 } from "../lib/drive";
+import { useClients } from "../lib/clientStore";
+import { useUsers } from "../lib/userStore";
 
 const statusMeta: Record<
   SessionStatus,
@@ -93,6 +96,8 @@ export default function SessionDetail() {
   const { caseId = "", sessionId = "" } = useParams();
   const navigate = useNavigate();
   const { cases, loading } = useCases();
+  const { clients } = useClients();
+  const { users } = useUsers();
   const [editing, setEditing] = useState(false);
 
   const { caseRec, session } = useMemo(() => {
@@ -326,6 +331,24 @@ export default function SessionDetail() {
             )}
 
           <SessionAttachments caseRec={caseRec} session={session} />
+
+          {/* Session report — printable / PDF template */}
+          <div className="card p-5">
+            <h3 className="text-base font-extrabold text-slate-800 mb-4 pb-3 border-b border-slate-100 inline-flex items-center gap-2 w-full">
+              <FileText className="w-4 h-4 text-brand-500" />
+              تقرير الجلسة
+            </h3>
+            <SessionReport
+              caseRec={caseRec}
+              session={session}
+              client={
+                caseRec.clientId
+                  ? clients.find((c) => c.id === caseRec.clientId) ?? null
+                  : null
+              }
+              users={users}
+            />
+          </div>
         </div>
 
         {/* Side column */}
