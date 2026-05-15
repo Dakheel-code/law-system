@@ -485,12 +485,12 @@ export default function SessionReport({
             • للإحاطة والاطلاع وتقبلوا وافر الاحترام والتقدير.
           </p>
 
-          {/* Signature block — left-aligned (heading + tagline + stamp all on the left) */}
-          <div className="mt-8" dir="ltr" style={{ textAlign: "left" }}>
-            <h4 className="text-2xl font-black text-slate-900 leading-tight" dir="rtl">
+          {/* Signature block — centered (heading + tagline + stamp all centered) */}
+          <div className="mt-8 text-center" dir="rtl">
+            <h4 className="text-2xl font-black text-slate-900 leading-tight">
               إدارة القضايا
             </h4>
-            <p className="text-sm text-slate-700 mt-1.5 leading-6" dir="rtl">
+            <p className="text-sm text-slate-700 mt-1.5 leading-6">
               شركة ناصِر بن طريّد وشركاؤه
               <br />
               للمحاماة والاستشارات القانونية
@@ -499,10 +499,10 @@ export default function SessionReport({
               <img
                 src={office.stampDataUrl}
                 alt="الختم الإلكتروني"
-                className="h-24 object-contain mt-3 block"
+                className="h-24 object-contain mt-3 mx-auto block"
               />
             ) : (
-              <div className="mt-3 text-[10px] text-slate-300 italic" dir="rtl">
+              <div className="mt-3 text-[10px] text-slate-300 italic">
                 — لم يُرفَع ختم إلكتروني بعد —
               </div>
             )}
