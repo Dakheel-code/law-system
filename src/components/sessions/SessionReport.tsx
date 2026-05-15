@@ -22,6 +22,48 @@ import { hijriFull, hijriMonthYear } from "../../lib/hijri";
 const weekdayFmt = new Intl.DateTimeFormat("ar-SA", { weekday: "long" });
 const arDay = (d: Date) => weekdayFmt.format(d);
 
+/**
+ * Convert a numeric circuit identifier to its Arabic ordinal feminine form.
+ * Example: "13" → "الثالثة عشر"
+ * If the input is already Arabic text (e.g. "الدائرة التجارية الأولى"),
+ * it's returned as-is.
+ */
+function circuitOrdinal(raw: string): string {
+  const clean = raw.trim();
+  if (!clean) return "—";
+  // If it's not a pure number, return as-is
+  if (!/^\d+$/.test(clean)) return clean;
+  const n = parseInt(clean, 10);
+  const ones: Record<number, string> = {
+    1: "الأولى",
+    2: "الثانية",
+    3: "الثالثة",
+    4: "الرابعة",
+    5: "الخامسة",
+    6: "السادسة",
+    7: "السابعة",
+    8: "الثامنة",
+    9: "التاسعة",
+    10: "العاشرة",
+  };
+  const teens: Record<number, string> = {
+    11: "الحادية عشر",
+    12: "الثانية عشر",
+    13: "الثالثة عشر",
+    14: "الرابعة عشر",
+    15: "الخامسة عشر",
+    16: "السادسة عشر",
+    17: "السابعة عشر",
+    18: "الثامنة عشر",
+    19: "التاسعة عشر",
+  };
+  if (n >= 1 && n <= 10) return ones[n];
+  if (n >= 11 && n <= 19) return teens[n];
+  if (n === 20) return "العشرون";
+  // Fallback for larger numbers — keep numeric
+  return clean;
+}
+
 type Props = {
   caseRec: CaseRecord;
   session: CaseSession;
@@ -217,12 +259,12 @@ export default function SessionReport({
         </header>
 
         <main className="report-body px-8 py-6 text-slate-800 leading-7">
-          {/* Greeting */}
-          <div className="flex items-start justify-between mb-2">
-            <span className="text-sm font-bold">المحترمين</span>
-            <h2 className="text-base font-extrabold">
+          {/* Greeting — client name + "المحترمين" grouped together on the right */}
+          <div className="text-right mb-2">
+            <h2 className="text-base font-extrabold inline">
               السادة | {clientName}
             </h2>
+            <span className="text-sm font-bold mr-2">المحترمين</span>
           </div>
           <p className="text-xs text-slate-600 text-right mb-4">
             السلام عليكم ورحمة الله وبركاته،،، وبعد
@@ -245,7 +287,7 @@ export default function SessionReport({
             </strong>
             {circuitName !== "—" ? " والمنظورة لدى الدائرة " : ""}
             <strong className="text-slate-900">
-              {circuitName !== "—" ? circuitName : ""}
+              {circuitName !== "—" ? circuitOrdinal(circuitName) : ""}
             </strong>{" "}
             نفيدكم بالآتي:
           </p>
@@ -273,19 +315,19 @@ export default function SessionReport({
                 </tr>
                 <tr className="border-b border-slate-200">
                   <td className="py-2 px-3 font-bold text-slate-700 align-top">
-                    المدعية
+                    المدعي
                   </td>
                   <td className="py-2 px-3 text-slate-900">{clientName}</td>
                   <td className="py-2 px-3 text-slate-900">
                     <span className="font-bold text-slate-700">
-                      المدعى عليها:
+                      المدعى عليه:
                     </span>{" "}
                     {opponentName}
                   </td>
                 </tr>
                 <tr className="border-b border-slate-200">
                   <td className="py-2 px-3 font-bold text-slate-700 align-top">
-                    محامي المدعية
+                    محامي المدعي عليه
                   </td>
                   <td className="py-2 px-3 text-slate-900" colSpan={2}>
                     {plaintiffLawyer?.fullName || "—"}
@@ -298,7 +340,7 @@ export default function SessionReport({
                   <td className="py-2 px-3 text-slate-900">{courtName}</td>
                   <td className="py-2 px-3 text-slate-900">
                     <span className="font-bold text-slate-700">الدائرة:</span>{" "}
-                    {circuitName}
+                    {circuitOrdinal(circuitName)}
                   </td>
                 </tr>
                 <tr className="bg-rose-50">
