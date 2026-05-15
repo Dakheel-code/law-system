@@ -366,6 +366,96 @@ function OfficeSection({ draft, update }: SectionProps) {
           />
         </Field>
       </div>
+
+      {/* Electronic stamp uploader — used by session reports */}
+      <div className="mt-5">
+        <Field label="الختم الإلكتروني">
+          <StampUploader
+            value={draft.stampDataUrl}
+            onChange={(v) => update("stampDataUrl", v)}
+          />
+        </Field>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// Stamp uploader — reads file as base64, stores in office settings
+// ============================================================
+
+function StampUploader({
+  value,
+  onChange,
+}: {
+  value: string | null;
+  onChange: (v: string | null) => void;
+}) {
+  const inputRef = (window as unknown as { __stampRef?: HTMLInputElement })
+    .__stampRef;
+  // (We don't actually need a stable ref — the button below is a label.)
+  void inputRef;
+
+  const handlePick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f) return;
+    // Limit to 500KB so the row doesn't bloat the DB
+    if (f.size > 500_000) {
+      alert("الحد الأقصى لحجم الختم هو 500 KB");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      onChange(typeof reader.result === "string" ? reader.result : null);
+    };
+    reader.readAsDataURL(f);
+  };
+
+  return (
+    <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50/60 p-4 flex items-center gap-4 flex-wrap">
+      {value ? (
+        <img
+          src={value}
+          alt="الختم الإلكتروني"
+          className="h-24 w-auto object-contain bg-white border border-slate-200 rounded-lg p-2"
+        />
+      ) : (
+        <div className="h-24 w-24 rounded-lg bg-white border-2 border-dashed border-slate-300 flex items-center justify-center text-[10px] text-slate-400 text-center px-2">
+          لم يُرفَع ختم بعد
+        </div>
+      )}
+
+      <div className="flex-1 min-w-0">
+        <p className="text-[11px] text-slate-500 leading-5 mb-2">
+          سيظهر الختم في توقيع تقارير الجلسات تحت "إدارة القضايا". صيغ مدعومة:
+          PNG / JPG / SVG. أفضل النتائج بخلفية شفافة. الحد الأقصى 500 KB.
+        </p>
+        <div className="flex items-center gap-2 flex-wrap">
+          <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-md text-xs font-bold cursor-pointer">
+            <Upload className="w-3.5 h-3.5" />
+            {value ? "تغيير الختم" : "رفع ختم"}
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handlePick}
+              className="hidden"
+            />
+          </label>
+          {value && (
+            <button
+              type="button"
+              onClick={() => {
+                if (confirm("إزالة الختم الإلكتروني؟")) onChange(null);
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-md text-xs font-bold"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              إزالة
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

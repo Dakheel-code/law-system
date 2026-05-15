@@ -54,6 +54,8 @@ export type OfficeInfo = {
   // form customization
   caseTypes: CaseOption[];
   courtTypes: CaseOption[];
+  // electronic stamp (base64 data URL) — printed on session reports
+  stampDataUrl: string | null;
 };
 
 type OfficeRow = {
@@ -76,6 +78,7 @@ type OfficeRow = {
   last_backup_at: string | null;
   case_types: CaseOption[] | null;
   court_types: CaseOption[] | null;
+  stamp_data_url: string | null;
 };
 
 const DEFAULT_CASE_TYPES: CaseOption[] = [
@@ -123,6 +126,7 @@ const fromRow = (row: OfficeRow): OfficeInfo => ({
   lastBackupAt: row.last_backup_at,
   caseTypes: Array.isArray(row.case_types) && row.case_types.length > 0 ? row.case_types : DEFAULT_CASE_TYPES,
   courtTypes: Array.isArray(row.court_types) && row.court_types.length > 0 ? row.court_types : DEFAULT_COURT_TYPES,
+  stampDataUrl: row.stamp_data_url ?? null,
 });
 
 const toUpdate = (patch: Partial<OfficeInfo>): Record<string, unknown> => {
@@ -145,6 +149,7 @@ const toUpdate = (patch: Partial<OfficeInfo>): Record<string, unknown> => {
   if (patch.lastBackupAt !== undefined) out.last_backup_at = patch.lastBackupAt;
   if (patch.caseTypes !== undefined) out.case_types = patch.caseTypes;
   if (patch.courtTypes !== undefined) out.court_types = patch.courtTypes;
+  if (patch.stampDataUrl !== undefined) out.stamp_data_url = patch.stampDataUrl;
   return out;
 };
 
@@ -172,6 +177,7 @@ export const defaultOffice: OfficeInfo = {
   lastBackupAt: null,
   caseTypes: DEFAULT_CASE_TYPES,
   courtTypes: DEFAULT_COURT_TYPES,
+  stampDataUrl: null,
 };
 
 export async function getOffice(): Promise<OfficeInfo | null> {
