@@ -22,6 +22,13 @@ import { hijriFull } from "../../lib/hijri";
 const weekdayFmt = new Intl.DateTimeFormat("ar-SA", { weekday: "long" });
 const arDay = (d: Date) => weekdayFmt.format(d);
 
+/** Hijri date as DD/MM/YYYY using Arabic digits (e.g. ٢١/١١/١٤٤٧ هـ). */
+const hijriShortFmt = new Intl.DateTimeFormat(
+  "ar-SA-u-ca-islamic-umalqura-nu-arab",
+  { day: "2-digit", month: "2-digit", year: "numeric" }
+);
+const hijriShort = (d: Date) => hijriShortFmt.format(d);
+
 /**
  * Convert a numeric circuit identifier to its Arabic ordinal feminine form.
  * Example: "13" → "الثالثة عشر"
@@ -434,7 +441,7 @@ export default function SessionReport({
                       <span className="inline-flex items-center gap-2 flex-wrap">
                         {nextDate && (
                           <bdi dir="rtl">
-                            {hijriFull(new Date(nextDate + "T00:00:00"))}
+                            {hijriShort(new Date(nextDate + "T00:00:00"))} هـ
                           </bdi>
                         )}
                         {nextDate && nextTime && (
@@ -488,34 +495,31 @@ export default function SessionReport({
           </div>
         </main>
 
-        {/* Footer */}
-        <footer className="report-footer px-8 py-4 border-t-2 border-brand-500 bg-slate-50/50 flex items-end justify-between gap-4 text-[10px] text-slate-600">
+        {/* Footer — fixed company data per request */}
+        <footer className="report-footer px-8 py-5 border-t-2 border-brand-500 bg-slate-50/50 flex items-start justify-between gap-4 text-[11px] text-slate-700 leading-6">
+          {/* Left column — contact (LTR) */}
           <div className="text-left" dir="ltr">
-            {office?.website && (
-              <div className="font-mono uppercase">{office.website}</div>
-            )}
-            {office?.phone && (
-              <div className="font-mono mt-0.5">{office.phone}</div>
-            )}
-            {office?.email && (
-              <div className="font-mono mt-0.5">{office.email}</div>
-            )}
-          </div>
-          <div className="text-right">
-            <div className="font-bold">
-              {office?.officeName || "شركة المحاماة"}
+            <div className="font-mono font-bold tracking-wider">
+              {office?.website?.toUpperCase() || "WWW.NASSERLAW.ORG"}
             </div>
-            {office?.crNumber && (
-              <div className="mt-0.5">
-                سجل تجاري: <bdi dir="ltr">{office.crNumber}</bdi>
-              </div>
-            )}
-            {office?.taxNumber && (
-              <div className="mt-0.5">
-                الرقم الضريبي: <bdi dir="ltr">{office.taxNumber}</bdi>
-              </div>
-            )}
-            {office?.address && <div className="mt-0.5">{office.address}</div>}
+            <div className="font-mono mt-0.5">
+              {office?.phone || "011-299-0001"}
+            </div>
+            <div className="font-mono mt-0.5">
+              {office?.email || "info@nasserlaw.org"}
+            </div>
+          </div>
+
+          {/* Right column — company info (RTL) */}
+          <div className="text-right">
+            <div>شركة مهنية ذات مسؤولية محدودة</div>
+            <div className="mt-0.5">
+              رأس المال :{" "}
+              <bdi dir="ltr">10,000,000</bdi> ريال سعودي
+            </div>
+            <div className="mt-0.5">
+              {office?.address || "الرياض الدائري الشمالي مخرج ٥"}
+            </div>
           </div>
         </footer>
       </div>
