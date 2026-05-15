@@ -17,7 +17,7 @@ import type { ClientRecord } from "../../lib/clientStore";
 import type { UserRecord } from "../../lib/userStore";
 import { useOffice } from "../../lib/officeStore";
 import { updateSessionOnCase } from "../../lib/caseStore";
-import { hijriFull, hijriMonthYear } from "../../lib/hijri";
+import { hijriFull } from "../../lib/hijri";
 
 const weekdayFmt = new Intl.DateTimeFormat("ar-SA", { weekday: "long" });
 const arDay = (d: Date) => weekdayFmt.format(d);
@@ -64,6 +64,32 @@ function circuitOrdinal(raw: string): string {
   return clean;
 }
 
+/**
+ * Extract HH:MM from a free-text `nextAction` value (back-compat with old
+ * records that stored "10:40 صباحاً" or similar). Returns "" if no match.
+ */
+function extractTime(s: string): string {
+  const m = s.trim().match(/(\d{1,2}):(\d{2})/);
+  if (!m) return "";
+  const h = Math.max(0, Math.min(23, parseInt(m[1], 10)));
+  const mm = Math.max(0, Math.min(59, parseInt(m[2], 10)));
+  return `${String(h).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+}
+
+/** Format HH:MM (24h) as "HH:MM صباحاً" or "HH:MM مساءً" (12h with AM/PM). */
+function formatTimeArabic(time: string): string {
+  if (!time) return "";
+  const [hStr, mStr] = time.split(":");
+  const h = parseInt(hStr, 10);
+  const m = parseInt(mStr, 10);
+  if (isNaN(h) || isNaN(m)) return time;
+  const isMorning = h < 12;
+  const display = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${display}:${String(m).padStart(2, "0")} ${
+    isMorning ? "صباحاً" : "مساءً"
+  }`;
+}
+
 type Props = {
   caseRec: CaseRecord;
   session: CaseSession;
@@ -79,7 +105,11 @@ export default function SessionReport({
 }: Props) {
   const { office } = useOffice();
   const [minutes, setMinutes] = useState(session.minutes ?? "");
-  const [nextAction, setNextAction] = useState(session.nextAction ?? "");
+  // Time of the upcoming session. Stored inside `nextAction` for back-compat;
+  // we extract HH:MM from any existing free-text and reformat on save.
+  const [nextTime, setNextTime] = useState(
+    extractTime(session.nextAction ?? "")
+  );
   const [nextDate, setNextDate] = useState(session.nextDate ?? "");
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
@@ -137,16 +167,20 @@ export default function SessionReport({
   // Save edits back to the session
   // ----------------------------------------------------------------
 
+  // Save time formatted as "HH:MM صباحاً/مساءً" so it shows nicely if read
+  // back into older UIs.
+  const nextActionToSave = nextTime ? formatTimeArabic(nextTime) : "";
+
   const dirty =
     minutes !== (session.minutes ?? "") ||
-    nextAction !== (session.nextAction ?? "") ||
+    nextActionToSave !== (session.nextAction ?? "") ||
     nextDate !== (session.nextDate ?? "");
 
   const handleSave = async () => {
     setSaving(true);
     const ok = await updateSessionOnCase(caseRec.id, session.id, {
       minutes,
-      nextAction,
+      nextAction: nextActionToSave,
       nextDate: nextDate || undefined,
     });
     setSaving(false);
@@ -199,29 +233,32 @@ export default function SessionReport({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <label className="block">
             <span className="block text-xs font-bold text-slate-500 mb-1.5 text-right">
-              موعد الجلسة القادمة (تاريخ + ساعة)
+              تاريخ الجلسة القادمة
             </span>
-            <div className="flex items-center gap-2">
-              <input
-                type="date"
-                value={nextDate}
-                onChange={(e) => setNextDate(e.target.value)}
-                dir="ltr"
-                className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-left focus:outline-none focus:ring-2 focus:ring-brand-200"
-              />
-            </div>
+            <input
+              type="date"
+              value={nextDate}
+              onChange={(e) => setNextDate(e.target.value)}
+              dir="ltr"
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-left focus:outline-none focus:ring-2 focus:ring-brand-200"
+            />
           </label>
           <label className="block">
             <span className="block text-xs font-bold text-slate-500 mb-1.5 text-right">
-              الجلسة القادمة (نص مكمّل: الساعة، التفاصيل...)
+              ساعة الجلسة القادمة
             </span>
             <input
-              type="text"
-              value={nextAction}
-              onChange={(e) => setNextAction(e.target.value)}
-              placeholder="مثال: الساعة 10:40 صباحاً"
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-right focus:outline-none focus:ring-2 focus:ring-brand-200"
+              type="time"
+              value={nextTime}
+              onChange={(e) => setNextTime(e.target.value)}
+              dir="ltr"
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-left font-mono focus:outline-none focus:ring-2 focus:ring-brand-200"
             />
+            {nextTime && (
+              <span className="block text-[10px] text-emerald-700 font-bold mt-1 text-right">
+                ↳ ستظهر كـ: <bdi dir="rtl">{formatTimeArabic(nextTime)}</bdi>
+              </span>
+            )}
           </label>
         </div>
 
@@ -353,14 +390,20 @@ export default function SessionReport({
                   >
                     {nextDate ? (
                       <>
-                        <span className="font-mono" dir="ltr">
-                          {hijriMonthYear(new Date(nextDate + "T00:00:00"))}
-                        </span>
-                        {" "}
-                        {nextAction}
+                        <bdi dir="rtl">
+                          {hijriFull(new Date(nextDate + "T00:00:00"))}
+                        </bdi>
+                        {nextTime && (
+                          <>
+                            {"  ـ  "}
+                            <bdi dir="rtl">{formatTimeArabic(nextTime)}</bdi>
+                          </>
+                        )}
                       </>
+                    ) : nextTime ? (
+                      <bdi dir="rtl">{formatTimeArabic(nextTime)}</bdi>
                     ) : (
-                      nextAction || "—"
+                      "—"
                     )}
                   </td>
                 </tr>
