@@ -483,12 +483,12 @@ export default function SessionReport({
             • للإحاطة والاطلاع وتقبلوا وافر الاحترام والتقدير.
           </p>
 
-          {/* Signature block — left-aligned with optional electronic stamp */}
-          <div className="mt-8 text-left">
-            <h4 className="text-base font-extrabold text-slate-800">
+          {/* Signature block — left-aligned (heading + tagline + stamp all on the left) */}
+          <div className="mt-8" dir="ltr" style={{ textAlign: "left" }}>
+            <h4 className="text-base font-extrabold text-slate-800" dir="rtl">
               إدارة القضايا
             </h4>
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs text-slate-500 mt-1" dir="rtl">
               {office?.officeName || "شركة المحاماة"} للمحاماة والاستشارات
               القانونية
             </p>
@@ -496,10 +496,10 @@ export default function SessionReport({
               <img
                 src={office.stampDataUrl}
                 alt="الختم الإلكتروني"
-                className="h-24 object-contain mt-3"
+                className="h-24 object-contain mt-3 block"
               />
             ) : (
-              <div className="mt-3 text-[10px] text-slate-300 italic">
+              <div className="mt-3 text-[10px] text-slate-300 italic" dir="rtl">
                 — لم يُرفَع ختم إلكتروني بعد —
               </div>
             )}
