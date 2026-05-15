@@ -560,10 +560,11 @@ export default function SessionReport({
 // ============================================================
 
 function ReportLogo({ officeName }: { officeName: string }) {
+  // Local logo first (fast + always available). Remote URL kept as fallback.
   const sources = [
-    "https://nasserlaw.org/wp-content/uploads/2024/06/footerlogo.png",
     "/logo.png",
     "/footerlogo.png",
+    "https://nasserlaw.org/wp-content/uploads/2024/06/footerlogo.png",
   ];
   const [idx, setIdx] = useState(0);
   const [failed, setFailed] = useState(false);
