@@ -343,12 +343,12 @@ export default function SessionReport({
               ({caseNumber})
             </strong>{" "}
             لعام{" "}
-            <strong className="text-slate-900" dir="ltr">
-              {caseHijriYear}
-            </strong>
-            هـ{courtName !== "—" ? " ب" : ""}
             <strong className="text-slate-900">
-              {courtName !== "—" ? courtName : ""}
+              <bdi dir="ltr">{caseHijriYear}</bdi>هـ
+            </strong>
+            {courtName !== "—" ? " " : ""}
+            <strong className="text-slate-900">
+              {courtName !== "—" ? `ب${courtName}` : ""}
             </strong>
             {circuitName !== "—" ? " والمنظورة لدى الدائرة " : ""}
             <strong className="text-slate-900">
