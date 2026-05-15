@@ -118,17 +118,27 @@ export default function SessionReport({
   // Derive variables
   // ----------------------------------------------------------------
 
-  const plaintiffParty = useMemo(() => {
-    return (caseRec.parties ?? []).find((p) => p.role === "plaintiff");
-  }, [caseRec.parties]);
+  // Whether our client is the plaintiff or defendant in this case.
+  // Drives the wording of role labels throughout the report.
+  const isClientPlaintiff = caseRec.clientRole === "plaintiff";
+  const clientRoleLabel = isClientPlaintiff ? "المدعي" : "المدعى عليه";
+  const opponentRoleLabel = isClientPlaintiff ? "المدعى عليه" : "المدعي";
+  const lawyerRoleLabel = `محامي ${clientRoleLabel}`;
 
-  const defendantParty = useMemo(() => {
-    return (caseRec.parties ?? []).find(
-      (p) => p.role === "defendant" || p.role !== "plaintiff"
-    );
-  }, [caseRec.parties]);
+  const plaintiffParty = useMemo(
+    () => (caseRec.parties ?? []).find((p) => p.role === "plaintiff"),
+    [caseRec.parties]
+  );
 
-  const plaintiffLawyer = useMemo(() => {
+  const defendantParty = useMemo(
+    () =>
+      (caseRec.parties ?? []).find(
+        (p) => p.role === "defendant" || p.role !== "plaintiff"
+      ),
+    [caseRec.parties]
+  );
+
+  const caseLawyer = useMemo(() => {
     // Pick primary lawyer first, fall back to first assignment
     const primary = caseRec.assignments?.find((a) => a.role === "primary");
     const fallback = caseRec.assignments?.[0];
@@ -137,9 +147,15 @@ export default function SessionReport({
     return users.find((u) => u.id === id) ?? null;
   }, [caseRec.assignments, users]);
 
-  const clientName = client?.fullName || plaintiffParty?.name || "—";
+  // Resolve client name and opponent name based on client's role.
+  const clientName =
+    client?.fullName ||
+    (isClientPlaintiff ? plaintiffParty?.name : defendantParty?.name) ||
+    "—";
   const opponentName =
-    defendantParty?.name || caseRec.otherPartyName || "—";
+    (isClientPlaintiff ? defendantParty?.name : plaintiffParty?.name) ||
+    caseRec.otherPartyName ||
+    "—";
 
   const caseNumber = caseRec.caseNumber || caseRec.code;
   const sessionDate = session.date ? new Date(session.date + "T00:00:00") : null;
@@ -306,10 +322,21 @@ export default function SessionReport({
             السلام عليكم ورحمة الله وبركاته،،، وبعد
           </p>
 
-          {/* Reference paragraph */}
+          {/* Reference paragraph — wording flips based on client role */}
           <p className="text-sm text-slate-700 leading-8 mb-5 text-right">
-            إشارة إلى القضية المقامة منكم ضد{" "}
-            <strong className="text-slate-900">{opponentName}</strong> بالرقم{" "}
+            إشارة إلى القضية{" "}
+            {isClientPlaintiff ? (
+              <>
+                المقامة منكم ضد{" "}
+                <strong className="text-slate-900">{opponentName}</strong>
+              </>
+            ) : (
+              <>
+                المقامة ضدكم من{" "}
+                <strong className="text-slate-900">{opponentName}</strong>
+              </>
+            )}{" "}
+            بالرقم{" "}
             <strong className="text-slate-900" dir="ltr">
               ({caseNumber})
             </strong>{" "}
@@ -351,22 +378,22 @@ export default function SessionReport({
                 </tr>
                 <tr className="border-b border-slate-200">
                   <td className="py-2 px-3 font-bold text-slate-700 align-top">
-                    المدعي
+                    {clientRoleLabel}
                   </td>
                   <td className="py-2 px-3 text-slate-900">{clientName}</td>
                   <td className="py-2 px-3 text-slate-900">
                     <span className="font-bold text-slate-700">
-                      المدعى عليه:
+                      {opponentRoleLabel}:
                     </span>{" "}
                     {opponentName}
                   </td>
                 </tr>
                 <tr className="border-b border-slate-200">
                   <td className="py-2 px-3 font-bold text-slate-700 align-top">
-                    محامي المدعي عليه
+                    {lawyerRoleLabel}
                   </td>
                   <td className="py-2 px-3 text-slate-900" colSpan={2}>
-                    {plaintiffLawyer?.fullName || "—"}
+                    {caseLawyer?.fullName || "—"}
                   </td>
                 </tr>
                 <tr className="border-b border-slate-200">
