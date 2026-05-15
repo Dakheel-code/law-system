@@ -355,79 +355,102 @@ export default function SessionReport({
             نفيدكم بالآتي:
           </p>
 
-          {/* Case data table */}
+          {/* Case data table — 4-column layout: label | value | label | value */}
           <section className="mb-5">
             <div className="bg-brand-50 px-3 py-1.5 inline-block rounded-t-md border-b-2 border-brand-500">
               <h3 className="text-sm font-extrabold text-brand-700">
                 • بيانات القضية:
               </h3>
             </div>
-            <table className="w-full text-sm border-collapse">
+            <table className="w-full text-sm border-collapse table-fixed">
+              <colgroup>
+                <col style={{ width: "20%" }} />
+                <col style={{ width: "30%" }} />
+                <col style={{ width: "20%" }} />
+                <col style={{ width: "30%" }} />
+              </colgroup>
               <tbody>
+                {/* Row 1: اليوم */}
                 <tr className="border-b border-slate-200">
-                  <td className="py-2 px-3 font-bold text-slate-700 w-32 align-top">
+                  <td className="py-2.5 px-3 font-bold text-slate-700 bg-slate-50/60 align-middle">
                     اليوم
                   </td>
-                  <td className="py-2 px-3 text-slate-900">{sessionWeekday}</td>
-                  <td
-                    className="py-2 px-3 text-slate-900 text-left font-mono"
-                    dir="ltr"
-                  >
-                    {sessionHijri}
+                  <td className="py-2.5 px-3 text-slate-900">
+                    {sessionWeekday}
+                  </td>
+                  <td className="py-2.5 px-3 font-bold text-slate-700 bg-slate-50/60 align-middle">
+                    التاريخ
+                  </td>
+                  <td className="py-2.5 px-3 text-slate-900 font-mono text-sm">
+                    <bdi dir="rtl">{sessionHijri}</bdi>
                   </td>
                 </tr>
+
+                {/* Row 2: العميل + الخصم */}
                 <tr className="border-b border-slate-200">
-                  <td className="py-2 px-3 font-bold text-slate-700 align-top">
+                  <td className="py-2.5 px-3 font-bold text-slate-700 bg-slate-50/60 align-middle">
                     {clientRoleLabel}
                   </td>
-                  <td className="py-2 px-3 text-slate-900">{clientName}</td>
-                  <td className="py-2 px-3 text-slate-900">
-                    <span className="font-bold text-slate-700">
-                      {opponentRoleLabel}:
-                    </span>{" "}
+                  <td className="py-2.5 px-3 text-slate-900 font-bold">
+                    {clientName}
+                  </td>
+                  <td className="py-2.5 px-3 font-bold text-slate-700 bg-slate-50/60 align-middle">
+                    {opponentRoleLabel}
+                  </td>
+                  <td className="py-2.5 px-3 text-slate-900 font-bold">
                     {opponentName}
                   </td>
                 </tr>
+
+                {/* Row 3: المحامي (spans value cols) */}
                 <tr className="border-b border-slate-200">
-                  <td className="py-2 px-3 font-bold text-slate-700 align-top">
+                  <td className="py-2.5 px-3 font-bold text-slate-700 bg-slate-50/60 align-middle">
                     {lawyerRoleLabel}
                   </td>
-                  <td className="py-2 px-3 text-slate-900" colSpan={2}>
+                  <td className="py-2.5 px-3 text-slate-900" colSpan={3}>
                     {caseLawyer?.fullName || "—"}
                   </td>
                 </tr>
+
+                {/* Row 4: المحكمة + الدائرة */}
                 <tr className="border-b border-slate-200">
-                  <td className="py-2 px-3 font-bold text-slate-700 align-top">
+                  <td className="py-2.5 px-3 font-bold text-slate-700 bg-slate-50/60 align-middle">
                     المحكمة
                   </td>
-                  <td className="py-2 px-3 text-slate-900">{courtName}</td>
-                  <td className="py-2 px-3 text-slate-900">
-                    <span className="font-bold text-slate-700">الدائرة:</span>{" "}
+                  <td className="py-2.5 px-3 text-slate-900">{courtName}</td>
+                  <td className="py-2.5 px-3 font-bold text-slate-700 bg-slate-50/60 align-middle">
+                    الدائرة
+                  </td>
+                  <td className="py-2.5 px-3 text-slate-900">
                     {circuitOrdinal(circuitName)}
                   </td>
                 </tr>
+
+                {/* Row 5: الجلسة القادمة (spans value cols, red highlight) */}
                 <tr className="bg-rose-50">
-                  <td className="py-2 px-3 font-bold text-rose-700 align-top">
+                  <td className="py-2.5 px-3 font-extrabold text-rose-700 bg-rose-100/60 align-middle">
                     الجلسة القادمة
                   </td>
                   <td
-                    className="py-2 px-3 text-rose-700 font-bold"
-                    colSpan={2}
+                    className="py-2.5 px-3 text-rose-700 font-extrabold whitespace-nowrap"
+                    colSpan={3}
                   >
-                    {nextDate ? (
-                      <>
-                        <bdi dir="rtl">
-                          {hijriFull(new Date(nextDate + "T00:00:00"))}
-                        </bdi>
-                        {nextTime && (
-                          <>
-                            {"  ـ  "}
-                            <bdi dir="rtl">{formatTimeArabic(nextTime)}</bdi>
-                          </>
+                    {nextDate || nextTime ? (
+                      <span className="inline-flex items-center gap-2 flex-wrap">
+                        {nextDate && (
+                          <bdi dir="rtl">
+                            {hijriFull(new Date(nextDate + "T00:00:00"))}
+                          </bdi>
                         )}
-                      </>
-                    ) : nextTime ? (
-                      <bdi dir="rtl">{formatTimeArabic(nextTime)}</bdi>
+                        {nextDate && nextTime && (
+                          <span className="opacity-70">ـ</span>
+                        )}
+                        {nextTime && (
+                          <bdi dir="rtl">
+                            الساعة {formatTimeArabic(nextTime)}
+                          </bdi>
+                        )}
+                      </span>
                     ) : (
                       "—"
                     )}
