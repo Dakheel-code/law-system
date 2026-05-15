@@ -318,7 +318,7 @@ export default function SessionReport({
             <h2 className="text-base font-extrabold inline">
               السادة | {clientName}
             </h2>
-            <span className="text-sm font-bold mr-2">المحترمين</span>
+            <span className="text-sm mr-2">المحترمين</span>
           </div>
           <p className="text-xs text-slate-600 text-right mb-4">
             السلام عليكم ورحمة الله وبركاته،،، وبعد
@@ -354,7 +354,9 @@ export default function SessionReport({
             <strong className="text-slate-900">
               {circuitName !== "—" ? circuitOrdinal(circuitName) : ""}
             </strong>{" "}
-            نفيدكم بالآتي:
+            <span className="underline decoration-slate-400 underline-offset-4">
+              نفيدكم بالآتي:
+            </span>
           </p>
 
           {/* Case data table — 4-column layout: label | value | label | value */}
@@ -441,7 +443,7 @@ export default function SessionReport({
                       <span className="inline-flex items-center gap-2 flex-wrap">
                         {nextDate && (
                           <bdi dir="rtl">
-                            {hijriShort(new Date(nextDate + "T00:00:00"))} هـ
+                            {hijriShort(new Date(nextDate + "T00:00:00"))}
                           </bdi>
                         )}
                         {nextDate && nextTime && (
