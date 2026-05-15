@@ -301,14 +301,14 @@ export default function SessionReport({
 
       {/* Printable report */}
       <div className="session-report bg-white border border-slate-200 rounded-xl overflow-hidden">
-        {/* Report header — logo top-left, no company name text */}
+        {/* Report header — logo top-right (first child in RTL = right side) */}
         <header className="report-header relative px-8 pt-8 pb-6 border-b-2 border-brand-500">
           <div className="flex items-start justify-between gap-4">
-            {/* Right side intentionally blank to keep the layout clean. */}
-            <div className="flex-1" />
             <ReportLogo
               officeName={office?.officeName ?? "شركة ناصر طريد للمحاماة"}
             />
+            {/* Left side intentionally blank to keep the layout clean. */}
+            <div className="flex-1" />
           </div>
         </header>
 
